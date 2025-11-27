@@ -17,5 +17,5 @@ __all__ = [
     "ProbeBay",
     "MongoStarLoader",
     "FoundrySettings",
-    "get_mongo_client"
+    "get_mongo_client",
 ]

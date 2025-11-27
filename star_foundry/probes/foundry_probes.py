@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from typing import List
-from ..registry.star_registry import StarRegistry
 from .probe_base import AbstractProbe
-from .schemas import StarSummary, StarDetails, ListStarsOutput, GetStarOutput, SearchStarsOutput
+from .schemas import StarSummary, ListStarsOutput, GetStarOutput, SearchStarsOutput
 
 
 class ListStarsProbe(AbstractProbe):
@@ -20,7 +18,11 @@ class ListStarsProbe(AbstractProbe):
             s = self.registry.get_by_id(sid)
             if not s:
                 continue
-            meta = s.metadata.model_dump() if hasattr(s.metadata, "model_dump") else s.metadata.dict()
+            meta = (
+                s.metadata.model_dump()
+                if hasattr(s.metadata, "model_dump")
+                else s.metadata.dict()
+            )
             stars.append(StarSummary(id=s.id, name=s.name, metadata=meta))
         return {"stars": stars}
 
@@ -28,6 +30,7 @@ class ListStarsProbe(AbstractProbe):
 class GetStarProbe(AbstractProbe):
     id = "foundry.get_star"
     description = "Return full star details by id"
+
     # input schema: expect {'id': str}
     class InputModel(__import__("pydantic").BaseModel):
         id: str
@@ -43,7 +46,11 @@ class GetStarProbe(AbstractProbe):
         data = {
             "id": star.id,
             "name": star.name,
-            "metadata": star.metadata.model_dump() if hasattr(star.metadata, "model_dump") else star.metadata.dict(),
+            "metadata": (
+                star.metadata.model_dump()
+                if hasattr(star.metadata, "model_dump")
+                else star.metadata.dict()
+            ),
             "content": star.content,
             "references": star.references,
         }
@@ -69,7 +76,17 @@ class GetChildrenProbe(AbstractProbe):
         for ref in getattr(star, "references", []):
             s = self.registry.get_by_id(ref)
             if s:
-                results.append(StarSummary(id=s.id, name=s.name, metadata=s.metadata.model_dump() if hasattr(s.metadata, "model_dump") else s.metadata.dict()))
+                results.append(
+                    StarSummary(
+                        id=s.id,
+                        name=s.name,
+                        metadata=(
+                            s.metadata.model_dump()
+                            if hasattr(s.metadata, "model_dump")
+                            else s.metadata.dict()
+                        ),
+                    )
+                )
         return {"results": results}
 
 
@@ -88,5 +105,15 @@ class SearchByTagProbe(AbstractProbe):
         matches = self.registry.search_by_tag(tag)
         results = []
         for s in matches:
-            results.append(StarSummary(id=s.id, name=s.name, metadata=s.metadata.model_dump() if hasattr(s.metadata, "model_dump") else s.metadata.dict()))
+            results.append(
+                StarSummary(
+                    id=s.id,
+                    name=s.name,
+                    metadata=(
+                        s.metadata.model_dump()
+                        if hasattr(s.metadata, "model_dump")
+                        else s.metadata.dict()
+                    ),
+                )
+            )
         return {"results": results}

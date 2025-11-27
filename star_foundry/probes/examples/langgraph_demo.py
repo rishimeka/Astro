@@ -2,6 +2,7 @@
 
 Run as a script to load fixture stars and list them via the probe.
 """
+
 import asyncio
 from ...loader.star_loader import StarLoader
 from ...registry.star_registry import StarRegistry

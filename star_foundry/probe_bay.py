@@ -26,7 +26,10 @@ class ProbeBay:
         self._probes[probe.id] = probe
 
     def list_probes(self) -> List[Dict[str, str]]:
-        return [{"id": p.id, "description": getattr(p, "description", "")} for p in self._probes.values()]
+        return [
+            {"id": p.id, "description": getattr(p, "description", "")}
+            for p in self._probes.values()
+        ]
 
     def get(self, probe_id: str) -> Probe | None:
         return self._probes.get(probe_id)

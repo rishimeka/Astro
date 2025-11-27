@@ -14,7 +14,9 @@ class Probe(ABC):
     output_schema: Type[BaseModel]
 
     @abstractmethod
-    async def run(self, **kwargs: Any) -> BaseModel:  # pragma: no cover - implemented by subclasses
+    async def run(
+        self, **kwargs: Any
+    ) -> BaseModel:  # pragma: no cover - implemented by subclasses
         raise NotImplementedError()
 
 
@@ -38,7 +40,11 @@ class AbstractProbe(Probe):
             else:
                 validated_in = self.input_schema(**kwargs)
 
-        result = await self._run_impl(validated_in) if validated_in is not None else await self._run_impl(**kwargs)
+        result = (
+            await self._run_impl(validated_in)
+            if validated_in is not None
+            else await self._run_impl(**kwargs)
+        )
 
         # validate/normalize output and return pydantic model instance
         if hasattr(self.output_schema, "model_validate"):
@@ -46,5 +52,7 @@ class AbstractProbe(Probe):
         return self.output_schema(**(result or {}))
 
     @abstractmethod
-    async def _run_impl(self, validated_input: Any | None = None) -> Any:  # pragma: no cover - implemented by subclasses
+    async def _run_impl(
+        self, validated_input: Any | None = None
+    ) -> Any:  # pragma: no cover - implemented by subclasses
         raise NotImplementedError()

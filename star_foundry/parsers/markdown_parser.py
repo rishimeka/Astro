@@ -41,11 +41,11 @@ def parse_markdown(file_path: str | Path) -> Star:
             m = re.search(r"^---\s*$", text, flags=re.M)
             if m:
                 # find next match after m.end()
-                m2 = re.search(r"^---\s*$", text[m.end():], flags=re.M)
+                m2 = re.search(r"^---\s*$", text[m.end() :], flags=re.M)
                 if m2:
-                    content = text[m.end() + m2.end():].lstrip("\n")
+                    content = text[m.end() + m2.end() :].lstrip("\n")
                 else:
-                    content = text[m.end():].lstrip("\n")
+                    content = text[m.end() :].lstrip("\n")
 
     # required top-level keys: id, name, plus metadata fields
     if "id" not in meta or "name" not in meta:

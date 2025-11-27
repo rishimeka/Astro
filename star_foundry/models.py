@@ -13,7 +13,9 @@ class ContentType(str, Enum):
 
 
 class StarMetadata(BaseModel):
-    description: str = Field(description="Purpose and human-readable summary of the star")
+    description: str = Field(
+        description="Purpose and human-readable summary of the star"
+    )
     content_type: ContentType = Field(description="File or text type of the content")
     tags: list[str] = Field(default_factory=list, description="Categorization labels")
     version: str = Field(description="Semantic version of the star")
@@ -28,10 +30,22 @@ class Star(BaseModel):
     name: str = Field(description="Human-readable name of the star")
     metadata: StarMetadata = Field(description="Metadata associated with the star")
     content: str = Field(description="The full prompt text of the star")
-    references: list[str] = Field(default_factory=list, description="IDs of referenced stars")
-    tools: list[str] = Field(default_factory=list, description="Tool IDs used by this star")
-    probes: list[str] = Field(default_factory=list, description="Probe IDs associated with this star")
-    parents: list[str] = Field(default_factory=list, description="Reverse edges populated by Astro")
-    file_path: str | None = Field(default=None, description="Source storage path, if applicable")
+    references: list[str] = Field(
+        default_factory=list, description="IDs of referenced stars"
+    )
+    tools: list[str] = Field(
+        default_factory=list, description="Tool IDs used by this star"
+    )
+    probes: list[str] = Field(
+        default_factory=list, description="Probe IDs associated with this star"
+    )
+    parents: list[str] = Field(
+        default_factory=list, description="Reverse edges populated by Astro"
+    )
+    file_path: str | None = Field(
+        default=None, description="Source storage path, if applicable"
+    )
     # resolved probe instances (populated after loading via ProbeBay)
-    resolved_probes: list[Any] = Field(default_factory=list, description="Resolved Probe objects")
+    resolved_probes: list[Any] = Field(
+        default_factory=list, description="Resolved Probe objects"
+    )
