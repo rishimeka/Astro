@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 from pydantic import BaseModel, Field
 
 
@@ -29,5 +30,8 @@ class Star(BaseModel):
     content: str = Field(description="The full prompt text of the star")
     references: list[str] = Field(default_factory=list, description="IDs of referenced stars")
     tools: list[str] = Field(default_factory=list, description="Tool IDs used by this star")
+    probes: list[str] = Field(default_factory=list, description="Probe IDs associated with this star")
     parents: list[str] = Field(default_factory=list, description="Reverse edges populated by Astro")
     file_path: str | None = Field(default=None, description="Source storage path, if applicable")
+    # resolved probe instances (populated after loading via ProbeBay)
+    resolved_probes: list[Any] = Field(default_factory=list, description="Resolved Probe objects")

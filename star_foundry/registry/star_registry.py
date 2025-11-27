@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, Set, List
 from collections import defaultdict
 from ..models import Star
+import warnings
 
 
 class DuplicateStarError(Exception):
@@ -40,3 +41,19 @@ class StarRegistry:
 
     def all_ids(self) -> List[str]:
         return list(self._by_id.keys())
+
+    def resolve_probes(self, probe_bay) -> None:
+        """Resolve probe id strings on loaded stars into probe objects from the provided ProbeBay.
+
+        Missing probes will be warned but do not raise.
+        """
+        for star in self._by_id.values():
+            resolved = []
+            for pid in getattr(star, "probes", []) or []:
+                probe = probe_bay.get(pid)
+                if probe:
+                    resolved.append(probe)
+                else:
+                    warnings.warn(f"Unknown probe referenced by star {star.id}: {pid}")
+            # attach resolved probe instances without mutating the original probe id list
+            setattr(star, "resolved_probes", resolved)
