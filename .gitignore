@@ -1,0 +1,60 @@
+# Virtualenv
+.venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.build/
+dist/
+build/
+*.egg-info/
+pip-wheel-metadata/
+
+# Installers
+*.egg
+
+# Pytest cache
+.pytest_cache/
+coverage.xml
+.coverage
+htmlcov/
+
+# Mypy cache
+.mypy_cache/
+
+# Ruff cache
+.ruff_cache/
+
+# Editor directories and files
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.*
+
+# Node
+node_modules/
+
+# Local build outputs
+/.pytest_cache/
+
+# Logs
+*.log
+
+# Secrets and keys
+*.pem
+*.key
+*.crt
