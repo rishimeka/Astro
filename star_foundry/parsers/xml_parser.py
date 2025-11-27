@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 from datetime import datetime
 import xml.etree.ElementTree as ET
 from ..models import Star, StarMetadata, ContentType
