@@ -8,7 +8,11 @@ def test_validator_success():
     base = Path(__file__).parent.parent / "fixtures"
     loader = StarLoader(base)
     # only load base and financial for this test
-    stars = [s for s in loader.load_all() if s.id in ("astro.ic.base.v1", "astro.research.market.v1")]
+    stars = [
+        s
+        for s in loader.load_all()
+        if s.id in ("astro.ic.base.v1", "astro.research.market.v1")
+    ]
     assert len(stars) == 2
     # should not raise
     StarValidator.validate(stars)
@@ -29,7 +33,9 @@ def test_validator_missing_ref():
 def test_validator_cycle_detection():
     base = Path(__file__).parent.parent / "fixtures"
     loader = StarLoader(base)
-    stars = [s for s in loader.load_all() if s.id in ("astro.cycle.a.v1", "astro.cycle.b.v1")]
+    stars = [
+        s for s in loader.load_all() if s.id in ("astro.cycle.a.v1", "astro.cycle.b.v1")
+    ]
     assert len(stars) == 2
     with pytest.raises(ValidationError):
         StarValidator.validate(stars)
