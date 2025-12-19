@@ -4,7 +4,7 @@ This module provides the ProbeRegistry class which stores and manages
 all registered probe functions in the system.
 """
 
-from probes import schema_for_planner
+from probes.introspection import schema_for_planner
 
 
 class ProbeRegistry:
@@ -93,3 +93,7 @@ class ProbeRegistry:
             return {
                 i: schema_for_planner(self._probes[i]) for i in ids if i in self._probes
             }
+
+
+# Module-level registry instance used by the `probe` decorator and other modules
+probe_registry = ProbeRegistry()

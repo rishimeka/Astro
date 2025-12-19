@@ -83,7 +83,12 @@ class MongoStarRepository:
         """
         # Validate model before writing to Mongo
         try:
-            star_dict = star.dict()
+            # Use Pydantic v2 `model_dump()` when available; fall back to `dict()` for v1 compatibility
+            if hasattr(star, "model_dump"):
+                star_dict = star.model_dump()
+            else:
+                star_dict = star.dict()
+
             star_dict["_id"] = star_dict["id"]
             del star_dict["id"]
         except ValidationError as e:

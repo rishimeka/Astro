@@ -5,7 +5,7 @@ probe registry, making them discoverable and callable through the probe system.
 """
 
 from functools import wraps
-from inspect import getdoc
+from inspect import getdoc, iscoroutinefunction
 from probes.registry import probe_registry
 from probes.introspection import build_probe_metadata
 
@@ -32,12 +32,26 @@ def probe(id: str, description: str):
             )
         final_description = description or getdoc(fn)
 
-        # Build comprehensive probe metadata
+        # Preserve async/sync nature when wrapping
+        if iscoroutinefunction(fn):
+
+            @wraps(fn)
+            async def wrapper(*args, **kwargs):
+                return await fn(*args, **kwargs)
+
+        else:
+
+            @wraps(fn)
+            def wrapper(*args, **kwargs):
+                return fn(*args, **kwargs)
+
+        # Build comprehensive probe metadata (use original fn for signature)
         metadata = build_probe_metadata(fn, id, final_description)
 
+        # Register the wrapper (the object callers will use)
         probe_registry.register(
             id=id,
-            fun=fn,
+            fun=wrapper,
             description=final_description,
             signature=metadata["signature"],
             param_schema=metadata["param_schema"],
@@ -45,10 +59,6 @@ def probe(id: str, description: str):
         )
 
         print(f"Registered probe: {id} - {final_description}")
-
-        @wraps(fn)
-        def wrapper(*args, **kwargs):
-            return fn(*args, **kwargs)
 
         return wrapper
 

@@ -1,7 +1,7 @@
 """Tests for star_foundry.mongo_star_repo module."""
 
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 from pymongo.collection import Collection
 from star_foundry.star import Star
 from star_foundry.mongo_star_repo import MongoStarRepository
@@ -13,9 +13,9 @@ class TestMongoStarRepository:
     @patch("star_foundry.mongo_star_repo.MongoClient")
     def test_repository_initialization(self, mock_mongo_client):
         """Test MongoStarRepository initialization."""
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_collection = Mock(spec=Collection)
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_db.__getitem__.return_value = mock_collection
         mock_mongo_client.return_value = mock_client_instance
@@ -34,14 +34,14 @@ class TestMongoStarRepository:
     @patch("star_foundry.mongo_star_repo.MongoClient")
     def test_repository_default_collection_name(self, mock_mongo_client):
         """Test that default collection name is 'stars'."""
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_collection = Mock(spec=Collection)
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_db.__getitem__.return_value = mock_collection
         mock_mongo_client.return_value = mock_client_instance
 
-        repo = MongoStarRepository(uri="mongodb://localhost:27017", db_name="test_db")
+        MongoStarRepository(uri="mongodb://localhost:27017", db_name="test_db")
 
         # Verify the default collection name was used
         mock_db.__getitem__.assert_called_with("stars")
@@ -83,10 +83,10 @@ class TestMongoStarRepository:
         mock_collection = Mock(spec=Collection)
         mock_collection.find.return_value = []
 
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_db.__getitem__.return_value = mock_collection
 
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_mongo_client.return_value = mock_client_instance
 
@@ -127,10 +127,10 @@ class TestMongoStarRepository:
         mock_collection = Mock(spec=Collection)
         mock_collection.find.return_value = mock_docs
 
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_db.__getitem__.return_value = mock_collection
 
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_mongo_client.return_value = mock_client_instance
 
@@ -161,10 +161,10 @@ class TestMongoStarRepository:
         mock_collection = Mock(spec=Collection)
         mock_collection.find_one.return_value = mock_doc
 
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_db.__getitem__.return_value = mock_collection
 
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_mongo_client.return_value = mock_client_instance
 
@@ -184,10 +184,10 @@ class TestMongoStarRepository:
         mock_collection = Mock(spec=Collection)
         mock_collection.find_one.return_value = None
 
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_db.__getitem__.return_value = mock_collection
 
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_mongo_client.return_value = mock_client_instance
 
@@ -202,10 +202,10 @@ class TestMongoStarRepository:
     def test_save_new_star(self, mock_mongo_client):
         """Test saving a new star to the database."""
         mock_collection = Mock(spec=Collection)
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_db.__getitem__.return_value = mock_collection
 
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_mongo_client.return_value = mock_client_instance
 
@@ -233,10 +233,10 @@ class TestMongoStarRepository:
     def test_save_updates_existing_star(self, mock_mongo_client):
         """Test that save updates an existing star (upsert behavior)."""
         mock_collection = Mock(spec=Collection)
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_db.__getitem__.return_value = mock_collection
 
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_mongo_client.return_value = mock_client_instance
 
@@ -261,10 +261,10 @@ class TestMongoStarRepository:
     def test_delete_star(self, mock_mongo_client):
         """Test deleting a star from the database."""
         mock_collection = Mock(spec=Collection)
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_db.__getitem__.return_value = mock_collection
 
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_mongo_client.return_value = mock_client_instance
 
@@ -278,10 +278,10 @@ class TestMongoStarRepository:
     def test_save_preserves_references_and_probes(self, mock_mongo_client):
         """Test that save preserves references and probes."""
         mock_collection = Mock(spec=Collection)
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_db.__getitem__.return_value = mock_collection
 
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_mongo_client.return_value = mock_client_instance
 
@@ -311,10 +311,10 @@ class TestMongoStarRepository:
     def test_save_converts_id_to_mongo_id(self, mock_mongo_client):
         """Test that save converts 'id' field to '_id' for MongoDB."""
         mock_collection = Mock(spec=Collection)
-        mock_db = Mock()
+        mock_db = MagicMock()
         mock_db.__getitem__.return_value = mock_collection
 
-        mock_client_instance = Mock()
+        mock_client_instance = MagicMock()
         mock_client_instance.__getitem__.return_value = mock_db
         mock_mongo_client.return_value = mock_client_instance
 

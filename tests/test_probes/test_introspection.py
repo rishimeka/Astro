@@ -51,9 +51,9 @@ class TestIntrospectionFunctions:
             return True
 
         hints = extract_type_hints(sample_func)
-        assert hints["x"] == int
-        assert hints["y"] == str
-        assert hints["return"] == bool
+        assert hints["x"] is int
+        assert hints["y"] is str
+        assert hints["return"] is bool
 
     def test_python_type_to_json_schema_int(self):
         """Test converting int type to JSON schema."""

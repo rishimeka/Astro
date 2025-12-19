@@ -45,8 +45,9 @@ class ProbeExecutor:
         probe_function = probe_entry["function"]
 
         if asyncio.iscoroutinefunction(probe_function):
-            return asyncio.run(probe_function(*args, **kwargs))
+            # If the registered function is a coroutine function, await it directly.
+            return await probe_function(*args, **kwargs)
         else:
             # If the function is not async, run it in a thread pool
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, probe_function, *args, **kwargs)

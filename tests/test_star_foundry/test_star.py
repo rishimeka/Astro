@@ -206,7 +206,13 @@ class TestStar:
 
     def test_star_field_descriptions(self):
         """Test that Star model has proper field descriptions."""
-        assert Star.__fields__["id"].field_info.description == "Unique Star ID"
+        # Support both Pydantic v1-style `__fields__` and v2 `model_fields`.
+        if hasattr(Star, "model_fields"):
+            desc = getattr(Star.model_fields["id"], "description", None)
+        else:
+            desc = Star.__fields__["id"].field_info.description
+
+        assert desc == "Unique Star ID"
 
     def test_star_with_all_fields_populated(self):
         """Test Star with all fields including runtime fields populated."""
