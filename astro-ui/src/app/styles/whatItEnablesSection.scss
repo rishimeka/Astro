@@ -1,0 +1,175 @@
+/* What It Enables Section Styles */
+
+.what-it-enables-section {
+    position: relative;
+    padding: var(--space-section-vertical) var(--space-section-horizontal);
+    border-bottom: 1px solid var(--border-default);
+    overflow: hidden;
+}
+
+.what-it-enables-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(to right, var(--border-default) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--border-default) 1px, transparent 1px);
+    background-size: 4rem 4rem;
+    mask-image: linear-gradient(to left, black 0%, transparent 60%);
+    opacity: 0.5;
+}
+
+.what-it-enables-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+.what-it-enables-inner {
+    padding: 2rem 0;
+}
+
+.what-it-enables-item {
+    margin: 1.5rem 0;
+    padding: 0.5rem 1rem;
+    border-left: 1px solid var(--border-default);
+}
+
+.what-it-enables-item .m-0 {
+    margin: 0;
+}
+
+.what-it-enables-item .mt-2 {
+    color: var(--text-primary);
+    opacity: 0.85;
+}
+
+.mental-model-bridge {
+    margin: 2rem 0;
+}
+
+.mental-model-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.mental-model-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.mental-model-header {
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.mental-model-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    
+    p {
+        opacity: 0.85;
+        line-height: var(--leading-normal);
+    }
+}
+
+.mental-model-divider {
+    width: 1px;
+    background: var(--border-default);
+    align-self: stretch;
+    margin-top: 2.5rem;
+}
+
+@media (max-width: 900px) {
+    .what-it-enables-section {
+        padding: var(--space-section-vertical) 1rem;
+    }
+
+    .what-it-enables-container {
+        padding: 0 1rem;
+    }
+    
+    .mental-model-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    .mental-model-divider {
+        display: none;
+    }
+}
+
+/* Mobile-only responsive styles */
+@media (max-width: 768px) {
+    /* Section padding adjustment */
+    .what-it-enables-section {
+        padding: 3rem 1rem;
+    }
+
+    /* Container padding */
+    .what-it-enables-container {
+        padding: 0;
+    }
+
+    .what-it-enables-inner {
+        padding: 0;
+    }
+
+    /* Mental model bridge - mobile adjustments */
+    .mental-model-bridge {
+        margin: 1.5rem 0;
+    }
+
+    .mental-model-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .mental-model-column {
+        gap: 0.75rem;
+    }
+
+    .mental-model-divider {
+        display: none;
+    }
+
+    /* Items - better mobile spacing */
+    .mental-model-items {
+        gap: 0.75rem;
+
+        p {
+            font-size: 13px;
+            line-height: 1.7;
+        }
+    }
+
+    /* What it enables list - mobile adjustments */
+    .what-it-enables-list {
+        margin-top: 1.5rem;
+    }
+
+    .what-it-enables-item {
+        margin: 1.25rem 0;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .what-it-enables-item .body-01 {
+        font-size: 14px;
+        line-height: 1.8;
+    }
+
+    /* Spacing utilities for mobile */
+    .mt-6 {
+        margin-top: 1.5rem;
+    }
+
+    .mt-10 {
+        margin-top: 2.5rem;
+    }
+}

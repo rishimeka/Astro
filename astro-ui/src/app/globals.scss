@@ -1,0 +1,533 @@
+/* ========================================
+   STYLE IMPORTS
+   ======================================== */
+@import './styles/tokens.scss';
+@import './styles/spacing.scss';
+@import './styles/appHeader.scss';
+@import './styles/button.scss';
+@import './styles/checkbox.scss';
+@import './styles/fieldWrapper.scss';
+@import './styles/input.scss';
+@import './styles/inputWithButton.scss';
+@import './styles/problemSection.scss';
+@import './styles/solutionSection.scss';
+@import './styles/whatItEnablesSection.scss';
+@import './styles/radio.scss';
+@import './styles/select.scss';
+@import './styles/slider.scss';
+@import './styles/switch.scss';
+@import './styles/textarea.scss';
+@import './styles/cta.scss';
+@import './styles/failureScenario.scss';
+@import './styles/whoThisIsFor.scss';
+@import './styles/whyItMatters.scss';
+@import './styles/footer.scss';
+
+/* ========================================
+   GLOBAL STYLES
+   ======================================== */
+
+/* Global Body Styles */
+body {
+    background-color: #0D1117;
+    color: #FFF;
+}
+
+/* Display - Libre Baskerville */
+.display-01 {
+    font-family: Libre Baskerville, Georgia, serif;
+    font-size: 56px;
+    line-height: 1.1;
+    font-weight: 700;
+}
+
+.display-02 {
+    font-family: Libre Baskerville, Georgia, serif;
+    font-size: 48px;
+    line-height: 1.1;
+    font-weight: 700;
+}
+
+.display-03 {
+    font-family: Libre Baskerville, Georgia, serif;
+    font-size: 40px;
+    line-height: 1.15;
+    font-weight: 600;
+}
+
+/* Titles - Libre Baskerville */
+.title-01 {
+    font-family: Libre Baskerville, Georgia, serif;
+    font-size: 32px;
+    line-height: 1.25;
+    font-weight: 600;
+}
+
+.title-02 {
+    font-family: Libre Baskerville, Georgia, serif;
+    font-size: 28px;
+    line-height: 1.3;
+    font-weight: 600;
+}
+
+.title-03 {
+    font-family: Libre Baskerville, Georgia, serif;
+    font-size: 24px;
+    line-height: 1.3;
+    font-weight: 500;
+}
+
+.title-04 {
+    font-family: Libre Baskerville, Georgia, serif;
+    font-size: 20px;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+/* Sub-Titles - Outfit */
+.subtitle-01 {
+    font-family: Outfit, sans-serif;
+    font-size: 20px;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+.subtitle-02 {
+    font-family: Outfit, sans-serif;
+    font-size: 19.5px;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+/* Headings - Outfit */
+.heading-01 {
+    font-family: Outfit, sans-serif;
+    font-size: 18px;
+    line-height: 1.4;
+    font-weight: 600;
+}
+
+.heading-02 {
+    font-family: Outfit, sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+    font-weight: 600;
+}
+
+.heading-03 {
+    font-family: Outfit, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+    font-weight: 500;
+}
+
+.heading-04 {
+    font-family: Outfit, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+/* Body - JetBrains Mono */
+.body-01 {
+    font-family: JetBrains Mono, monospace;
+    font-size: 16px;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+.body-02 {
+    font-family: JetBrains Mono, monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+.body-03 {
+    font-family: JetBrains Mono, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+/* Labels - Outfit */
+.label-01 {
+    font-family: Outfit, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+.label-02 {
+    font-family: Outfit, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+/* Buttons - Outfit */
+.button-01 {
+    font-family: Outfit, sans-serif;
+    font-size: 14px;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+.button-02 {
+    font-family: Outfit, sans-serif;
+    font-size: 13px;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+/* Captions / Meta - Outfit */
+.caption-01 {
+    font-family: Outfit, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: 400;
+}
+
+.caption-02 {
+    font-family: Outfit, sans-serif;
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 400;
+}
+
+/* Text Alignment */
+.text-left {
+    text-align: left;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-justify {
+    text-align: justify;
+}
+
+/* Flex utility helpers */
+.display-flex {
+    display: flex;
+}
+
+.flex-column {
+    flex-direction: column;
+}
+
+.align-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.grid-background {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    background-color: transparent;
+
+    background-image:
+        linear-gradient(to right,
+            var(--border-default) 1px,
+            transparent 1px),
+        linear-gradient(to bottom,
+            var(--border-default) 1px,
+            transparent 1px);
+    filter: opacity(0.5);
+    background-size: 4rem 4rem;
+}
+
+.grid-background-with-fade {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    background-color: transparent;
+
+    background-image:
+        linear-gradient(to right,
+            var(--border-default) 1px,
+            transparent 1px),
+        linear-gradient(to bottom,
+            var(--border-default) 1px,
+            transparent 1px);
+    filter: opacity(0.5);
+    background-size: 4rem 4rem;
+    mask-image: linear-gradient(to left, black 0%,transparent 60%);
+}
+
+.background-ink-black {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Hero Section */
+.hero {
+    position: relative;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 10rem var(--space-section-horizontal);
+    overflow: hidden;
+    border-bottom: 1px solid var(--border-default);
+    margin-top: 65px;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Warning card and vertical line */
+.warning-area {
+    position: relative;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.warning-card .wc-header { 
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+}
+
+.warning-card .wc-subheader {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 10px;
+}
+
+.warning-card .wc-message {
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 12px;
+}
+
+.warning-card .wc-message ul {
+    margin: 8px 0 0 16px;
+}
+
+.warning-card .wc-footer {
+    margin-top: 12px;
+    font-weight: 700;
+    color: #FFDADA;
+}
+
+.warning-card-wrapper {
+    position: relative;
+}
+
+.warning-card-wrapper::before {
+    height: 200%;
+    top: -100%;
+}
+
+.color-accent {
+    color: var(--accent-primary);
+}
+
+.color-accent-light {
+    color: var(--text-accent);
+}
+
+.warning-card-alt {
+    position: relative;
+    z-index: 1;
+    backdrop-filter: var(--backdrop-blur);
+
+    background: var(--bg-alert);
+
+    border: 1px solid var(--border-default);
+    padding: 1.5rem;
+    max-width: 420px;
+    min-width: 250px;
+
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+}
+
+
+
+.warning-card-alt .wc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-default);
+    padding-bottom: 0.75rem;
+}
+
+.wc-small {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-accent);
+    letter-spacing: normal;
+    opacity: 0.8;
+}
+
+.wc-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 100;
+    color: rgba(255, 200, 120, 0.7);
+}
+
+.warning-card-alt h3 {
+    margin: 6px 0 10px 0;
+    font-size: 17px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #fff;
+}
+
+.warning-card-alt p {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.warning-card-alt ul {
+    margin: 8px 0 0 18px;
+}
+
+.warning-card-alt .wc-footer {
+    margin-top: 0.75rem;
+    color: var(--accent-danger);
+    font-weight: 700;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+/* ========================================
+   MOBILE RESPONSIVE STYLES
+   Mobile-only overrides (max-width: 768px)
+   ======================================== */
+
+@media (max-width: 768px) {
+    /* Global mobile safety - prevent horizontal overflow */
+    body {
+        overflow-x: hidden;
+    }
+
+    /* Hero Section - Mobile adjustments */
+    .hero {
+        padding: 3rem 1rem; /* Reduced vertical padding, safe horizontal padding */
+        margin-top: 60px; /* Adjust for mobile header */
+    }
+
+    .hero-content {
+        flex-direction: column !important; /* Stack vertically */
+        gap: 2rem; /* Space between elements */
+    }
+
+    .hero-content > div:first-child {
+        max-width: 100% !important; /* Override 60% desktop width */
+    }
+
+    /* Hero headline - Reduce font size for mobile readability */
+    .display-01 {
+        font-size: clamp(28px, 8vw, 40px); /* Responsive sizing with limits */
+        line-height: 1.2;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .display-02 {
+        font-size: clamp(24px, 7vw, 36px);
+        line-height: 1.2;
+    }
+
+    .display-03 {
+        font-size: clamp(22px, 6vw, 32px);
+        line-height: 1.25;
+    }
+
+    /* Titles - Scale down for mobile */
+    .title-01 {
+        font-size: 24px;
+        line-height: 1.3;
+    }
+
+    .title-02 {
+        font-size: 22px;
+        line-height: 1.3;
+    }
+
+    .title-03 {
+        font-size: 20px;
+        line-height: 1.35;
+    }
+
+    .title-04 {
+        font-size: 18px;
+        line-height: 1.4;
+    }
+
+    /* Subtitles - Adjust for mobile */
+    .subtitle-01,
+    .subtitle-02 {
+        font-size: 16px;
+        line-height: 1.5;
+    }
+
+    /* Body text - Improve readability */
+    .body-01 {
+        font-size: 14px;
+        line-height: 1.7; /* Increased line height for readability */
+    }
+
+    .body-02 {
+        font-size: 13px;
+        line-height: 1.7;
+    }
+
+    .body-03 {
+        font-size: 12px;
+        line-height: 1.7;
+    }
+
+    /* Warning cards - Better mobile layout */
+    .warning-card-alt {
+        max-width: 100%;
+        min-width: auto;
+        padding: 1.25rem;
+    }
+
+    /* Utility spacing for mobile */
+    .mt-2 {
+        margin-top: 0.75rem;
+    }
+
+    .mt-3 {
+        margin-top: 1rem;
+    }
+
+    .mt-4 {
+        margin-top: 1.25rem;
+    }
+
+    .mt-6 {
+        margin-top: 2rem;
+    }
+
+    .mt-8 {
+        margin-top: 2.5rem;
+    }
+}

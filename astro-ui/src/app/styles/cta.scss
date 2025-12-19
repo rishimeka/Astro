@@ -1,0 +1,97 @@
+/* CTA Section Styles */
+
+.cta-section {
+    padding: calc(var(--space-section-vertical) * 1.5) var(--space-section-horizontal);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: transparent;
+}
+
+.cta-inner {
+    max-width: 680px;
+    width: 100%;
+    padding: 0 1.5rem;
+    text-align: left;
+}
+
+.cta-label {
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.04em;
+}
+
+.cta-headline {
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    font-family: var(--font-display);
+}
+
+.cta-body {
+    margin-bottom: 2rem;
+    font-family: var(--font-mono);
+    line-height: var(--leading-normal);
+    white-space: pre-line;
+}
+
+.cta-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.cta-button {
+    padding-left: 1.75rem;
+    padding-right: 1.75rem;
+    border-radius: var(--radius-md);
+}
+
+.cta-microcopy {
+    margin-top: 0.25rem;
+}
+
+.cta-enterprise-signal {
+    opacity: 0.6;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .cta-section {
+        padding: 56px 16px;
+    }
+
+    .cta-inner {
+        max-width: 92%;
+    }
+
+    .cta-headline {
+        font-size: 26px;
+    }
+
+    /* Improved text readability on mobile */
+    .cta-body {
+        font-size: 13px;
+        line-height: 1.7;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Actions container - ensure full width */
+    .cta-actions {
+        width: 100%;
+        gap: 1rem;
+    }
+
+    /* Microcopy spacing */
+    .cta-microcopy {
+        margin-top: 0.75rem;
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    /* Enterprise signal text */
+    .cta-enterprise-signal {
+        margin-top: 2rem;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+}
