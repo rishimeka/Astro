@@ -1,7 +1,8 @@
 [build]
   base = "/astro-ui"
   command = "npm run build"
-  
+  publish = "astro-ui/.next"
+
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
