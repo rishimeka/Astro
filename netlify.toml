@@ -1,11 +1,11 @@
 [build]
   base = "astro-ui"
   command = "npm run build"
-  publish = "astro-ui"
+  
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20.9.0"
   NEXT_PRIVATE_SKIP_TURBOPACK = "1"
