@@ -1,7 +1,7 @@
 [build]
   base = "/astro-ui"
   command = "npm run build"
-  publish = "astro-ui/.next"
+  publish = ".next"
 
 
 [[plugins]]
