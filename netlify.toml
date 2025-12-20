@@ -1,5 +1,5 @@
 [build]
-  base = "astro-ui"
+  base = "/astro-ui"
   command = "npm run build"
   
 
