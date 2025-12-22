@@ -1,52 +1,23 @@
 "use client";
 
 import React from "react";
-import Text, { Typography } from "../foundationalComponents/Text";
-import Button, { ButtonAppearance, ButtonEmphasis } from "../foundationalComponents/Button";
+import { ButtonAppearance, ButtonEmphasis } from "../foundationalComponents/Button";
 import InputWithButton from "../foundationalComponents/InputWithButton";
-import Modal from "../foundationalComponents/Modal";
-import Input from "../foundationalComponents/Input";
-import Textarea from "../foundationalComponents/Textarea";
-import FieldWrapper from "../foundationalComponents/FieldWrapper";
+import Text, { Typography } from "../foundationalComponents/Text";
 import "../styles/cta.scss";
+import { useRequestAccess } from "./RequestAccessContext";
 
 export default function CTA() {
     const [email, setEmail] = React.useState("");
-    const [isModalOpen, setIsModalOpen] = React.useState(false);
-    const [formData, setFormData] = React.useState({
-        name: "",
-        email: "",
-        organization: "",
-        message: ""
-    });
+    const { open } = useRequestAccess();
 
     const handleRequestAccess = () => {
         if (email) {
-            setFormData(prev => ({ ...prev, email }));
-            setIsModalOpen(true);
+            open(email);
         }
     };
 
-    const handleFormSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const form = e.target as HTMLFormElement;
-        
-        // Submit to Netlify
-        fetch("/", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams(new FormData(form) as any).toString()
-        })
-            .then(() => {
-                setIsModalOpen(false);
-                setEmail("");
-                setFormData({ name: "", email: "", organization: "", message: "" });
-                alert("Request submitted successfully!");
-            })
-            .catch((error) => {
-                alert("Error submitting request. Please try again.");
-            });
-    };
+
 
     return (
         <section className="cta-section">
@@ -93,80 +64,7 @@ export default function CTA() {
                 </Text>
             </div>
 
-            <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                header={
-                    <Text typography={Typography.TITLE_03}>
-                        Request Early Access
-                    </Text>
-                }
-            >
-                <form name="request-access" method="POST" data-netlify="true" onSubmit={handleFormSubmit}>
-                    <input type="hidden" name="form-name" value="request-access" />
-                    
-                    <FieldWrapper label="Name" required>
-                        <Input
-                            type="text"
-                            name="name"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="Your name"
-                            required
-                        />
-                    </FieldWrapper>
-
-                    <FieldWrapper label="Email" required className="mt-4">
-                        <Input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            placeholder="your.email@company.com"
-                            required
-                        />
-                    </FieldWrapper>
-
-                    <FieldWrapper label="Organization" required className="mt-4">
-                        <Input
-                            type="text"
-                            name="organization"
-                            value={formData.organization}
-                            onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-                            placeholder="Your organization"
-                            required
-                        />
-                    </FieldWrapper>
-
-                    <FieldWrapper label="Message" className="mt-4">
-                        <Textarea
-                            name="message"
-                            value={formData.message}
-                            onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                            placeholder="Tell us about your use case..."
-                            rows={4}
-                        />
-                    </FieldWrapper>
-
-                    <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                        <Button
-                            type="button"
-                            appearance={ButtonAppearance.BLACK_AND_WHITE}
-                            emphasis={ButtonEmphasis.OUTLINE}
-                            onClick={() => setIsModalOpen(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            appearance={ButtonAppearance.PRIMARY}
-                            emphasis={ButtonEmphasis.HIGHLIGHT}
-                        >
-                            Submit Request
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
+            {/* Request access modal moved to a shared component */}
         </section>
     );
 }

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.scss";
 import { Outfit, Libre_Baskerville, JetBrains_Mono } from "next/font/google";
+import { RequestAccessProvider } from "./components/RequestAccessContext";
+import RequestAccessModal from "./components/RequestAccessModal";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -34,7 +36,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`m-0 ${outfit.className} ${libreBaskervilllle.className} ${jetBrainsMono.className}`}>
-        {children}
+        <RequestAccessProvider>
+          <RequestAccessModal />
+          {children}
+        </RequestAccessProvider>
       </body>
     </html>
   );

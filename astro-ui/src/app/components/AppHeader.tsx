@@ -1,7 +1,9 @@
 'use client';
 import Button, { ButtonAppearance, ButtonEmphasis, ButtonSize } from '../foundationalComponents/Button';
+import { useRequestAccess } from './RequestAccessContext';
 
 export default function AppHeader() {
+    const { open } = useRequestAccess();
     return (
         <header className="app-header">
             <div className="app-header-content">
@@ -14,6 +16,7 @@ export default function AppHeader() {
                     appearance={ButtonAppearance.PRIMARY} 
                     emphasis={ButtonEmphasis.HIGHLIGHT}
                     size={ButtonSize.SM}
+                    onClick={() => open()}
                 >
                     Get Access
                 </Button>
