@@ -4,7 +4,7 @@
     font-size: 14px;
     font-weight: 400;
     line-height: var(--leading-normal);
-    width: 100%;
+    width: -webkit-fill-available;
     padding: 10px 12px;
     border: 2px solid var(--accent-primary);
     border-radius: var(--radius-md);

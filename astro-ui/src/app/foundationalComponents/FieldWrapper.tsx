@@ -8,6 +8,7 @@ interface FieldWrapperProps {
   helperText?: string;
   children: ReactNode;
   required?: boolean;
+  className?: string;
 }
 
 export default function FieldWrapper({
@@ -16,9 +17,10 @@ export default function FieldWrapper({
   helperText,
   children,
   required = false,
+  className = '',
 }: FieldWrapperProps) {
   return (
-    <div className="field-wrapper">
+    <div className={`field-wrapper ${className}`}>
       {label && (
         <label className="field-label">
           {label}
