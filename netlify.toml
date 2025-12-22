@@ -10,8 +10,4 @@
 [build.environment]
   NODE_VERSION = "20.9.0"
   NEXT_PRIVATE_SKIP_TURBOPACK = "1"
-
-[functions]
-  node_bundler = "esbuild"
-  external_node_modules = ["sharp"]
-  included_files = ["node_modules/sharp/**/*"]
+  
