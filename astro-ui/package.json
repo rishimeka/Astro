@@ -24,7 +24,7 @@
     "sass": "^1.97.0"
   },
   "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.15.3",
+    "@netlify/plugin-nextjs": "^4.41.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
