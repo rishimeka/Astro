@@ -107,8 +107,11 @@ class Constellation(BaseModel):
         Walk all nodes, resolve Stars → Directives, aggregate template_variables.
         Called at runtime before execution to show user what needs filling.
 
-        Note: Full implementation requires Foundry. This is a stub that will
-        be called by the Foundry's compute_constellation_variables method.
+        Args:
+            foundry: The Foundry instance for star/directive lookups.
+
+        Returns:
+            List of TemplateVariables with used_by tracking which nodes need them.
         """
         from astro_backend_service.models.template_variable import TemplateVariable
 

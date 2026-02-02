@@ -551,8 +551,8 @@ Keep responses brief and natural."""
     def _extract_variable_value(self, message: str, var_name: str) -> str:
         """Extract the variable value from the user's message.
 
-        For now, uses simple heuristics. With full LLM integration,
-        this would use the LLM to extract the intended value.
+        Uses LLM when available for intelligent extraction, with
+        heuristic fallback.
 
         Args:
             message: The user's message.
@@ -561,7 +561,13 @@ Keep responses brief and natural."""
         Returns:
             The extracted value.
         """
-        # Clean up the message
+        # Try LLM-based extraction if available
+        if self.llm_client is not None:
+            extracted = self._llm_extract_single_value(message, var_name)
+            if extracted:
+                return extracted
+
+        # Fallback: Clean up the message using heuristics
         value = message.strip()
 
         # Remove common prefixes like "it's", "the", "I want", etc.
@@ -583,6 +589,46 @@ Keep responses brief and natural."""
                 break
 
         return value.strip()
+
+    def _llm_extract_single_value(
+        self, message: str, var_name: str
+    ) -> Optional[str]:
+        """Use LLM to extract a single variable value from message.
+
+        Args:
+            message: The user's message.
+            var_name: The variable name being extracted.
+
+        Returns:
+            The extracted value, or None if extraction failed.
+        """
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        # Format variable name for display
+        display_name = var_name.replace("_", " ")
+
+        system_prompt = f"""You are a value extractor. The user was asked to provide a value for "{display_name}".
+Extract the actual value they provided from their response.
+
+Rules:
+- Return ONLY the extracted value, nothing else
+- Remove conversational phrases like "it's", "I want", "please use", etc.
+- If the message is just the value itself, return it as-is
+- Preserve the original casing and format of the value
+- If you cannot determine a clear value, return the message cleaned up"""
+
+        user_prompt = f"User's response: {message}"
+
+        try:
+            response = self.llm_client.invoke(
+                [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt),
+                ]
+            )
+            return response.content.strip() if hasattr(response, "content") else None
+        except Exception:
+            return None
 
     def _build_original_query(self, conversation: Conversation) -> str:
         """Build the original query from conversation context.
