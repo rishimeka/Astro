@@ -1,0 +1,40 @@
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-element-gap);
+  margin-bottom: var(--space-card-padding);
+}
+
+.constellationLink {
+  color: var(--accent-primary);
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.constellationLink:hover {
+  color: var(--accent-primary-hover);
+  text-decoration: underline;
+}
+
+.datetime {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .filters {
+    gap: 12px;
+  }
+
+  .datetime {
+    font-size: 12px;
+  }
+}

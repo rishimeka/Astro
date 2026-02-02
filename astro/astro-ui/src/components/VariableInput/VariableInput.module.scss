@@ -1,0 +1,129 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.required {
+  font-size: 12px;
+  color: var(--accent-danger);
+}
+
+.variableName {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent-primary);
+  background: var(--accent-primary-subtle);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.hintBadge {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-default);
+  margin-left: auto;
+}
+
+.description {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.inputWrapper {
+  position: relative;
+}
+
+.textInput,
+.numberInput,
+.dateInput {
+  width: 100%;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.select {
+  width: 100%;
+}
+
+.fileInput {
+  display: block;
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-primary);
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s ease;
+
+  &::file-selector-button {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    margin-right: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: var(--accent-primary-subtle);
+      border-color: var(--accent-primary);
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent-primary);
+  }
+}
+
+.error {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--accent-danger);
+  margin: 0;
+}
+
+.helper {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .label {
+    flex-wrap: wrap;
+  }
+
+  .hintBadge {
+    margin-left: 0;
+  }
+}

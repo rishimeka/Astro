@@ -1,0 +1,130 @@
+/* Solution Section Styles */
+
+.solution-section {
+    padding: calc(var(--space-section-vertical) * 1.5) var(--space-section-horizontal) var(--space-section-vertical);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.solution-container {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.solution-left {
+    flex: 0 0 40%;
+    max-width: 40%;
+    position: sticky;
+    top: 100px;
+}
+
+.solution-left .m-0 {
+    margin: 0;
+}
+
+.solution-left .mt-2 {
+    margin-top: 0.5rem;
+}
+
+.solution-left .mt-4 {
+    margin-top: 1rem;
+}
+
+.solution-thesis {
+    opacity: 0.85;
+}
+
+.solution-left > .mt-4 {
+    opacity: 0.75;
+}
+
+.solution-right {
+    flex: 1 1 60%;
+}
+
+.solution-row {
+    display: flex;
+    flex-direction: column;
+}
+
+.solution-card {
+    padding: 2rem 0;
+    border-bottom: 1px solid var(--border-default);
+}
+
+.solution-card:first-child {
+    padding-top: 0;
+}
+
+.solution-card:last-child {
+    border-bottom: none;
+}
+
+.solution-card .mt-2 {
+    margin-top: 0.5rem;
+}
+
+.solution-card .mt-3 {
+    margin-top: 0.75rem;
+}
+
+.solution-leading-clause {
+    opacity: 0.7;
+    font-style: italic;
+    line-height: var(--leading-normal);
+}
+
+@media (max-width: 900px) {
+    .solution-container {
+        flex-direction: column;
+    }
+
+    .solution-left,
+    .solution-right {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+/* Mobile-only responsive styles */
+@media (max-width: 768px) {
+    /* Section padding adjustment */
+    .solution-section {
+        padding: 3rem 1rem 2rem;
+    }
+
+    /* Container stacking */
+    .solution-container {
+        flex-direction: column;
+        gap: 2rem; /* Spacing between left and right sections */
+    }
+
+    /* Left section - no longer sticky on mobile */
+    .solution-left {
+        flex: 0 0 100%;
+        max-width: 100%;
+        position: static; /* Remove sticky positioning */
+    }
+
+    /* Right section - full width */
+    .solution-right {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Solution cards - better mobile padding */
+    .solution-card {
+        padding: 1.5rem 0;
+    }
+
+    .solution-card:first-child {
+        padding-top: 0;
+    }
+
+    /* Adjust text spacing for mobile */
+    .solution-thesis {
+        margin-top: 1rem;
+    }
+}

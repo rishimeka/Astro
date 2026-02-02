@@ -1,0 +1,106 @@
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.header {
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.headerCell {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.headerCell.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.headerCell.sortable:hover {
+  color: var(--accent-primary);
+}
+
+.headerContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sortIcon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.sortIcon.active {
+  color: var(--accent-primary);
+}
+
+.body {
+  background: transparent;
+}
+
+.row {
+  border-bottom: 1px solid var(--border-default);
+  transition: background-color 0.2s ease;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background: var(--accent-primary-subtle);
+}
+
+.row.clickable {
+  cursor: pointer;
+}
+
+.cell {
+  padding: 12px 16px;
+  color: var(--text-primary);
+  line-height: var(--leading-normal);
+}
+
+.nullValue {
+  color: var(--text-muted);
+}
+
+.emptyCell {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .headerCell,
+  .cell {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .headerCell {
+    font-size: 11px;
+  }
+}

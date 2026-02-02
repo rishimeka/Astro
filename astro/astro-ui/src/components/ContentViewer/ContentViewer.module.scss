@@ -1,0 +1,42 @@
+.content {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-code);
+  padding: var(--space-card-padding);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+.reference {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.probe {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3B82F6;
+}
+
+.directive {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8B5CF6;
+}
+
+.variable {
+  background: rgba(245, 158, 11, 0.15);
+  color: #F59E0B;
+}
+
+@media (max-width: 768px) {
+  .content {
+    font-size: 12px;
+    padding: var(--space-element-gap);
+  }
+}

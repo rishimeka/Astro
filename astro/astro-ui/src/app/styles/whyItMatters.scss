@@ -1,0 +1,44 @@
+/* Why It Matters Section Styles */
+
+.why-it-matters-section {
+    padding: var(--space-section-vertical) var(--space-section-horizontal);
+    border-bottom: 1px solid var(--border-default);
+    background: transparent;
+}
+
+.why-it-matters-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.why-it-matters-inner .mt-3 {
+    margin-top: 0.75rem;
+}
+
+.why-it-matters-inner .mt-4 {
+    margin-top: 1rem;
+    opacity: 0.9;
+}
+
+/* Mobile-only responsive styles */
+@media (max-width: 768px) {
+    /* Section padding adjustment */
+    .why-it-matters-section {
+        padding: 3rem 1rem;
+    }
+
+    /* Text readability improvements */
+    .why-it-matters-inner .body-01 {
+        font-size: 14px;
+        line-height: 1.8; /* Improved line height for mobile */
+    }
+
+    /* Spacing between paragraphs */
+    .why-it-matters-inner .mt-3 {
+        margin-top: 1rem;
+    }
+
+    .why-it-matters-inner .mt-4 {
+        margin-top: 1.5rem;
+    }
+}
