@@ -73,6 +73,7 @@ def find_matching_constellation(
                 query,
                 conversation_history,
                 summary.get("required_variables", []),
+                llm_client,
             )
 
             missing = []
@@ -230,6 +231,7 @@ def extract_variables_from_conversation(
     query: str,
     conversation_history: List[Message],
     variable_specs: List[Dict[str, Any]],
+    llm_client: Any = None,
 ) -> Dict[str, Any]:
     """Extract variable values from query and conversation history.
 
@@ -237,10 +239,14 @@ def extract_variables_from_conversation(
         query: The current user query.
         conversation_history: Previous messages.
         variable_specs: List of variable specifications with name, type, description.
+        llm_client: Optional LLM client for extraction.
 
     Returns:
         Dict of variable name to extracted value.
     """
+    if not variable_specs:
+        return {}
+
     extracted: Dict[str, Any] = {}
 
     # Combine query with recent history for extraction
@@ -249,9 +255,13 @@ def extract_variables_from_conversation(
         if msg.role == "user":
             all_text += " " + msg.content
 
-    # WAITING ON FULL LLM INTEGRATION
-    # For now, use simple heuristics
+    # Try LLM-based extraction if client is available
+    if llm_client is not None:
+        llm_extracted = _llm_extract_variables(all_text, variable_specs, llm_client)
+        if llm_extracted:
+            return llm_extracted
 
+    # Fallback to heuristic extraction
     for var_spec in variable_specs:
         var_name = var_spec.get("name", "")
         var_type = var_spec.get("type", "string")
@@ -265,12 +275,83 @@ def extract_variables_from_conversation(
     return extracted
 
 
+def _llm_extract_variables(
+    text: str,
+    variable_specs: List[Dict[str, Any]],
+    llm_client: Any,
+) -> Dict[str, Any]:
+    """Use LLM to extract variable values from text.
+
+    Args:
+        text: Combined text from query and conversation.
+        variable_specs: List of variable specifications.
+        llm_client: The LLM client.
+
+    Returns:
+        Dict of variable name to extracted value.
+    """
+    import json
+    from langchain_core.messages import HumanMessage, SystemMessage
+
+    # Build variable list for the prompt
+    var_descriptions = []
+    for spec in variable_specs:
+        name = spec.get("name", "")
+        var_type = spec.get("type", "string")
+        desc = spec.get("description", "no description")
+        required = spec.get("required", False)
+        req_str = "(required)" if required else "(optional)"
+        var_descriptions.append(f"- {name} ({var_type}) {req_str}: {desc}")
+
+    vars_text = "\n".join(var_descriptions)
+
+    system_prompt = """You are a variable extractor. Given user text and a list of variables to extract, identify any values mentioned in the text that correspond to the variables.
+
+Respond with JSON in this exact format:
+{"extracted": {"variable_name": "value", "another_var": "value"}}
+
+Only include variables where you found a clear value in the text. Do not make up values.
+For company names, look for proper nouns. For tickers, look for 2-5 character uppercase codes.
+If no values can be extracted, return: {"extracted": {}}"""
+
+    user_prompt = f"""Text to analyze:
+{text}
+
+Variables to extract:
+{vars_text}
+
+Extract any variable values you can find in the text."""
+
+    try:
+        response = llm_client.invoke(
+            [
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=user_prompt),
+            ]
+        )
+
+        content = response.content.strip()
+        # Handle markdown code blocks
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+            content = content.strip()
+
+        result = json.loads(content)
+        return result.get("extracted", {})
+
+    except Exception:
+        # Fall back to heuristic extraction on any error
+        return {}
+
+
 def _extract_value_heuristic(
     text: str, var_name: str, var_type: str, var_desc: str
 ) -> Optional[Any]:
     """Simple heuristic to extract variable values.
 
-    This is a stub - real implementation would use LLM.
+    Fallback when LLM is not available.
     """
     text.lower()
 

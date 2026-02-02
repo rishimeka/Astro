@@ -105,28 +105,136 @@ class WorkerStar(AtomicStar):
         tool_calls: List[ToolCall] = []
         iterations = 0
 
-        try:
-            # Simple single-shot execution for now
-            # TODO: Add tool/probe support with iteration loop
-            response = llm.invoke(messages)
-            iterations = 1
+        # Get available probes/tools
+        from astro_backend_service.probes.registry import ProbeRegistry
 
-            content = (
-                response.content if hasattr(response, "content") else str(response)
-            )
-            result = content if isinstance(content, str) else str(content)
+        available_probes = ProbeRegistry.all()
 
-            return WorkerOutput(
-                result=result,
-                tool_calls=tool_calls,
-                iterations=iterations,
-                status="completed",
-            )
+        # If we have tools, bind them to the LLM for tool calling
+        if available_probes:
+            # Convert probes to LangChain tools
+            langchain_tools = []
+            probe_map = {}  # name -> probe for lookup
 
-        except Exception as e:
-            return WorkerOutput(
-                result=f"Error during execution: {str(e)}",
-                tool_calls=tool_calls,
-                iterations=iterations,
-                status="failed",
-            )
+            for probe in available_probes:
+                # Use the LangChain tool wrapper created by the @probe decorator
+                # Each probe has _callable which is the actual function
+                from langchain_core.tools import StructuredTool
+
+                tool = StructuredTool.from_function(
+                    func=probe._callable,
+                    name=probe.name,
+                    description=probe.description,
+                    args_schema=None,  # Will infer from function
+                )
+                langchain_tools.append(tool)
+                probe_map[probe.name] = probe
+
+            # Bind tools to LLM
+            llm_with_tools = llm.bind_tools(langchain_tools)
+
+            try:
+                # Iteration loop with tool calling
+                while iterations < self.max_iterations:
+                    iterations += 1
+
+                    response = llm_with_tools.invoke(messages)
+
+                    # Check if the response has tool calls
+                    if hasattr(response, "tool_calls") and response.tool_calls:
+                        # Process each tool call
+                        for tc in response.tool_calls:
+                            tool_name = tc.get("name", "")
+                            tool_args = tc.get("args", {})
+
+                            # Execute the probe
+                            tool_result = None
+                            tool_error = None
+                            try:
+                                if tool_name in probe_map:
+                                    tool_result = str(
+                                        probe_map[tool_name].invoke(**tool_args)
+                                    )
+                                else:
+                                    tool_error = f"Tool '{tool_name}' not found"
+                            except Exception as e:
+                                tool_error = str(e)
+
+                            tool_calls.append(
+                                ToolCall(
+                                    tool_name=tool_name,
+                                    arguments=tool_args,
+                                    result=tool_result,
+                                    error=tool_error,
+                                )
+                            )
+
+                            # Add tool result to messages for next iteration
+                            from langchain_core.messages import ToolMessage
+
+                            messages.append(response)
+                            messages.append(
+                                ToolMessage(
+                                    content=tool_result or tool_error or "",
+                                    tool_call_id=tc.get("id", ""),
+                                )
+                            )
+
+                        # Continue to next iteration to process tool results
+                        continue
+
+                    # No tool calls - we have a final response
+                    content = (
+                        response.content
+                        if hasattr(response, "content")
+                        else str(response)
+                    )
+                    result = content if isinstance(content, str) else str(content)
+
+                    return WorkerOutput(
+                        result=result,
+                        tool_calls=tool_calls,
+                        iterations=iterations,
+                        status="completed",
+                    )
+
+                # Reached max iterations
+                return WorkerOutput(
+                    result="Maximum iterations reached without completion",
+                    tool_calls=tool_calls,
+                    iterations=iterations,
+                    status="max_iterations",
+                )
+
+            except Exception as e:
+                return WorkerOutput(
+                    result=f"Error during execution: {str(e)}",
+                    tool_calls=tool_calls,
+                    iterations=iterations,
+                    status="failed",
+                )
+        else:
+            # No tools available - simple single-shot execution
+            try:
+                response = llm.invoke(messages)
+                iterations = 1
+
+                content = (
+                    response.content if hasattr(response, "content") else str(response)
+                )
+                result = content if isinstance(content, str) else str(content)
+
+                return WorkerOutput(
+                    result=result,
+                    tool_calls=tool_calls,
+                    iterations=iterations,
+                    status="completed",
+                )
+
+            except Exception as e:
+                return WorkerOutput(
+                    result=f"Error during execution: {str(e)}",
+                    tool_calls=tool_calls,
+                    iterations=iterations,
+                    status="failed",
+                )

@@ -747,6 +747,7 @@ Keep responses brief and natural."""
         Returns:
             Dict with 'output' and 'run_id'.
         """
+        from astro_backend_service.executor import ConstellationRunner
         from astro_backend_service.launchpad.generic_constellation import (
             get_or_create_generic_constellation,
         )
@@ -754,20 +755,56 @@ Keep responses brief and natural."""
         # Get or create the generic constellation
         get_or_create_generic_constellation(self.foundry)
 
-        # Build rich context
+        # Build rich context for the planning star
         clarifications = [
             m.content for m in conversation.messages if m.role == "assistant"
         ][-3:]
 
-        context = {
+        # Build the query_context variable that the planning directive expects
+        query_context = {
             "original_query": message,
             "clarifications": clarifications,
+            "conversation_history": [
+                {"role": m.role, "content": m.content}
+                for m in conversation.messages[-10:]
+            ],
             "conversation_length": len(conversation.messages),
         }
 
-        # WAITING ON FULL IMPLEMENTATION
-        # For now, return stub
-        return {
-            "output": f"[Generic constellation would handle: {message}]\n\nContext: {context}",
-            "run_id": None,
+        # Variables for the constellation
+        variables = {
+            "query_context": query_context,
         }
+
+        logger.info("Invoking generic constellation")
+        logger.debug(f"Query context: {query_context}")
+
+        runner = ConstellationRunner(self.foundry)
+
+        try:
+            run = await runner.run(
+                "_generic_constellation",
+                variables,
+                message,
+                stream=stream,
+            )
+            logger.info(f"Generic constellation execution complete: run_id={run.id}, status={run.status}")
+
+            # Apply synthesis if needed
+            output = run.final_output or ""
+
+            if SynthesisAgent.should_run(self.user_preferences, None):
+                logger.debug("Applying synthesis to output")
+                agent = SynthesisAgent(self.user_preferences, self.llm_client)
+                output = agent.format_output(output)
+
+            return {
+                "output": output,
+                "run_id": run.id,
+            }
+        except Exception as e:
+            logger.error(f"Error invoking generic constellation: {e}", exc_info=True)
+            return {
+                "output": f"Error executing request: {e}",
+                "run_id": None,
+            }

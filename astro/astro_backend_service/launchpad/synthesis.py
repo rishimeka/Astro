@@ -84,13 +84,35 @@ class SynthesisAgent:
         if not prompt_fragment:
             return raw_output
 
-        # WAITING ON FULL LLM INTEGRATION
-        # For now, return with a note about preferences
+        # If no LLM client, return raw output (don't add visible formatting notes)
         if self.llm_client is None:
-            return f"[Formatted with preferences: {prompt_fragment}]\n\n{raw_output}"
+            return raw_output
 
-        # Full implementation would call LLM here
-        return raw_output
+        # Use LLM to format the output according to preferences
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        system_prompt = f"""You are a formatting agent. Reformat the given content according to these user preferences:
+{prompt_fragment}
+
+Keep the factual content and meaning intact. Only adjust formatting, tone, and presentation.
+Do not add any meta-commentary about the formatting. Just output the reformatted content."""
+
+        user_prompt = f"Content to format:\n\n{raw_output}"
+
+        if context:
+            user_prompt = f"Context: {context}\n\n{user_prompt}"
+
+        try:
+            response = self.llm_client.invoke(
+                [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt),
+                ]
+            )
+            return response.content.strip() if hasattr(response, "content") else raw_output
+        except Exception:
+            # On any error, return the raw output
+            return raw_output
 
     def synthesize_multiple_outputs(
         self,

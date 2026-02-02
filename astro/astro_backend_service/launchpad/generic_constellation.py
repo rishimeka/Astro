@@ -170,20 +170,22 @@ Apply any user preferences for tone, format, and length.""",
         metadata={"hidden": True, "ai_internal": True},
     )
 
-    # Register with foundry if available
-    # WAITING ON WORKER 1: Foundry registration methods
-    if hasattr(foundry, "register_directive"):
-        foundry.register_directive(planning_directive)
-        foundry.register_directive(execution_directive)
-        foundry.register_directive(synthesis_directive)
-
-    if hasattr(foundry, "register_star"):
-        foundry.register_star(planning_star)
-        foundry.register_star(execution_star)
-        foundry.register_star(synthesis_star)
-
-    if hasattr(foundry, "register_constellation"):
-        foundry.register_constellation(constellation)
+    # Note: Registration with Foundry is handled by callers if needed.
+    # The generic constellation is typically used directly without persistence,
+    # but components can be added to Foundry's in-memory indexes for lookups.
+    # For in-memory registration (non-persistent):
+    if hasattr(foundry, "_indexes"):
+        indexes = foundry._indexes
+        # Add directives to in-memory index
+        indexes.directives[planning_directive.id] = planning_directive
+        indexes.directives[execution_directive.id] = execution_directive
+        indexes.directives[synthesis_directive.id] = synthesis_directive
+        # Add stars to in-memory index
+        indexes.stars[planning_star.id] = planning_star
+        indexes.stars[execution_star.id] = execution_star
+        indexes.stars[synthesis_star.id] = synthesis_star
+        # Add constellation to in-memory index
+        indexes.constellations[constellation.id] = constellation
 
     return constellation
 

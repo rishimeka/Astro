@@ -73,16 +73,15 @@ class TestSynthesisAgentFormatOutput:
 
         assert result == "Raw output here"
 
-    def test_with_preferences_stub(self) -> None:
-        """Test formatting with preferences (stub behavior)."""
+    def test_with_preferences_no_llm_passthrough(self) -> None:
+        """Test formatting with preferences but no LLM client returns raw output."""
         prefs = UserSynthesisPreferences(tone="formal")
         agent = SynthesisAgent(preferences=prefs)
 
         result = agent.format_output("Raw output")
 
-        # Stub behavior adds note about preferences
-        assert "Raw output" in result
-        assert "preferences" in result.lower()
+        # Without LLM client, output is passed through unchanged
+        assert result == "Raw output"
 
     def test_empty_output(self) -> None:
         """Test formatting empty output."""
