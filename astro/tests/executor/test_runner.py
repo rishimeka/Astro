@@ -477,6 +477,15 @@ class TestParallelExecution:
         """Test successful parallel execution."""
         mock_foundry.add_constellation(parallel_constellation)
 
+        # Add directive needed by stars
+        directive = Directive(
+            id="directive_1",
+            name="Test Directive",
+            description="Test",
+            content="Test prompt",
+        )
+        mock_foundry.add_directive(directive)
+
         # Add stars
         for star_id in ["star_1", "star_2", "synthesis_star"]:
             star = WorkerStar(
@@ -555,6 +564,15 @@ class TestRetryLogic:
             retry_delay_base=0.5,  # Minimum allowed value
         )
         mock_foundry.add_constellation(constellation)
+
+        # Add directive needed by star
+        directive = Directive(
+            id="directive_1",
+            name="Test Directive",
+            description="Test",
+            content="Test prompt",
+        )
+        mock_foundry.add_directive(directive)
 
         # Create a star that will fail
         failing_star = WorkerStar(
