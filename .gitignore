@@ -72,7 +72,10 @@ Thumbs.db
 # Claude configuration
 **/.claude/
 
-# Markdown (except README)
+# Markdown (except important docs)
 *.md
 *.mdx
 !README.md
+!SECURITY.md
+!CODE_REVIEW_FINDINGS.md
+!CODE_REVIEW_SUMMARY.md
