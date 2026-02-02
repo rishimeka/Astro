@@ -62,11 +62,15 @@ The UI will be available at http://localhost:3000
 
 ### Backend
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MONGO_URI` | `mongodb://localhost:27017` | MongoDB connection string |
-| `MONGO_DB` | `astro` | Database name |
-| `ANTHROPIC_API_KEY` | - | Anthropic API key for Claude |
+| Variable | Default | Description | Required |
+|----------|---------|-------------|----------|
+| `MONGO_URI` | `mongodb://localhost:27017` | MongoDB connection string | No |
+| `MONGO_DB` | `astro` | Database name | No |
+| `OPENAI_API_KEY` | - | OpenAI API key for LLM operations | **Yes** |
+| `LLM_MODEL` | `gpt-4-turbo-preview` | LLM model to use | No |
+| `ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated list of allowed CORS origins | No |
+
+**Security Note:** In production, always set `ALLOWED_ORIGINS` to your specific domain(s). Never use wildcard `*` origins with credentials enabled.
 
 ### Frontend
 

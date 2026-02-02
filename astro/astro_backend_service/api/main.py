@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -38,13 +39,17 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS middleware
+    # CORS middleware - configurable via environment variable
+    # Default to localhost for development, override in production
+    allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+    allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+    
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure for production
+        allow_origins=allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+        allow_headers=["Content-Type", "Authorization"],
     )
 
     # Include routers

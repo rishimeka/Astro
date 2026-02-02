@@ -149,8 +149,11 @@ class CallbackStream(ExecutionStream):
     Useful for simple integrations or when you need custom handling.
 
     Example:
+        import logging
+        logger = logging.getLogger(__name__)
+        
         async def my_handler(event):
-            print(f"Got event: {event.event_type}")
+            logger.debug(f"Got event: {event.event_type}")
 
         stream = CallbackStream(my_handler)
     """

@@ -5,8 +5,11 @@ It provides a conversational interface that can handle simple queries
 directly or route complex queries through constellation execution.
 
 Example:
+    import logging
     from astro_backend_service.launchpad import TriggeringAgent, Conversation
 
+    logger = logging.getLogger(__name__)
+    
     agent = TriggeringAgent(foundry)
     conversation = Conversation()
 
@@ -15,8 +18,8 @@ Example:
         conversation
     )
 
-    print(f"Action: {response.action}")
-    print(f"Response: {response.response}")
+    logger.info(f"Action: {response.action}")
+    logger.info(f"Response: {response.response}")
 """
 
 from astro_backend_service.launchpad.conversation import (

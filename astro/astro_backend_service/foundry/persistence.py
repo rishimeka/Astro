@@ -40,7 +40,16 @@ class FoundryPersistence:
             mongo_uri: MongoDB connection URI
             database_name: Database name to use
         """
-        self._client: AsyncIOMotorClient[Dict[str, Any]] = AsyncIOMotorClient(mongo_uri)
+        # Configure connection pool for better production performance
+        # These settings prevent connection exhaustion and timeouts
+        self._client: AsyncIOMotorClient[Dict[str, Any]] = AsyncIOMotorClient(
+            mongo_uri,
+            maxPoolSize=100,  # Maximum connections in pool
+            minPoolSize=10,   # Minimum connections to maintain
+            serverSelectionTimeoutMS=5000,  # Timeout for server selection
+            connectTimeoutMS=10000,  # Timeout for initial connection
+            socketTimeoutMS=20000,  # Timeout for socket operations
+        )
         self._db: AsyncIOMotorDatabase[Dict[str, Any]] = self._client[database_name]
 
         # Collection references

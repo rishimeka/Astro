@@ -8,15 +8,18 @@ The executor handles running constellations, including:
 - Human-in-the-loop confirmation pause/resume
 
 Example:
+    import logging
     from astro_backend_service.executor import ConstellationRunner, ExecutionContext, Run
 
+    logger = logging.getLogger(__name__)
+    
     runner = ConstellationRunner(foundry)
     run = await runner.run(
         constellation_id="company_analysis",
         variables={"company_name": "Tesla"},
         original_query="Analyze Tesla's financials"
     )
-    print(f"Status: {run.status}, Output: {run.final_output}")
+    logger.info(f"Status: {run.status}, Output: {run.final_output}")
 """
 
 from astro_backend_service.executor.context import ExecutionContext, WorkerContext
