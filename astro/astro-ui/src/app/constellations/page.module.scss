@@ -1,0 +1,29 @@
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-element-gap);
+  margin-bottom: var(--space-card-padding);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-element-gap);
+}
+
+@media (max-width: 768px) {
+  .filters {
+    gap: 12px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

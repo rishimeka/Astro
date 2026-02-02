@@ -1,0 +1,19 @@
+"""API route modules."""
+
+from astro_backend_service.api.routes.probes import router as probes_router
+from astro_backend_service.api.routes.directives import router as directives_router
+from astro_backend_service.api.routes.stars import router as stars_router
+from astro_backend_service.api.routes.constellations import (
+    router as constellations_router,
+)
+from astro_backend_service.api.routes.runs import router as runs_router
+from astro_backend_service.api.routes.chat import router as chat_router
+
+__all__ = [
+    "probes_router",
+    "directives_router",
+    "stars_router",
+    "constellations_router",
+    "runs_router",
+    "chat_router",
+]

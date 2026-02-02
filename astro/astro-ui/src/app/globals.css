@@ -1,0 +1,111 @@
+@import './styles/tokens.scss';
+@import './styles/spacing.scss';
+@import './styles/button.scss';
+@import './styles/input.scss';
+@import './styles/textarea.scss';
+@import './styles/select.scss';
+@import './styles/checkbox.scss';
+@import './styles/switch.scss';
+@import './styles/fieldWrapper.scss';
+@import './styles/modal.scss';
+@import './styles/radio.scss';
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+body {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: var(--leading-normal);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Typography Classes */
+.heading-01 {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 400;
+  line-height: var(--leading-tight);
+}
+
+.heading-02 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: var(--leading-tight);
+}
+
+.heading-03 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: var(--leading-snug);
+}
+
+.body-01 {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: var(--leading-normal);
+}
+
+.body-02 {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: var(--leading-normal);
+}
+
+.label-01 {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.code-01 {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: var(--leading-normal);
+}
+
+.code-style {
+  color: var(--accent-primary);
+  background-color: var(--bg-code);
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 768px) {
+  .heading-01 {
+    font-size: 36px;
+  }
+
+  .heading-02 {
+    font-size: 28px;
+  }
+
+  .heading-03 {
+    font-size: 20px;
+  }
+}
