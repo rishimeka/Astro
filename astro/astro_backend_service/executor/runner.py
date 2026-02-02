@@ -1,11 +1,14 @@
 """ConstellationRunner - executes constellation graphs."""
 
 import asyncio
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
 
 from astro_backend_service.executor.context import ExecutionContext, StarOutput
+
+logger = logging.getLogger(__name__)
 from astro_backend_service.executor.events import (
     NodeCompletedEvent,
     NodeFailedEvent,
@@ -84,8 +87,12 @@ class ConstellationRunner:
         # Use NoOpStream if no stream provided
         effective_stream = stream or NoOpStream()
 
+        logger.info(f"Starting constellation run: constellation_id={constellation_id}")
+        logger.debug(f"Run variables: {list(variables.keys())}")
+
         constellation = self.foundry.get_constellation(constellation_id)
         if not constellation:
+            logger.error(f"Constellation not found: {constellation_id}")
             raise ValueError(f"Constellation '{constellation_id}' not found")
 
         # Create run record
@@ -98,6 +105,8 @@ class ConstellationRunner:
             started_at=datetime.now(timezone.utc),
             node_outputs={},
         )
+
+        logger.info(f"Created run: id={run.id}, constellation={constellation.name}")
 
         # Persist run
         await self._save_run(run)
@@ -129,6 +138,7 @@ class ConstellationRunner:
 
         try:
             # Execute in topological order
+            logger.debug(f"Executing graph for run: {run.id}")
             await self._execute_graph(constellation, context, run)
 
             # Mark complete
@@ -143,6 +153,8 @@ class ConstellationRunner:
                     (run.completed_at - run.started_at).total_seconds() * 1000
                 )
 
+            logger.info(f"Run completed: id={run.id}, duration_ms={duration_ms}")
+
             # Emit run completed event
             await effective_stream.emit(
                 RunCompletedEvent(
@@ -156,6 +168,8 @@ class ConstellationRunner:
             run.status = "failed"
             run.error = str(e)
             run.completed_at = datetime.now(timezone.utc)
+
+            logger.error(f"Run failed: id={run.id}, node={context.current_node_id}, error={e}", exc_info=True)
 
             # Emit run failed event
             await effective_stream.emit(
@@ -240,8 +254,10 @@ class ConstellationRunner:
         node_index: int = 0,
     ) -> None:
         """Execute a single StarNode."""
+        logger.debug(f"Executing node: id={node.id}, star_id={node.star_id}, index={node_index}")
         star = self.foundry.get_star(node.star_id)
         if star is None:
+            logger.error(f"Star not found: {node.star_id}")
             raise ValueError(f"Star '{node.star_id}' not found")
 
         # Check for upstream parallel nodes
@@ -286,7 +302,9 @@ class ConstellationRunner:
 
         try:
             # Execute star
+            logger.debug(f"Executing star: id={star.id}, type={star.type}")
             result = await self._execute_star(star, node, context)
+            logger.debug(f"Star execution complete: id={star.id}")
 
             # Store output - handle different output types
             if hasattr(result, "formatted_result"):
@@ -358,6 +376,7 @@ class ConstellationRunner:
                 await self._pause_for_confirmation(node, run, context)
 
         except Exception as e:
+            logger.error(f"Node execution failed: node_id={node.id}, star_id={node.star_id}, error={e}", exc_info=True)
             node_output.status = "failed"
             node_output.error = str(e)
             node_output.completed_at = datetime.now(timezone.utc)
@@ -602,10 +621,12 @@ class ConstellationRunner:
         Raises:
             ValueError: If run is not awaiting confirmation.
         """
+        logger.info(f"Resuming run: {run_id}")
         effective_stream = stream or NoOpStream()
         run = await self._get_run(run_id)
 
         if run.status != "awaiting_confirmation":
+            logger.warning(f"Cannot resume run {run_id}: status={run.status}")
             raise ValueError(f"Run is not awaiting confirmation (status: {run.status})")
 
         # Clear confirmation state
@@ -688,9 +709,11 @@ class ConstellationRunner:
         Returns:
             Updated Run object with cancelled status.
         """
+        logger.info(f"Cancelling run: {run_id}")
         run = await self._get_run(run_id)
 
         if run.status in ("completed", "failed", "cancelled"):
+            logger.debug(f"Run {run_id} already in terminal state: {run.status}")
             return run
 
         run.status = "cancelled"
@@ -698,6 +721,7 @@ class ConstellationRunner:
         run.awaiting_node_id = None
         run.awaiting_prompt = None
 
+        logger.info(f"Run cancelled: {run_id}")
         await self._save_run(run)
         return run
 

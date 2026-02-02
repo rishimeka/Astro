@@ -2,12 +2,15 @@
 
 import asyncio
 import json
+import logging
 from typing import Any, AsyncGenerator, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from astro_backend_service.api.dependencies import get_foundry, get_runner
+
+logger = logging.getLogger(__name__)
 from astro_backend_service.api.schemas import (
     RunSummary,
     RunResponse,
@@ -32,7 +35,9 @@ async def list_runs(
     foundry: Foundry = Depends(get_foundry),
 ) -> List[RunSummary]:
     """List past runs, optionally filtered by constellation."""
+    logger.debug(f"Listing runs: constellation_id={constellation_id}")
     runs = await foundry.list_runs(constellation_id)
+    logger.debug(f"Found {len(runs)} runs")
     return [
         RunSummary(
             id=r["id"],
@@ -129,11 +134,14 @@ async def confirm_run(
     runner: ConstellationRunner = Depends(get_runner),
 ) -> ConfirmResponse:
     """Confirm or cancel a paused run."""
+    logger.info(f"Confirm request for run: {id}, proceed={request.proceed}")
     run = await foundry.get_run(id)
     if run is None:
+        logger.debug(f"Run not found: {id}")
         raise HTTPException(status_code=404, detail=f"Run '{id}' not found")
 
     if run.get("status") != "awaiting_confirmation":
+        logger.warning(f"Run {id} not awaiting confirmation, status={run.get('status')}")
         raise HTTPException(
             status_code=400,
             detail=f"Run is not awaiting confirmation (status: {run.get('status')})",
@@ -142,6 +150,7 @@ async def confirm_run(
     if request.proceed:
         # Resume execution
         try:
+            logger.info(f"Resuming run: {id}")
             await runner.resume_run(id, additional_context=request.additional_context)
             return ConfirmResponse(
                 run_id=id,
@@ -149,9 +158,11 @@ async def confirm_run(
                 message="Execution resumed",
             )
         except Exception as e:
+            logger.error(f"Error resuming run {id}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
     else:
         # Cancel execution
+        logger.info(f"Cancelling run: {id}")
         await runner.cancel_run(id)
         return ConfirmResponse(
             run_id=id,

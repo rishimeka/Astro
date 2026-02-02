@@ -2,12 +2,15 @@
 
 import asyncio
 import json
+import logging
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sse_starlette.sse import EventSourceResponse
 
 from astro_backend_service.api.dependencies import get_foundry, get_runner
+
+logger = logging.getLogger(__name__)
 from astro_backend_service.api.schemas import (
     ConstellationCreate,
     ConstellationUpdate,
@@ -90,7 +93,9 @@ async def list_constellations(
     foundry: Foundry = Depends(get_foundry),
 ) -> List[ConstellationSummary]:
     """List all constellations."""
+    logger.debug("Listing all constellations")
     constellations = foundry.list_constellations()
+    logger.debug(f"Found {len(constellations)} constellations")
     return [
         ConstellationSummary(
             id=c.id,
@@ -109,8 +114,10 @@ async def get_constellation(
     foundry: Foundry = Depends(get_foundry),
 ) -> Constellation:
     """Get a constellation by ID."""
+    logger.debug(f"Getting constellation: {id}")
     constellation = foundry.get_constellation(id)
     if constellation is None:
+        logger.debug(f"Constellation not found: {id}")
         raise HTTPException(status_code=404, detail=f"Constellation '{id}' not found")
     return constellation
 
@@ -136,15 +143,18 @@ async def create_constellation(
     foundry: Foundry = Depends(get_foundry),
 ) -> ConstellationResponse:
     """Create a new constellation."""
+    logger.info(f"Creating constellation: id={request.id}, name={request.name}")
     constellation = _build_constellation(request)
 
     try:
         created, warnings = await foundry.create_constellation(constellation)
+        logger.info(f"Constellation created: {created.id} with {len(warnings)} warnings")
         return ConstellationResponse(
             constellation=created.model_dump(),
             warnings=[w.message for w in warnings],
         )
     except ValidationError as e:
+        logger.warning(f"Validation error creating constellation {request.id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -157,17 +167,22 @@ async def update_constellation(
     """Update a constellation."""
     updates = request.model_dump(exclude_unset=True)
     if not updates:
+        logger.debug(f"Update constellation {id}: no fields to update")
         raise HTTPException(status_code=400, detail="No fields to update")
 
+    logger.info(f"Updating constellation: {id}, fields={list(updates.keys())}")
     try:
         updated, warnings = await foundry.update_constellation(id, updates)
+        logger.info(f"Constellation updated: {id} with {len(warnings)} warnings")
         return ConstellationResponse(
             constellation=updated.model_dump(),
             warnings=[w.message for w in warnings],
         )
     except ValidationError as e:
         if "not found" in str(e).lower():
+            logger.debug(f"Constellation not found for update: {id}")
             raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"Validation error updating constellation {id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -177,9 +192,12 @@ async def delete_constellation(
     foundry: Foundry = Depends(get_foundry),
 ) -> None:
     """Delete a constellation."""
+    logger.info(f"Deleting constellation: {id}")
     deleted = await foundry.delete_constellation(id)
     if not deleted:
+        logger.debug(f"Constellation not found for deletion: {id}")
         raise HTTPException(status_code=404, detail=f"Constellation '{id}' not found")
+    logger.info(f"Constellation deleted: {id}")
 
 
 @router.post("/{id}/run")
@@ -190,9 +208,11 @@ async def run_constellation(
     runner: ConstellationRunner = Depends(get_runner),
 ):
     """Execute a constellation with SSE streaming."""
+    logger.info(f"Run request for constellation: {id}")
     # Verify constellation exists
     constellation = foundry.get_constellation(id)
     if constellation is None:
+        logger.debug(f"Constellation not found for run: {id}")
         raise HTTPException(status_code=404, detail=f"Constellation '{id}' not found")
 
     async def event_generator():
@@ -202,6 +222,7 @@ async def run_constellation(
         async def execute():
             """Execute constellation and emit events."""
             try:
+                logger.debug(f"Starting execution of constellation: {id}")
                 # Emit run started
                 await queue.put(
                     {
@@ -216,6 +237,7 @@ async def run_constellation(
                     variables=request.variables,
                     original_query=request.variables.get("_query", ""),
                 )
+                logger.info(f"Constellation {id} execution completed: run_id={run.id}, status={run.status}")
 
                 # Emit node events
                 for node_id, node_output in run.node_outputs.items():
@@ -278,6 +300,7 @@ async def run_constellation(
                     )
 
             except Exception as e:
+                logger.error(f"Error executing constellation {id}: {e}", exc_info=True)
                 await queue.put(
                     {
                         "event": "run_failed",

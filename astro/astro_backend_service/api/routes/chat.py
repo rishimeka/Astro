@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, Depends
@@ -19,6 +20,8 @@ from astro_backend_service.executor import (
     serialize_event_dict,
 )
 from astro_backend_service.launchpad import TriggeringAgent
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -43,8 +46,12 @@ async def stream_chat_response(
     if request.conversation_id:
         conversation = get_conversation(request.conversation_id)
         conversation_id = request.conversation_id
+        logger.debug(f"Using existing conversation: {conversation_id}")
     else:
         conversation_id, conversation = create_conversation()
+        logger.debug(f"Created new conversation: {conversation_id}")
+
+    logger.info(f"Processing chat message: conversation={conversation_id}, message_preview={request.message[:50]}...")
 
     # Send conversation_id first
     yield sse_event("conversation_id", {"conversation_id": conversation_id})
@@ -62,6 +69,7 @@ async def stream_chat_response(
         """Process message and put result when done."""
         nonlocal final_response, run_id, constellation_id
         try:
+            logger.debug(f"Starting agent.process_message for conversation={conversation_id}")
             response = await agent.process_message(
                 message=request.message,
                 conversation=conversation,
@@ -70,7 +78,9 @@ async def stream_chat_response(
             final_response = response.response
             run_id = response.run_id
             constellation_id = response.constellation_id
+            logger.info(f"Agent response complete: action={response.action}, run_id={run_id}, constellation_id={constellation_id}")
         except Exception as e:
+            logger.error(f"Error processing message in conversation={conversation_id}: {e}", exc_info=True)
             # Emit error through stream
             from astro_backend_service.executor.events import LogEvent
 
@@ -142,6 +152,7 @@ async def stream_chat_response(
         yield sse_event("done", {})
 
     except Exception as e:
+        logger.error(f"Error in chat stream for conversation={conversation_id}: {e}", exc_info=True)
         yield sse_event("error", {"message": str(e)})
         yield sse_event("done", {})
     finally:

@@ -1,5 +1,6 @@
 """Directives router - CRUD for directives."""
 
+import logging
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,6 +15,8 @@ from astro_backend_service.api.schemas import (
 from astro_backend_service.foundry import Foundry, ValidationError
 from astro_backend_service.models import Directive
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
@@ -22,7 +25,9 @@ async def list_directives(
     foundry: Foundry = Depends(get_foundry),
 ) -> List[DirectiveSummary]:
     """List all directives."""
+    logger.debug("Listing all directives")
     directives = foundry.list_directives()
+    logger.debug(f"Found {len(directives)} directives")
     return [
         DirectiveSummary(
             id=d.id,
@@ -40,8 +45,10 @@ async def get_directive(
     foundry: Foundry = Depends(get_foundry),
 ) -> Directive:
     """Get a directive by ID."""
+    logger.debug(f"Getting directive: {id}")
     directive = foundry.get_directive(id)
     if directive is None:
+        logger.debug(f"Directive not found: {id}")
         raise HTTPException(status_code=404, detail=f"Directive '{id}' not found")
     return directive
 
@@ -52,6 +59,7 @@ async def create_directive(
     foundry: Foundry = Depends(get_foundry),
 ) -> DirectiveResponse:
     """Create a new directive."""
+    logger.info(f"Creating directive: id={request.id}, name={request.name}")
     directive = Directive(
         id=request.id,
         name=request.name,
@@ -61,11 +69,13 @@ async def create_directive(
     )
     try:
         created, warnings = await foundry.create_directive(directive)
+        logger.info(f"Directive created: {created.id} with {len(warnings)} warnings")
         return DirectiveResponse(
             directive=created.model_dump(),
             warnings=[w.message for w in warnings],
         )
     except ValidationError as e:
+        logger.warning(f"Validation error creating directive {request.id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -78,17 +88,22 @@ async def update_directive(
     """Update a directive."""
     updates = request.model_dump(exclude_unset=True)
     if not updates:
+        logger.debug(f"Update directive {id}: no fields to update")
         raise HTTPException(status_code=400, detail="No fields to update")
 
+    logger.info(f"Updating directive: {id}, fields={list(updates.keys())}")
     try:
         updated, warnings = await foundry.update_directive(id, updates)
+        logger.info(f"Directive updated: {id} with {len(warnings)} warnings")
         return DirectiveResponse(
             directive=updated.model_dump(),
             warnings=[w.message for w in warnings],
         )
     except ValidationError as e:
         if "not found" in str(e).lower():
+            logger.debug(f"Directive not found for update: {id}")
             raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"Validation error updating directive {id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -98,11 +113,16 @@ async def delete_directive(
     foundry: Foundry = Depends(get_foundry),
 ) -> None:
     """Delete a directive."""
+    logger.info(f"Deleting directive: {id}")
     try:
         deleted = await foundry.delete_directive(id)
         if not deleted:
+            logger.debug(f"Directive not found for deletion: {id}")
             raise HTTPException(status_code=404, detail=f"Directive '{id}' not found")
+        logger.info(f"Directive deleted: {id}")
     except ValidationError as e:
         if "referenced by" in str(e).lower():
+            logger.warning(f"Cannot delete directive {id}: still referenced")
             raise HTTPException(status_code=409, detail=str(e))
+        logger.warning(f"Validation error deleting directive {id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))

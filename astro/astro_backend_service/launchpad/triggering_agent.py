@@ -1,5 +1,6 @@
 """Triggering agent - the conversational router for Launchpad."""
 
+import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -18,6 +19,8 @@ from astro_backend_service.launchpad.tools import analyze_constellation
 
 if TYPE_CHECKING:
     from astro_backend_service.executor.stream import ExecutionStream
+
+logger = logging.getLogger(__name__)
 
 
 class TriggeringResponse(BaseModel):
@@ -112,15 +115,18 @@ class TriggeringAgent:
         """
         # Add user message to conversation
         conversation.add_message("user", message)
+        logger.debug(f"Processing message: {message[:50]}...")
 
         # Step 0: Check for pending constellation awaiting variables
         if conversation.has_pending_constellation():
+            logger.debug("Has pending constellation, handling variable collection")
             return await self._handle_pending_constellation(
                 message, conversation, stream
             )
 
         # Step 1: Check if simple query
         if self._is_simple_query(message):
+            logger.debug("Message classified as simple query")
             response = await self._generate_direct_answer(message, conversation)
             return TriggeringResponse(
                 action="direct_answer",
@@ -128,6 +134,7 @@ class TriggeringAgent:
             )
 
         # Step 2: Try to find matching constellation
+        logger.debug("Searching for matching constellation")
         summaries = self.get_constellation_summaries()
         match = find_matching_constellation(
             message,
@@ -137,8 +144,10 @@ class TriggeringAgent:
         )
 
         if match is not None:
+            logger.info(f"Found matching constellation: {match.constellation_id}, confidence={match.confidence}")
             # Check if variables are complete
             if match.is_complete():
+                logger.debug(f"Variables complete, invoking constellation: {match.constellation_id}")
                 # Invoke the constellation
                 result = await self._invoke_constellation(
                     match.constellation_id,
@@ -153,12 +162,15 @@ class TriggeringAgent:
                     run_id=result.get("run_id"),
                 )
             else:
+                logger.debug(f"Missing variables: {match.missing_variables}, starting collection")
                 # Store pending constellation and ask for first missing variable
                 return self._start_variable_collection(match, conversation)
 
         # Step 3: No matching constellation - gather clarifications or use generic
+        logger.debug("No matching constellation found")
         # Check if we have enough context already
         if self._has_sufficient_context(message, conversation):
+            logger.debug("Sufficient context, invoking generic constellation")
             result = await self._invoke_generic_constellation(
                 message, conversation, stream
             )
@@ -168,6 +180,7 @@ class TriggeringAgent:
                 run_id=result.get("run_id"),
             )
         else:
+            logger.debug("Gathering clarifications from user")
             # Ask for clarifications
             clarification = self._gather_clarifications(
                 message, conversation, summaries
@@ -685,6 +698,8 @@ Keep responses brief and natural."""
         """
         from astro_backend_service.executor import ConstellationRunner
 
+        logger.info(f"Invoking constellation: {constellation_id}")
+        logger.debug(f"Variables: {list(variables.keys())}")
         runner = ConstellationRunner(self.foundry)
 
         try:
@@ -694,12 +709,14 @@ Keep responses brief and natural."""
                 original_query,
                 stream=stream,
             )
+            logger.info(f"Constellation execution complete: run_id={run.id}, status={run.status}")
 
             # Apply synthesis if needed
             output = run.final_output or ""
             constellation = self.foundry.get_constellation(constellation_id)
 
             if SynthesisAgent.should_run(self.user_preferences, constellation):
+                logger.debug("Applying synthesis to output")
                 agent = SynthesisAgent(self.user_preferences, self.llm_client)
                 output = agent.format_output(output)
 
@@ -708,6 +725,7 @@ Keep responses brief and natural."""
                 "run_id": run.id,
             }
         except Exception as e:
+            logger.error(f"Error invoking constellation {constellation_id}: {e}", exc_info=True)
             return {
                 "output": f"Error executing constellation: {e}",
                 "run_id": None,
