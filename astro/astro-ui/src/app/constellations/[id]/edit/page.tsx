@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import {
   Canvas,
   NodePalette,

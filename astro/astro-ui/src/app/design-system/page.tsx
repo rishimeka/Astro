@@ -1,6 +1,6 @@
 'use client';
 
-import StatusBadge from '@/components/StatusBadge/StatusBadge';
+import { StatusBadge } from '@/components/StatusBadge';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useTheme } from '@/context/ThemeContext';
 import styles from './page.module.scss';

@@ -4,7 +4,7 @@ import { useState, use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Edit2, Trash2, Save, X, FileText, Settings, Tag } from 'lucide-react';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import { ContentViewer } from '@/components/ContentViewer';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import { Spinner, PageLoader } from '@/components/Loading';

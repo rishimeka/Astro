@@ -1,0 +1,13 @@
+{
+  "name": "astrix-labs",
+  "private": true,
+  "workspaces": [
+    "astrix-labs-uitk",
+    "astro/astro-ui"
+  ],
+  "scripts": {
+    "build:uitk": "npm run build -w astrix-labs-uitk",
+    "dev": "npm run dev -w astro-ui",
+    "build": "npm run build -w astrix-labs-uitk && npm run build -w astro-ui"
+  }
+}

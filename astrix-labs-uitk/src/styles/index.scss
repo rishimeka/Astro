@@ -1,0 +1,18 @@
+/* Astrix Labs UI Toolkit - Main Styles Entry Point */
+
+/* Design tokens must be imported first */
+@use './tokens.scss';
+
+/* Form controls */
+@use './button.scss';
+@use './input.scss';
+@use './textarea.scss';
+@use './select.scss';
+@use './checkbox.scss';
+@use './radio.scss';
+@use './switch.scss';
+@use './slider.scss';
+
+/* Layout components */
+@use './modal.scss';
+@use './fieldWrapper.scss';

@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import { DataTable, Column } from '@/components/DataTable';
 import { SearchInput } from '@/components/SearchInput';
 import { EmptyState } from '@/components/EmptyState';
-import Spinner from '@/components/Loading/Spinner';
-import ErrorMessage from '@/components/Error/ErrorMessage';
+import { Spinner } from '@/components/Loading';
+import { ErrorMessage } from '@/components/Error';
 import { useProbes } from '@/hooks';
 import type { Probe } from '@/types/astro';
 import styles from './page.module.scss';

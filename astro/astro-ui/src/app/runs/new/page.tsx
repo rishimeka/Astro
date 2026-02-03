@@ -11,7 +11,7 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import { Spinner } from '@/components/Loading';
 import { ExecutionCanvas, ConfirmationModal } from '@/components/Execution';
 import { ENDPOINTS } from '@/lib/api/endpoints';

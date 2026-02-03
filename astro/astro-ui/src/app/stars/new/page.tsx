@@ -1,6 +1,6 @@
 'use client';
 
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import StarCreator from '@/components/StarCreator';
 
 export default function NewStarPage() {

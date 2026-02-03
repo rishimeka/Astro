@@ -3,14 +3,14 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import { DataTable, Column } from '@/components/DataTable';
 import { SearchInput } from '@/components/SearchInput';
 import { TypeFilter } from '@/components/TypeFilter';
 import { Pagination } from '@/components/Pagination';
 import { EmptyState } from '@/components/EmptyState';
-import Spinner from '@/components/Loading/Spinner';
-import ErrorMessage from '@/components/Error/ErrorMessage';
+import { Spinner } from '@/components/Loading';
+import { ErrorMessage } from '@/components/Error';
 import { useStars } from '@/hooks';
 import { useDirectives } from '@/hooks';
 import { StarType } from '@/types/astro';

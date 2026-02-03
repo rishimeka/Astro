@@ -15,7 +15,7 @@ import {
   Sparkles,
   Tag,
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import { MetadataPanel } from '@/components/MetadataPanel';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import { Spinner, PageLoader } from '@/components/Loading';

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Bot, CheckCircle, User } from 'lucide-react';
 import type { ChatMessage as ChatMessageType } from '@/hooks/useChat';
-import { Markdown } from '@/components/Markdown/Markdown';
+import { Markdown } from '@/components/Markdown';
 import styles from './Chat.module.scss';
 import StreamingIndicator from './StreamingIndicator';
 

@@ -12,7 +12,7 @@ import {
   LayoutGrid,
   List,
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Spinner } from '@/components/Loading';
 import { Markdown } from '@/components/Markdown';

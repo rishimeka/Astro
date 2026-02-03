@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Play, Edit2, Trash2 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import { Canvas } from '@/components/ConstellationBuilder';
 import type { ConstellationNode } from '@/components/ConstellationBuilder';
 import type { Edge } from 'reactflow';

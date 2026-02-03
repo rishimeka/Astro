@@ -1,6 +1,6 @@
 'use client';
 
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import DirectiveWizard from '@/components/DirectiveWizard';
 
 export default function NewDirectivePage() {
