@@ -3,7 +3,7 @@
 import { use } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Settings, FileText } from 'lucide-react';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import { PageLoader } from '@/components/Loading';
 import { useProbe } from '@/hooks/useProbes';
 import styles from './page.module.scss';

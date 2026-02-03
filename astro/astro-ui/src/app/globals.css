@@ -1,14 +1,8 @@
-@import './styles/tokens.scss';
+/* Import design system styles from uitk */
+@import 'astrix-labs-uitk/styles/index.scss';
+
+/* App-specific styles */
 @import './styles/spacing.scss';
-@import './styles/button.scss';
-@import './styles/input.scss';
-@import './styles/textarea.scss';
-@import './styles/select.scss';
-@import './styles/checkbox.scss';
-@import './styles/switch.scss';
-@import './styles/fieldWrapper.scss';
-@import './styles/modal.scss';
-@import './styles/radio.scss';
 
 html,
 body {

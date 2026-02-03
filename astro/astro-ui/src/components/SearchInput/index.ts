@@ -1,2 +1,2 @@
-export { default as SearchInput } from './SearchInput';
-export type { SearchInputProps } from './SearchInput';
+// Re-export from uitk
+export { SearchInput, type SearchInputProps } from 'astrix-labs-uitk';

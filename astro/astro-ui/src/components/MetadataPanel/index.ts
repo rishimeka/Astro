@@ -1,2 +1,2 @@
-export { default as MetadataPanel } from './MetadataPanel';
-export type { MetadataPanelProps } from './MetadataPanel';
+// Re-export from uitk
+export { MetadataPanel, type MetadataPanelProps } from 'astrix-labs-uitk';

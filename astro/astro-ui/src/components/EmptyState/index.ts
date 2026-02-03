@@ -1,2 +1,2 @@
-export { default as EmptyState } from './EmptyState';
-export type { EmptyStateProps } from './EmptyState';
+// Re-export from uitk
+export { EmptyState, type EmptyStateProps } from 'astrix-labs-uitk';

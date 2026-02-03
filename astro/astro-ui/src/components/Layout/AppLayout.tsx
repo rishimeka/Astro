@@ -1,7 +1,6 @@
 'use client';
 
-import Sidebar from '@/components/Sidebar/Sidebar';
-import { SidebarProvider, useSidebar } from '@/components/Sidebar/SidebarContext';
+import Sidebar, { SidebarProvider, useSidebar } from '@/components/Sidebar';
 import styles from './AppLayout.module.scss';
 
 interface AppLayoutProps {

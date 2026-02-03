@@ -1,0 +1,80 @@
+{
+  "timestamp": "20260202_135545",
+  "query": "Can you do some company analysis on AirBnB?",
+  "zero_shot": {
+    "name": "zero_shot",
+    "query": "Can you do some company analysis on AirBnB?",
+    "output": "### Company Overview:\n\n**Airbnb, Inc.** operates an online marketplace for lodging, primarily homestays for vacation rentals, and tourism activities. Based in San Francisco, California, Airbnb is a leader in the alternative lodging space, a significant sector of the global travel industry. Since its founding in 2008, the company has expanded its offerings to include Experiences, which allow locals to offer activities to travelers. As of my last update in 2023, Airbnb boasts millions of listings in more than 220 countries and regions, illustrating its vast global market presence and its ability to disrupt traditional hotel and accommodation sectors.\n\n### Bull Case:\n\n1. **Global Expansion and Market Penetration**: Airbnb continues to penetrate new markets, especially in emerging economies where travel and tourism are growing rapidly. Its scalable business model allows for quick expansion with relatively low incremental costs.\n   \n2. **Diverse Offerings and Experiences Segment**: Beyond a...",
+    "output_length": 4655,
+    "duration_ms": 17578.832125058398,
+    "duration_seconds": 17.58,
+    "token_usage": {
+      "input_tokens": 120,
+      "output_tokens": 815,
+      "total_tokens": 935,
+      "llm_calls": 1
+    },
+    "cost_usd": 0.0256,
+    "model": "gpt-4-turbo-preview",
+    "metadata": {}
+  },
+  "astro": {
+    "name": "astro_constellation",
+    "query": "Can you do some company analysis on AirBnB?",
+    "output": "# Investment Research Report: AirBnB\n**Date:** December 1, 2023  \n**Analyst:** AI Research Team\n\n---\n\n## Executive Summary\nAirBnB, a pioneer in the online lodging and tourism experience marketplace, finds itself at a pivotal juncture characterized by both promising opportunities and formidable challenges. The company's innovative approach to travel, underscored by its recent technological leadership appointments and strategic partnerships, positions it well to capitalize on the post-pandemic travel resurgence. AirBnB's commitment to community engagement and brand strength, as evidenced by its humanitarian efforts and initiatives for enhancing guest experiences, further solidifies its market position. However, the company is navigating a complex regulatory landscape and facing operational risks that could impact its growth trajectory. This report aims to provide a balanced perspective on AirBnB's investment potential, considering the dynamic interplay between its growth drivers and the ...",
+    "output_length": 5795,
+    "duration_ms": 307370.0101249851,
+    "duration_seconds": 307.37,
+    "token_usage": {
+      "input_tokens": 147773,
+      "output_tokens": 5476,
+      "total_tokens": 153249,
+      "llm_calls": 14
+    },
+    "cost_usd": 1.642,
+    "model": "gpt-4-turbo-preview",
+    "metadata": {
+      "run_id": "run_40d391abcd76",
+      "constellation_id": "const-001",
+      "status": "completed",
+      "nodes_executed": 6,
+      "node_info": [
+        {
+          "node_id": "planning",
+          "star_id": "star-007",
+          "status": "completed"
+        },
+        {
+          "node_id": "execution",
+          "star_id": "star-008",
+          "status": "completed"
+        },
+        {
+          "node_id": "news_gatherer",
+          "star_id": "star-009",
+          "status": "completed"
+        },
+        {
+          "node_id": "bull_analyst",
+          "star_id": "star-010",
+          "status": "completed"
+        },
+        {
+          "node_id": "bear_analyst",
+          "star_id": "star-011",
+          "status": "completed"
+        },
+        {
+          "node_id": "synthesis",
+          "star_id": "star-012",
+          "status": "completed"
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "duration_diff_ms": 289791.17799992673,
+    "token_diff": 152314,
+    "cost_diff_usd": 1.6163599999999998
+  }
+}

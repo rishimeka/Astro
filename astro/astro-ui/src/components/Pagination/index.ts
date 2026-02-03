@@ -1,2 +1,2 @@
-export { default as Pagination } from './Pagination';
-export type { PaginationProps } from './Pagination';
+// Re-export from uitk
+export { Pagination, type PaginationProps } from 'astrix-labs-uitk';

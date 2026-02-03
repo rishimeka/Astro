@@ -2,16 +2,12 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useSidebar } from './SidebarContext';
-import styles from './Sidebar.module.scss';
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-}
+import {
+  Sidebar as BaseSidebar,
+  NavItem,
+  SidebarProvider,
+  useSidebar,
+} from 'astrix-labs-uitk';
 
 const navItems: NavItem[] = [
   {
@@ -90,86 +86,29 @@ const navItems: NavItem[] = [
   },
 ];
 
-export default function Sidebar() {
-  const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
-  const { isCollapsed, toggleCollapsed } = useSidebar();
-
-  const isActive = (href: string) => {
-    if (href === '/') {
-      return pathname === '/';
-    }
-    return pathname.startsWith(href);
-  };
-
+function SidebarLogo() {
   return (
     <>
-      {/* Mobile hamburger button */}
-      <button
-        className={styles.hamburger}
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="Toggle navigation"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          {isOpen ? (
-            <>
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </>
-          ) : (
-            <>
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </>
-          )}
-        </svg>
-      </button>
-
-      {/* Overlay for mobile */}
-      {isOpen && (
-        <div
-          className={styles.overlay}
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${isCollapsed ? styles.collapsed : ''}`}>
-        <div className={styles.header}>
-          {!isCollapsed && (
-            <div className={styles.logo}>
-              <img src="/astrix-logo.svg" alt="Astro" className={styles.logoIcon} />
-              <div className={styles.logoTextWrapper}>
-                <span className={styles.logoText}>Astro</span>
-                <span className={styles.logoSubtext}>By Astrix Labs</span>
-              </div>
-            </div>
-          )}
-          <button
-            className={styles.collapseToggle}
-            onClick={toggleCollapsed}
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
-        </div>
-
-        <nav className={styles.nav}>
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`${styles.navItem} ${isActive(item.href) ? styles.active : ''}`}
-              onClick={() => setIsOpen(false)}
-              title={isCollapsed ? item.label : undefined}
-            >
-              <span className={styles.navIcon}>{item.icon}</span>
-              {!isCollapsed && <span className={styles.navLabel}>{item.label}</span>}
-            </Link>
-          ))}
-        </nav>
-      </aside>
+      <img src="/astrix-logo.svg" alt="Astro" style={{ width: 32, height: 32 }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>Astro</span>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', lineHeight: 1 }}>By Astrix Labs</span>
+      </div>
     </>
   );
 }
+
+export default function Sidebar() {
+  const pathname = usePathname();
+
+  return (
+    <BaseSidebar
+      navItems={navItems}
+      currentPath={pathname}
+      logo={<SidebarLogo />}
+      LinkComponent={Link}
+    />
+  );
+}
+
+export { SidebarProvider, useSidebar };

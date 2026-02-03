@@ -3,15 +3,15 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import { DataTable, Column } from '@/components/DataTable';
 import { StatusFilter, FilterableStatus } from '@/components/StatusFilter';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DateRangeFilter, DateRangePreset, DateRange } from '@/components/DateRangeFilter';
 import { Pagination } from '@/components/Pagination';
 import { EmptyState } from '@/components/EmptyState';
-import Spinner from '@/components/Loading/Spinner';
-import ErrorMessage from '@/components/Error/ErrorMessage';
+import { Spinner } from '@/components/Loading';
+import { ErrorMessage } from '@/components/Error';
 import { useRuns } from '@/hooks';
 import { formatDateTime, getRelativeTime } from '@/lib/utils/date';
 import type { RunSummary, RunStatus } from '@/types/astro';

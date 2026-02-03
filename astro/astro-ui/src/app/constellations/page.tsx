@@ -3,13 +3,13 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import PageHeader from '@/components/PageHeader/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import { SearchInput } from '@/components/SearchInput';
 import { TagFilter } from '@/components/TagFilter';
 import { ConstellationCard } from '@/components/ConstellationCard';
 import { EmptyState } from '@/components/EmptyState';
-import Spinner from '@/components/Loading/Spinner';
-import ErrorMessage from '@/components/Error/ErrorMessage';
+import { Spinner } from '@/components/Loading';
+import { ErrorMessage } from '@/components/Error';
 import { useConstellations, getConstellationTags } from '@/hooks';
 import styles from './page.module.scss';
 

@@ -1,5 +1,6 @@
 'use client';
 
+// Re-export ThemeToggle from uitk, using the astro-ui ThemeContext
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import styles from './ThemeToggle.module.scss';
