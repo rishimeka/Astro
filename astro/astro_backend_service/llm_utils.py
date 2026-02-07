@@ -10,7 +10,7 @@ load_dotenv(find_dotenv())
 logger = logging.getLogger(__name__)
 
 # Default model - can be overridden via environment variable
-DEFAULT_LLM_MODEL = "gpt-4-turbo-preview"
+DEFAULT_LLM_MODEL = "gpt-5-nano"
 
 
 def get_required_env(key: str) -> str:

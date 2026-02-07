@@ -105,10 +105,17 @@ class WorkerStar(AtomicStar):
         tool_calls: List[ToolCall] = []
         iterations = 0
 
-        # Get available probes/tools
+        # Get available probes/tools - ONLY those assigned to this star
         from astro_backend_service.probes.registry import ProbeRegistry
 
-        available_probes = ProbeRegistry.all()
+        # Filter probes to only those in this star's probe_ids (probe scoping)
+        all_probes = ProbeRegistry.all()
+        if self.probe_ids:
+            # Only include probes that are explicitly allowed for this star
+            available_probes = [p for p in all_probes if p.name in self.probe_ids]
+        else:
+            # If no probe_ids specified, no tools available (synthesis-only star)
+            available_probes = []
 
         # If we have tools, bind them to the LLM for tool calling
         if available_probes:
@@ -142,7 +149,13 @@ class WorkerStar(AtomicStar):
 
                     # Check if the response has tool calls
                     if hasattr(response, "tool_calls") and response.tool_calls:
-                        # Process each tool call
+                        from langchain_core.messages import ToolMessage
+
+                        # First, append the assistant message with tool calls ONCE
+                        messages.append(response)
+
+                        # Then process each tool call and collect ToolMessages
+                        tool_messages = []
                         for tc in response.tool_calls:
                             tool_name = tc.get("name", "")
                             tool_args = tc.get("args", {})
@@ -169,16 +182,16 @@ class WorkerStar(AtomicStar):
                                 )
                             )
 
-                            # Add tool result to messages for next iteration
-                            from langchain_core.messages import ToolMessage
-
-                            messages.append(response)
-                            messages.append(
+                            # Create ToolMessage for this tool call
+                            tool_messages.append(
                                 ToolMessage(
                                     content=tool_result or tool_error or "",
                                     tool_call_id=tc.get("id", ""),
                                 )
                             )
+
+                        # Append all tool messages after the assistant message
+                        messages.extend(tool_messages)
 
                         # Continue to next iteration to process tool results
                         continue

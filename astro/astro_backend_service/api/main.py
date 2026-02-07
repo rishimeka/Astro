@@ -67,6 +67,7 @@ from astro_backend_service.api.routes import (
     constellations_router,
     runs_router,
     chat_router,
+    files_router,
 )
 from astro_backend_service.foundry import ValidationError
 
@@ -116,6 +117,7 @@ def create_app() -> FastAPI:
     )
     application.include_router(runs_router, prefix="/runs", tags=["Runs"])
     application.include_router(chat_router, prefix="/chat", tags=["Chat"])
+    application.include_router(files_router, prefix="/files", tags=["Files"])
 
     # Exception handlers
     @application.exception_handler(ValidationError)

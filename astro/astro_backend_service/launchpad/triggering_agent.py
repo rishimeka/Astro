@@ -14,6 +14,7 @@ from astro_backend_service.launchpad.matching import (
     get_all_constellation_summaries,
 )
 from astro_backend_service.launchpad.preferences import UserSynthesisPreferences
+from astro_backend_service.launchpad.prompts import get_prompt
 from astro_backend_service.launchpad.synthesis import SynthesisAgent
 from astro_backend_service.launchpad.tools import analyze_constellation
 
@@ -226,9 +227,14 @@ class TriggeringAgent:
             "what's your name",
             "who are you",
             "what can you do",
+            "what can you help",
+            "how can you help",
             "how do you work",
             "what are you",
             "tell me about yourself",
+            "help me with something else",
+            "something else",
+            "what else can you",
         ]
         if any(q in message_lower for q in assistant_questions):
             return True
@@ -275,6 +281,27 @@ class TriggeringAgent:
         ):
             return True
 
+        # Rejection/refusal phrases (user declining suggested options)
+        rejection_phrases = [
+            "i don't want",
+            "i dont want",
+            "don't want to",
+            "dont want to",
+            "not interested",
+            "none of those",
+            "none of these",
+            "not any of",
+            "neither",
+            "i'd rather not",
+            "i would rather not",
+            "no thanks",
+            "no thank you",
+            "pass on",
+            "skip",
+        ]
+        if any(phrase in message_lower for phrase in rejection_phrases):
+            return True
+
         # Very short queries that are likely simple
         if len(message.split()) <= 5:
             # But not if they contain complex keywords
@@ -309,6 +336,62 @@ class TriggeringAgent:
 
         return False
 
+    def _is_capability_question(self, message: str) -> bool:
+        """Check if the message is asking about capabilities.
+
+        Args:
+            message: The user's message.
+
+        Returns:
+            True if asking about capabilities.
+        """
+        message_lower = message.lower().strip()
+        capability_phrases = [
+            "what can you do",
+            "what can you help",
+            "how can you help",
+            "what are you capable",
+            "what do you do",
+            "what tasks",
+            "what workflows",
+            "list your capabilities",
+            "show me what you can",
+            "help me with something else",
+            "something else",
+            "do something else",
+            "other options",
+            "what else can you",
+        ]
+        return any(phrase in message_lower for phrase in capability_phrases)
+
+    def _is_rejection(self, message: str) -> bool:
+        """Check if the message is rejecting/declining options.
+
+        Args:
+            message: The user's message.
+
+        Returns:
+            True if user is rejecting options.
+        """
+        message_lower = message.lower().strip()
+        rejection_phrases = [
+            "i don't want",
+            "i dont want",
+            "don't want to",
+            "dont want to",
+            "not interested",
+            "none of those",
+            "none of these",
+            "not any of",
+            "neither",
+            "i'd rather not",
+            "i would rather not",
+            "no thanks",
+            "no thank you",
+            "pass on",
+        ]
+        return any(phrase in message_lower for phrase in rejection_phrases)
+
     async def _generate_direct_answer(
         self, message: str, conversation: Conversation
     ) -> str:
@@ -321,11 +404,33 @@ class TriggeringAgent:
         Returns:
             The direct answer.
         """
+        # Check if this is a capability question
+        is_capability_q = self._is_capability_question(message)
+
+        # Check if this is a rejection of options
+        is_rejection = self._is_rejection(message)
+
+        # Get constellation summaries if asking about capabilities
+        constellation_info = ""
+        if is_capability_q:
+            summaries = self.get_constellation_summaries()
+            if summaries:
+                constellation_list = []
+                for s in summaries:
+                    name = s.get("name", "Unnamed")
+                    desc = s.get("description", "")
+                    constellation_list.append(f"- **{name}**: {desc}")
+                constellation_info = "\n".join(constellation_list)
+
         if self.llm_client is None:
             # Fallback for when no LLM is available
             message_lower = message.lower().strip()
             if any(g in message_lower for g in ["hello", "hi", "hey"]):
                 return "Hello! How can I help you today?"
+            if is_rejection:
+                return "No problem! What would you like help with instead? I can also answer general questions."
+            if is_capability_q and constellation_info:
+                return f"I'm Astro, an AI assistant. I can help you with:\n\n{constellation_info}"
             return "I'd be happy to help with that, but I need more context."
 
         from langchain_core.messages import HumanMessage, SystemMessage
@@ -340,14 +445,16 @@ class TriggeringAgent:
             elif msg.role == "assistant":
                 history_messages.append(AIMessage(content=msg.content))
 
-        system_prompt = """You are Astro, a helpful AI assistant for Astrix Labs. You help users with their questions and tasks.
-
-For simple conversational queries:
-- Be friendly and concise
-- Answer directly without unnecessary elaboration
-- If asked about yourself, explain you're Astro, an AI assistant that can help with various tasks including running specialized workflows called "constellations"
-
-Keep responses brief and natural."""
+        if is_rejection:
+            system_prompt = get_prompt("triggering_agent.md", "rejection")
+        elif is_capability_q and constellation_info:
+            system_prompt = get_prompt(
+                "triggering_agent.md",
+                "capability_question",
+                constellation_info=constellation_info,
+            )
+        else:
+            system_prompt = get_prompt("triggering_agent.md", "simple_query")
 
         messages = [
             SystemMessage(content=system_prompt),
@@ -360,6 +467,10 @@ Keep responses brief and natural."""
             return response.content
         except Exception:
             # Fallback on error
+            if is_rejection:
+                return "No problem! What would you like help with instead? I can also answer general questions."
+            if is_capability_q and constellation_info:
+                return f"I'm Astro, an AI assistant. I can help you with:\n\n{constellation_info}"
             return "I'm having trouble processing that right now. Could you try again?"
 
     def _ask_follow_up(
@@ -440,6 +551,39 @@ Keep responses brief and natural."""
             missing_variables=match.missing_variables,
         )
 
+    def _is_cancellation(self, message: str) -> bool:
+        """Check if the message is canceling the current action.
+
+        Args:
+            message: The user's message.
+
+        Returns:
+            True if user is canceling.
+        """
+        message_lower = message.lower().strip()
+        cancellation_phrases = [
+            "i don't want",
+            "i dont want",
+            "don't want to",
+            "dont want to",
+            "no thanks",
+            "no thank you",
+            "cancel",
+            "nevermind",
+            "never mind",
+            "forget it",
+            "stop",
+            "not that",
+            "not this",
+            "something else",
+            "different",
+            "other option",
+        ]
+        # Check for explicit "no" at the start
+        if message_lower in ["no", "nope", "nah"]:
+            return True
+        return any(phrase in message_lower for phrase in cancellation_phrases)
+
     async def _handle_pending_constellation(
         self,
         message: str,
@@ -463,6 +607,26 @@ Keep responses brief and natural."""
             return TriggeringResponse(
                 action="direct_answer",
                 response="I'm sorry, I lost track of our conversation. How can I help you?",
+            )
+
+        # Check if user is canceling or wants something else
+        if self._is_cancellation(message) or self._is_capability_question(message):
+            constellation_name = pending.constellation_name
+            conversation.clear_pending_constellation()
+            logger.debug(f"User canceled pending constellation: {constellation_name}")
+
+            # If it's a capability question, show the list
+            if self._is_capability_question(message):
+                response = await self._generate_direct_answer(message, conversation)
+                return TriggeringResponse(
+                    action="direct_answer",
+                    response=response,
+                )
+
+            # Otherwise just acknowledge and ask what they want
+            return TriggeringResponse(
+                action="direct_answer",
+                response="No problem! What would you like help with instead?",
             )
 
         # The user's message should be the value for the next missing variable
@@ -607,16 +771,11 @@ Keep responses brief and natural."""
         # Format variable name for display
         display_name = var_name.replace("_", " ")
 
-        system_prompt = f"""You are a value extractor. The user was asked to provide a value for "{display_name}".
-Extract the actual value they provided from their response.
-
-Rules:
-- Return ONLY the extracted value, nothing else
-- Remove conversational phrases like "it's", "I want", "please use", etc.
-- If the message is just the value itself, return it as-is
-- Preserve the original casing and format of the value
-- If you cannot determine a clear value, return the message cleaned up"""
-
+        system_prompt = get_prompt(
+            "triggering_agent.md",
+            "value_extractor",
+            display_name=display_name,
+        )
         user_prompt = f"User's response: {message}"
 
         try:

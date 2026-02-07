@@ -132,10 +132,15 @@ export function useValidation({
           severity: 'error',
         });
       } else {
-        const hasLoop = outgoingEdges.some((e) => e.data?.condition === 'loop');
-        const hasContinue = outgoingEdges.some(
-          (e) => e.data?.condition === 'continue'
-        );
+        // Match backend behavior: check if condition contains 'loop' or 'continue'
+        const hasLoop = outgoingEdges.some((e) => {
+          const condition = e.data?.condition?.toLowerCase() || '';
+          return condition === 'loop' || condition.includes('loop');
+        });
+        const hasContinue = outgoingEdges.some((e) => {
+          const condition = e.data?.condition?.toLowerCase() || '';
+          return condition === 'continue' || condition.includes('continue');
+        });
 
         if (!hasLoop) {
           errors.push({
@@ -154,7 +159,7 @@ export function useValidation({
       }
     });
 
-    // 8. Confirmation nodes cannot have multiple incoming edges
+    // 8. Confirmation nodes cannot have multiple incoming edges (except loop edges from EvalStar)
     const confirmationNodes = nodes.filter((n) => {
       if (n.type !== 'star') return false;
       const data = n.data as StarNodeData | undefined;
@@ -164,7 +169,14 @@ export function useValidation({
     confirmationNodes.forEach((node) => {
       const data = node.data as StarNodeData | undefined;
       const incomingEdges = edges.filter((e) => e.target === node.id);
-      if (incomingEdges.length > 1) {
+
+      // Filter out loop edges (from EvalStar nodes) - these are valid for HITL workflows
+      const nonLoopEdges = incomingEdges.filter((e) => {
+        const condition = e.data?.condition?.toLowerCase() || '';
+        return !condition.includes('loop');
+      });
+
+      if (nonLoopEdges.length > 1) {
         errors.push({
           nodeId: node.id,
           message: `Confirmation node "${data?.starName || node.id}" cannot have multiple incoming edges`,

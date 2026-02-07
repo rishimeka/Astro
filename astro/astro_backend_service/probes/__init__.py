@@ -24,6 +24,8 @@ from astro_backend_service.probes.registry import ProbeRegistry
 
 # Import probe modules to trigger registration
 from astro_backend_service.probes import google_news  # noqa: F401
+from astro_backend_service.probes import due_diligence  # noqa: F401
+from astro_backend_service.probes import excel  # noqa: F401
 
 __all__ = [
     "probe",

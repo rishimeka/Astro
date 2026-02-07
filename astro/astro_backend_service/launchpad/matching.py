@@ -3,6 +3,7 @@
 from typing import Any, Dict, List, Optional
 
 from astro_backend_service.launchpad.conversation import Message
+from astro_backend_service.launchpad.prompts import get_prompt
 
 
 class ConstellationMatch:
@@ -128,25 +129,14 @@ def _llm_match_constellation(
 
     constellations_text = "\n\n".join(constellation_list)
 
-    system_prompt = """You are a constellation matcher. Given a user query and available constellations, determine if any constellation matches the user's intent.
-
-Respond with JSON in this exact format:
-{"match": true, "constellation_id": "the-id", "extracted_variables": {"var_name": "value"}, "confidence": 0.9}
-
-Or if no match:
-{"match": false}
-
-Only match if the constellation is genuinely relevant to what the user is asking. Extract any variable values mentioned in the query."""
-
-    user_prompt = f"""User query: {query}
-
-Conversation context:
-{context or "(New conversation)"}
-
-Available constellations:
-{constellations_text}
-
-Which constellation (if any) matches this query? Extract any variable values from the query."""
+    system_prompt = get_prompt("matching.md", "constellation_matcher")
+    user_prompt = get_prompt(
+        "matching.md",
+        "constellation_matcher_user",
+        query=query,
+        context=context or "(New conversation)",
+        constellations_text=constellations_text,
+    )
 
     try:
         response = llm_client.invoke(
@@ -305,22 +295,13 @@ def _llm_extract_variables(
 
     vars_text = "\n".join(var_descriptions)
 
-    system_prompt = """You are a variable extractor. Given user text and a list of variables to extract, identify any values mentioned in the text that correspond to the variables.
-
-Respond with JSON in this exact format:
-{"extracted": {"variable_name": "value", "another_var": "value"}}
-
-Only include variables where you found a clear value in the text. Do not make up values.
-For company names, look for proper nouns. For tickers, look for 2-5 character uppercase codes.
-If no values can be extracted, return: {"extracted": {}}"""
-
-    user_prompt = f"""Text to analyze:
-{text}
-
-Variables to extract:
-{vars_text}
-
-Extract any variable values you can find in the text."""
+    system_prompt = get_prompt("matching.md", "variable_extractor")
+    user_prompt = get_prompt(
+        "matching.md",
+        "variable_extractor_user",
+        text=text,
+        vars_text=vars_text,
+    )
 
     try:
         response = llm_client.invoke(

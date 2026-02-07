@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from astro_backend_service.executor import ConstellationRunner, ExecutionContext, Run
+from astro_backend_service.executor.exceptions import ExecutionPausedException
 from astro_backend_service.executor.runner import generate_run_id
 from astro_backend_service.models import (
     Constellation,
@@ -73,7 +74,9 @@ class TestConstellationRunner:
         assert run.id.startswith("run_")
         assert run.constellation_id == "test_constellation"
         assert run.constellation_name == "Test Constellation"
-        assert run.variables == {"company_name": "Tesla"}
+        # Variables include _original_query for HITL resume support
+        assert run.variables["company_name"] == "Tesla"
+        assert run.variables["_original_query"] == "Analyze Tesla"
         # Status depends on star execution (stub returns dict)
         assert run.status in ("completed", "failed")
 
@@ -397,7 +400,7 @@ class TestHumanInTheLoop:
         mock_foundry: Any,
         hitl_constellation: Constellation,
     ) -> None:
-        """Test that HITL node pauses execution."""
+        """Test that HITL node pauses execution and raises exception."""
         mock_foundry.add_constellation(hitl_constellation)
 
         # Add the star
@@ -439,8 +442,15 @@ class TestHumanInTheLoop:
             foundry=mock_foundry,
         )
 
-        await runner._pause_for_confirmation(node, run, context)
+        # _pause_for_confirmation now raises ExecutionPausedException to halt execution
+        with pytest.raises(ExecutionPausedException) as exc_info:
+            await runner._pause_for_confirmation(node, run, context)
 
+        # Verify the exception contains correct info
+        assert exc_info.value.run_id == "run_123"
+        assert exc_info.value.node_id == "worker"
+
+        # Verify run state was updated before exception
         assert run.status == "awaiting_confirmation"
         assert run.awaiting_node_id == "worker"
         assert run.awaiting_prompt == "Review and confirm?"
@@ -463,6 +473,151 @@ class TestHumanInTheLoop:
 
         with pytest.raises(ValueError, match="not awaiting confirmation"):
             await runner.resume_run("run_123")
+
+    @pytest.mark.asyncio
+    async def test_execution_halts_on_hitl_node(
+        self,
+        mock_foundry: Any,
+        hitl_multi_node_constellation: Constellation,
+    ) -> None:
+        """Test that execution halts at HITL node - downstream nodes don't execute."""
+        mock_foundry.add_constellation(hitl_multi_node_constellation)
+
+        # Add directive and star
+        directive = Directive(
+            id="directive_1",
+            name="Test Directive",
+            description="Test",
+            content="Test prompt",
+        )
+        mock_foundry.add_directive(directive)
+
+        worker_star = WorkerStar(
+            id="worker_star",
+            name="Worker",
+            type=StarType.WORKER,
+            directive_id="directive_1",
+        )
+        mock_foundry.add_star(worker_star)
+
+        runner = ConstellationRunner(mock_foundry)
+
+        # Run the constellation
+        run = await runner.run(
+            "hitl_multi_node",
+            {"test_var": "test_value"},
+            original_query="Test query",
+        )
+
+        # Verify run is paused at the HITL node
+        assert run.status == "awaiting_confirmation"
+        assert run.awaiting_node_id == "node_a"
+        assert run.awaiting_prompt == "Approve Node A output?"
+
+        # CRITICAL: Node B should NOT have executed
+        assert "node_b" not in run.node_outputs, "Node B should not execute when Node A is awaiting confirmation"
+
+        # Node A should have completed before pause
+        assert "node_a" in run.node_outputs
+        assert run.node_outputs["node_a"].status == "completed"
+
+    @pytest.mark.asyncio
+    async def test_original_query_preserved_on_resume(
+        self,
+        mock_foundry: Any,
+        hitl_constellation: Constellation,
+    ) -> None:
+        """Test that original_query is preserved through pause/resume cycle."""
+        mock_foundry.add_constellation(hitl_constellation)
+
+        # Add directive and star
+        directive = Directive(
+            id="directive_1",
+            name="Test Directive",
+            description="Test",
+            content="Test prompt",
+        )
+        mock_foundry.add_directive(directive)
+
+        worker_star = WorkerStar(
+            id="worker_star",
+            name="Worker",
+            type=StarType.WORKER,
+            directive_id="directive_1",
+        )
+        mock_foundry.add_star(worker_star)
+
+        runner = ConstellationRunner(mock_foundry)
+
+        # Run with original_query
+        original_query = "What is the analysis for Tesla?"
+        run = await runner.run(
+            "hitl_constellation",
+            {"company": "Tesla"},
+            original_query=original_query,
+        )
+
+        # Verify _original_query is stored in variables
+        assert run.variables.get("_original_query") == original_query
+
+        # Verify run is paused
+        assert run.status == "awaiting_confirmation"
+
+    @pytest.mark.asyncio
+    async def test_full_hitl_flow_pause_resume_complete(
+        self,
+        mock_foundry: Any,
+        hitl_multi_node_constellation: Constellation,
+    ) -> None:
+        """Test complete HITL flow: run -> pause -> resume -> complete."""
+        mock_foundry.add_constellation(hitl_multi_node_constellation)
+
+        # Add directive and star
+        directive = Directive(
+            id="directive_1",
+            name="Test Directive",
+            description="Test",
+            content="Test prompt",
+        )
+        mock_foundry.add_directive(directive)
+
+        worker_star = WorkerStar(
+            id="worker_star",
+            name="Worker",
+            type=StarType.WORKER,
+            directive_id="directive_1",
+        )
+        mock_foundry.add_star(worker_star)
+
+        runner = ConstellationRunner(mock_foundry)
+
+        # Step 1: Run and pause at HITL node
+        run = await runner.run(
+            "hitl_multi_node",
+            {"test_var": "value"},
+            original_query="Test query",
+        )
+
+        assert run.status == "awaiting_confirmation"
+        assert run.awaiting_node_id == "node_a"
+        assert "node_b" not in run.node_outputs
+
+        # Step 2: Resume with additional context
+        additional_context = "User approved with note: looks good"
+        resumed_run = await runner.resume_run(
+            run.id,
+            additional_context=additional_context,
+        )
+
+        # Step 3: Verify completion
+        assert resumed_run.status == "completed"
+        assert resumed_run.awaiting_node_id is None
+        assert resumed_run.awaiting_prompt is None
+        assert resumed_run.additional_context == additional_context
+
+        # Node B should now have executed
+        assert "node_b" in resumed_run.node_outputs
+        assert resumed_run.node_outputs["node_b"].status == "completed"
 
 
 class TestParallelExecution:

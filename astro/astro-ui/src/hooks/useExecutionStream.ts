@@ -48,6 +48,7 @@ type SSEEventType =
   | 'node_failed'
   | 'node_retrying'
   | 'awaiting_confirmation'
+  | 'run_resumed'
   | 'run_completed'
   | 'run_failed';
 
@@ -194,6 +195,13 @@ export function useExecutionStream({
             break;
           }
 
+          case 'run_resumed': {
+            // Run was resumed after user confirmation
+            newState.status = 'running';
+            newState.awaitingConfirmation = null;
+            break;
+          }
+
           case 'run_completed': {
             const completedRunData = data as SSERunCompleted;
             newState.status = 'completed';
@@ -306,6 +314,7 @@ export function useExecutionStream({
       'node_failed',
       'node_retrying',
       'awaiting_confirmation',
+      'run_resumed',
       'run_completed',
       'run_failed',
     ];

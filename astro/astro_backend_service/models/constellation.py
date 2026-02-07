@@ -80,8 +80,9 @@ class Constellation(BaseModel):
         adjacency: Dict[str, List[str]] = {node_id: [] for node_id in all_node_ids}
 
         for edge in self.edges:
-            # Skip loop edges (from EvalStar with condition='loop')
-            if edge.condition == "loop":
+            # Skip loop edges (from EvalStar with conditions containing 'loop')
+            # This handles both condition="loop" and condition="decision == 'loop'"
+            if edge.condition and "loop" in edge.condition.lower():
                 continue
             if edge.source in adjacency:
                 adjacency[edge.source].append(edge.target)

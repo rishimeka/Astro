@@ -8,6 +8,7 @@ from astro_backend_service.api.routes.constellations import (
 )
 from astro_backend_service.api.routes.runs import router as runs_router
 from astro_backend_service.api.routes.chat import router as chat_router
+from astro_backend_service.api.routes.files import router as files_router
 
 __all__ = [
     "probes_router",
@@ -16,4 +17,5 @@ __all__ = [
     "constellations_router",
     "runs_router",
     "chat_router",
+    "files_router",
 ]

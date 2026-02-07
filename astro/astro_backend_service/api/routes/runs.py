@@ -192,7 +192,11 @@ async def stream_run_status(
         # Send status change
         if current_status != last_status:
             if current_status == "running":
-                yield sse_event("run_started", {"run_id": run_id})
+                # Check if this is a resume (previous status was awaiting_confirmation)
+                if last_status == "awaiting_confirmation":
+                    yield sse_event("run_resumed", {"run_id": run_id})
+                else:
+                    yield sse_event("run_started", {"run_id": run_id})
             elif current_status == "completed":
                 yield sse_event(
                     "run_completed",

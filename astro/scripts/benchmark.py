@@ -14,6 +14,10 @@ Compares:
 Usage:
     cd /Users/rishimeka/Documents/Code/astrix-labs/astro
 
+    # =========================================================================
+    # MARKET RESEARCH BENCHMARK (Original)
+    # =========================================================================
+
     # Compare all three
     PYTHONPATH=. python scripts/benchmark.py --query "Can you do some company analysis on AirBnB?" --include-multi-agent
 
@@ -22,6 +26,34 @@ Usage:
 
     # With quality evaluation
     PYTHONPATH=. python scripts/benchmark.py --query "Can you do some company analysis on AirBnB?" --include-multi-agent --full-evaluation
+
+    # =========================================================================
+    # DUE DILIGENCE BENCHMARK (New - Tests Tool Scoping)
+    # =========================================================================
+
+    # Run full DD benchmark comparing all approaches (zero-shot, naive multi-agent, Astro)
+    PYTHONPATH=. python scripts/benchmark.py --due-diligence --dd-all-approaches --dd-evaluate
+
+    # Standard scenario (no conditional branches)
+    PYTHONPATH=. python scripts/benchmark.py --due-diligence --dd-scenario standard --dd-company "Airbnb"
+
+    # Regulated industry scenario (triggers regulatory deep-dive)
+    PYTHONPATH=. python scripts/benchmark.py --due-diligence --dd-scenario regulated --dd-company "Pfizer"
+
+    # Anomaly scenario (triggers forensic analyst)
+    PYTHONPATH=. python scripts/benchmark.py --due-diligence --dd-scenario anomaly
+
+    # Full scenario (triggers both conditional branches)
+    PYTHONPATH=. python scripts/benchmark.py --due-diligence --dd-scenario full --dd-evaluate
+
+    # Custom company
+    PYTHONPATH=. python scripts/benchmark.py --due-diligence --dd-all-approaches --dd-company "Tesla" --dd-evaluate
+
+The Due Diligence benchmark tests Astro's key differentiators:
+- Tool scoping: Each analyst has access only to relevant probes
+- Sub-directive composition: Shared analysis framework across workers
+- Conditional branching: Regulatory deep-dive and forensic analysis paths
+- Probe isolation as quality mechanism: Prevents cross-contamination
 """
 
 import argparse
@@ -40,7 +72,8 @@ load_dotenv(find_dotenv())
 
 # Pricing per 1M tokens (as of 2024 - update as needed)
 PRICING = {
-    "gpt-4-turbo-preview": {"input": 10.00, "output": 30.00},
+    "gpt-5-nano": {"input": 0.10, "output": 0.40},  # Default model for benchmarks
+    "gpt-5-nano": {"input": 10.00, "output": 30.00},
     "gpt-4-turbo": {"input": 10.00, "output": 30.00},
     "gpt-4o": {"input": 5.00, "output": 15.00},
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},
@@ -98,6 +131,33 @@ class QualityScore:
 
 
 @dataclass
+class DueDiligenceMetrics:
+    """Metrics specific to the Due Diligence benchmark."""
+    analytical_independence: float = 0.0  # 0-10: Do analysts reach independent conclusions?
+    cross_contamination_score: float = 0.0  # Count of scope violations
+    tool_call_efficiency: float = 0.0  # Ratio of relevant to total tool calls
+    conditional_path_accuracy: bool = False  # Did correct conditional branches trigger?
+    output_consistency: float = 0.0  # 0-10: Are outputs consistently formatted?
+    conflict_detection: float = 0.0  # 0-10: Does synthesis identify contradictions?
+    probe_scope_violations: List[Dict[str, Any]] = field(default_factory=list)
+    conditional_branches_triggered: List[str] = field(default_factory=list)
+    reasoning: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "analytical_independence": self.analytical_independence,
+            "cross_contamination_score": self.cross_contamination_score,
+            "tool_call_efficiency": self.tool_call_efficiency,
+            "conditional_path_accuracy": self.conditional_path_accuracy,
+            "output_consistency": self.output_consistency,
+            "conflict_detection": self.conflict_detection,
+            "probe_scope_violations": self.probe_scope_violations[:10],
+            "conditional_branches_triggered": self.conditional_branches_triggered,
+            "reasoning": self.reasoning,
+        }
+
+
+@dataclass
 class FactualAccuracy:
     """Factual accuracy assessment."""
     claims_identified: int = 0
@@ -133,6 +193,7 @@ class BenchmarkResult:
     metadata: Dict[str, Any] = field(default_factory=dict)
     quality_score: Optional[QualityScore] = None
     factual_accuracy: Optional[FactualAccuracy] = None
+    dd_metrics: Optional[DueDiligenceMetrics] = None
 
     def to_dict(self) -> Dict[str, Any]:
         result = {
@@ -151,12 +212,55 @@ class BenchmarkResult:
             result["quality_score"] = self.quality_score.to_dict()
         if self.factual_accuracy:
             result["factual_accuracy"] = self.factual_accuracy.to_dict()
+        if self.dd_metrics:
+            result["dd_metrics"] = self.dd_metrics.to_dict()
         return result
+
+
+# Due Diligence Benchmark Test Queries
+DD_BENCHMARK_QUERIES = {
+    "standard": {
+        "query": "Due diligence on Airbnb",
+        "company": "Airbnb",
+        "expected_behavior": "Standard path (A,B,C,D → G → H). No conditional branches.",
+        "expected_branches": [],
+    },
+    "regulated": {
+        "query": "Due diligence on Pfizer",
+        "company": "Pfizer",
+        "expected_behavior": "Triggers regulatory deep dive (E) because pharma = heavily regulated",
+        "expected_branches": ["regulatory_deep_dive"],
+    },
+    "anomaly": {
+        "query": "Due diligence on Enron",  # Historical example
+        "company": "Enron",
+        "expected_behavior": "Triggers forensic analyst (F) when financial analyst flags anomalies",
+        "expected_branches": ["forensic_analyst"],
+    },
+    "full": {
+        "query": "Due diligence on a heavily regulated company with accounting concerns",
+        "company": "Theranos",  # Historical example
+        "expected_behavior": "Triggers BOTH regulatory deep dive (E) and forensic analyst (F)",
+        "expected_branches": ["regulatory_deep_dive", "forensic_analyst"],
+    },
+}
+
+# Probe scoping matrix for validation
+PROBE_SCOPING_MATRIX = {
+    "financial_analyst": ["search_sec_filings", "get_financial_data", "search_earnings_transcripts"],
+    "sentiment_analyst": ["search_news", "get_social_sentiment", "get_analyst_ratings"],
+    "regulatory_analyst": ["search_sec_filings", "search_legal_cases", "search_regulatory_filings"],
+    "competitive_analyst": ["get_market_research", "search_news", "get_financial_data"],
+    "regulatory_deep_dive": ["search_regulatory_filings", "search_legal_cases", "search_news", "search_sec_filings"],
+    "forensic_analyst": ["search_sec_filings", "get_financial_data", "search_earnings_transcripts"],
+    "risk_scorer": [],
+    "final_synthesis": [],
+}
 
 
 def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     """Calculate cost based on model pricing."""
-    pricing = PRICING.get(model, PRICING["gpt-4-turbo-preview"])
+    pricing = PRICING.get(model, PRICING.get("gpt-5-nano", {"input": 0.10, "output": 0.40}))
     input_cost = (input_tokens / 1_000_000) * pricing["input"]
     output_cost = (output_tokens / 1_000_000) * pricing["output"]
     return input_cost + output_cost
@@ -232,6 +336,105 @@ Provide your evaluation in JSON format."""
         return QualityScore(reasoning=f"Error evaluating quality: {str(e)}")
 
     return QualityScore(reasoning="Could not parse evaluation response")
+
+
+async def evaluate_dd_metrics(
+    output: str,
+    query: str,
+    model: str,
+    node_outputs: Optional[Dict[str, Any]] = None,
+    expected_branches: Optional[List[str]] = None,
+) -> DueDiligenceMetrics:
+    """Evaluate Due Diligence specific metrics using LLM-as-judge."""
+    from langchain_core.messages import HumanMessage, SystemMessage
+    from langchain_openai import ChatOpenAI
+    from pydantic import SecretStr
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return DueDiligenceMetrics(reasoning="API key not available")
+
+    llm = ChatOpenAI(
+        model=model,
+        temperature=0,
+        api_key=SecretStr(api_key),
+    )
+
+    system_prompt = """You are an expert evaluator of investment due diligence reports.
+Evaluate the given output on these dimensions specific to multi-analyst due diligence:
+
+1. **Analytical Independence** (0-10): Do different analytical sections (financial, sentiment, regulatory, competitive)
+   reach independent conclusions without cross-contamination? Look for:
+   - Sentiment analysis that doesn't reference specific financial numbers
+   - Financial analysis that doesn't speculate on narrative/perception
+   - Regulatory analysis that focuses on facts from filings, not opinions
+
+2. **Output Consistency** (0-10): Are all sections formatted consistently? Look for:
+   - Consistent section headers
+   - Consistent confidence level indicators
+   - Consistent evidence citation format
+
+3. **Conflict Detection** (0-10): Does the synthesis identify contradictions between analysts?
+   - Are bull vs bear disagreements explicitly called out?
+   - Are conflicting data points from different sources noted?
+
+Respond in this exact JSON format:
+{
+    "analytical_independence": <score>,
+    "output_consistency": <score>,
+    "conflict_detection": <score>,
+    "cross_contamination_examples": ["example 1", "example 2"],
+    "reasoning": "<brief explanation of scores>"
+}"""
+
+    user_message = f"""Query: {query}
+
+Due Diligence Report to evaluate:
+{output}
+
+Evaluate this report. Respond in JSON format."""
+
+    try:
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_message),
+        ]
+        response = llm.invoke(messages)
+        content = response.content if hasattr(response, "content") else str(response)
+
+        # Parse JSON from response
+        import re
+        json_match = re.search(r'\{[^{}]*\}', content, re.DOTALL)
+        if json_match:
+            data = json.loads(json_match.group())
+
+            # Check conditional branch accuracy
+            conditional_accuracy = True
+            triggered_branches = []
+            if node_outputs:
+                for node_id, output_data in node_outputs.items():
+                    if node_id in ["regulatory_deep_dive", "forensic_analyst"]:
+                        if output_data.get("status") == "completed":
+                            triggered_branches.append(node_id)
+
+                if expected_branches:
+                    conditional_accuracy = set(triggered_branches) == set(expected_branches)
+
+            return DueDiligenceMetrics(
+                analytical_independence=float(data.get("analytical_independence", 0)),
+                cross_contamination_score=len(data.get("cross_contamination_examples", [])),
+                tool_call_efficiency=0.0,  # Calculated separately from tool call logs
+                conditional_path_accuracy=conditional_accuracy,
+                output_consistency=float(data.get("output_consistency", 0)),
+                conflict_detection=float(data.get("conflict_detection", 0)),
+                probe_scope_violations=[{"example": ex} for ex in data.get("cross_contamination_examples", [])],
+                conditional_branches_triggered=triggered_branches,
+                reasoning=data.get("reasoning", ""),
+            )
+    except Exception as e:
+        return DueDiligenceMetrics(reasoning=f"Error evaluating DD metrics: {str(e)}")
+
+    return DueDiligenceMetrics(reasoning="Could not parse evaluation response")
 
 
 async def check_factual_accuracy(output: str, query: str, model: str) -> FactualAccuracy:
@@ -448,7 +651,7 @@ async def run_multi_agent_research(query: str, model: str = None) -> BenchmarkRe
 
         api_key = os.getenv("OPENAI_API_KEY")
         # Use the model from Multi Agent Research (gpt-5-nano) or override
-        llm_model = model or os.getenv("LLM_MODEL", "gpt-4-turbo-preview")
+        llm_model = model or os.getenv("LLM_MODEL", "gpt-5-nano")
         base_llm = ChatOpenAI(
             model=llm_model,
             temperature=temperature,
@@ -479,7 +682,7 @@ async def run_multi_agent_research(query: str, model: str = None) -> BenchmarkRe
         from nodes.research_agent import research_graph
 
         print(f"Query: {query}")
-        llm_model = model or os.getenv("LLM_MODEL", "gpt-4-turbo-preview")
+        llm_model = model or os.getenv("LLM_MODEL", "gpt-5-nano")
         print(f"Model: {llm_model}")
         print("Running multi-agent research...")
 
@@ -627,6 +830,534 @@ Provide a complete investment research report."""
     )
 
 
+async def run_zero_shot_dd(query: str, company: str, model: str) -> BenchmarkResult:
+    """Run a zero-shot due diligence query with all tools available.
+
+    Single prompt with ALL 9 probes bound - tests if one smart call can match
+    8 coordinated workers.
+    """
+    from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+    from langchain_core.tools import StructuredTool
+    from langchain_openai import ChatOpenAI
+    from pydantic import SecretStr
+
+    print("\n" + "=" * 60)
+    print("ZERO-SHOT DUE DILIGENCE BENCHMARK (ALL TOOLS)")
+    print("=" * 60)
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set")
+
+    usage = TokenUsage()
+
+    # Create LLM with token tracking
+    base_llm = ChatOpenAI(
+        model=model,
+        temperature=0.5,
+        api_key=SecretStr(api_key),
+    )
+    llm = TokenTrackingLLM(base_llm, usage)
+
+    # Bind ALL DD probes to the LLM
+    from astro_backend_service.probes.registry import ProbeRegistry
+    dd_probe_names = [
+        "search_sec_filings", "get_financial_data", "search_earnings_transcripts",
+        "search_news", "get_social_sentiment", "get_analyst_ratings",
+        "search_legal_cases", "search_regulatory_filings", "get_market_research"
+    ]
+
+    all_probes = ProbeRegistry.all()
+    probes = [p for p in all_probes if p.name in dd_probe_names]
+
+    langchain_tools = []
+    probe_map = {}
+    for probe in probes:
+        tool = StructuredTool.from_function(
+            func=probe._callable,
+            name=probe.name,
+            description=probe.description,
+        )
+        langchain_tools.append(tool)
+        probe_map[probe.name] = probe
+
+    llm_with_tools = llm._llm.bind_tools(langchain_tools)
+
+    print(f"Bound {len(langchain_tools)} tools to LLM")
+
+    system_prompt = f"""You are a senior investment analyst conducting comprehensive due diligence on {company}.
+
+You have access to 9 research tools. Use them to gather data, then produce a complete due diligence report.
+
+## Your Task
+1. Use the available tools to gather financial, sentiment, regulatory, and competitive data
+2. Synthesize findings into a comprehensive due diligence report
+
+## Required Report Sections
+1. Executive Summary (3-5 sentences)
+2. Investment Thesis (Bull case, Bear case, Key debate points)
+3. Risk Assessment (Financial, Regulatory, Competitive, Sentiment - score 1-10 each)
+4. Recommendation (Rating, Conviction, Key monitoring triggers)
+
+## Guidelines
+- Call multiple tools to gather comprehensive data
+- Support all claims with evidence from tool results
+- Be objective and balanced"""
+
+    user_message = f"Conduct comprehensive due diligence on {company}. Use the available tools to gather data."
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_message),
+    ]
+
+    print(f"Query: {query}")
+    print(f"Company: {company}")
+    print(f"Model: {model}")
+    print("Running zero-shot due diligence with tool calling...")
+
+    start_time = time.perf_counter()
+
+    tool_calls_made = []
+    max_iterations = 10
+    iterations = 0
+
+    # Tool calling loop
+    while iterations < max_iterations:
+        iterations += 1
+        response = llm_with_tools.invoke(messages)
+        usage.add(
+            response.response_metadata.get("token_usage", {}).get("prompt_tokens", 0),
+            response.response_metadata.get("token_usage", {}).get("completion_tokens", 0)
+        )
+
+        if hasattr(response, "tool_calls") and response.tool_calls:
+            messages.append(response)
+            tool_messages = []
+
+            for tc in response.tool_calls:
+                tool_name = tc.get("name", "")
+                tool_args = tc.get("args", {})
+
+                try:
+                    if tool_name in probe_map:
+                        result = str(probe_map[tool_name].invoke(**tool_args))
+                    else:
+                        result = f"Tool '{tool_name}' not found"
+                except Exception as e:
+                    result = f"Error: {str(e)}"
+
+                tool_calls_made.append({"tool": tool_name, "args": tool_args})
+                tool_messages.append(ToolMessage(content=result, tool_call_id=tc.get("id", "")))
+
+            messages.extend(tool_messages)
+            print(f"  Iteration {iterations}: {len(response.tool_calls)} tool calls")
+        else:
+            # No more tool calls - got final response
+            break
+
+    end_time = time.perf_counter()
+    duration_ms = (end_time - start_time) * 1000
+    output = response.content if hasattr(response, "content") else str(response)
+    cost = calculate_cost(model, usage.input_tokens, usage.output_tokens)
+
+    print(f"Completed in {duration_ms:.0f}ms")
+    print(f"Tokens: {usage.input_tokens} input, {usage.output_tokens} output")
+    print(f"Tool calls: {len(tool_calls_made)}")
+    print(f"Cost: ${cost:.4f}")
+
+    return BenchmarkResult(
+        name="zero_shot_dd",
+        query=query,
+        output=output,
+        duration_ms=duration_ms,
+        token_usage=usage,
+        cost_usd=cost,
+        model=model,
+        metadata={
+            "company": company,
+            "benchmark_type": "due_diligence",
+            "approach": "zero_shot",
+            "tool_calls": tool_calls_made,
+            "iterations": iterations,
+        },
+    )
+
+
+async def run_naive_multi_agent_dd(query: str, company: str, model: str) -> BenchmarkResult:
+    """Run naive multi-agent due diligence WITHOUT probe scoping.
+
+    All agents have access to ALL 9 tools - tests whether probe isolation matters.
+    Key differences from Astro:
+    - No probe scoping (every agent can call any tool)
+    - No sub-directives (formatting instructions copy-pasted per agent)
+    - No conditional branching (all agents always run)
+    """
+    from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+    from langchain_core.tools import StructuredTool
+    from langchain_openai import ChatOpenAI
+    from pydantic import SecretStr
+
+    print("\n" + "=" * 60)
+    print("NAIVE MULTI-AGENT DD (NO PROBE SCOPING)")
+    print("=" * 60)
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set")
+
+    usage = TokenUsage()
+
+    # Bind ALL DD probes - every agent gets every tool
+    from astro_backend_service.probes.registry import ProbeRegistry
+    dd_probe_names = [
+        "search_sec_filings", "get_financial_data", "search_earnings_transcripts",
+        "search_news", "get_social_sentiment", "get_analyst_ratings",
+        "search_legal_cases", "search_regulatory_filings", "get_market_research"
+    ]
+
+    all_probes = ProbeRegistry.all()
+    probes = [p for p in all_probes if p.name in dd_probe_names]
+
+    langchain_tools = []
+    probe_map = {}
+    for probe in probes:
+        tool = StructuredTool.from_function(
+            func=probe._callable,
+            name=probe.name,
+            description=probe.description,
+        )
+        langchain_tools.append(tool)
+        probe_map[probe.name] = probe
+
+    # Create LLM with ALL tools bound
+    base_llm = ChatOpenAI(
+        model=model,
+        temperature=0.3,
+        api_key=SecretStr(api_key),
+    )
+    llm_with_tools = base_llm.bind_tools(langchain_tools)
+
+    print(f"Each agent has access to ALL {len(langchain_tools)} tools (no scoping)")
+
+    # Copy-pasted formatting instructions (no sub-directives)
+    formatting_instructions = """## Output Format
+- State findings as numbered claims with confidence (HIGH/MEDIUM/LOW)
+- Include evidence for each finding
+- Flag any risks as MATERIAL/MODERATE/INFORMATIONAL
+- Note limitations and data gaps"""
+
+    # Define agents - each gets ALL tools (no scoping)
+    agents = [
+        {
+            "name": "Financial Analyst",
+            "role": "financial analyst",
+            "task": f"Analyze {company}'s financial performance, metrics, valuation, and cash flow.",
+            "focus": "Use financial tools to gather revenue, earnings, balance sheet data.",
+        },
+        {
+            "name": "Sentiment Analyst",
+            "role": "market sentiment analyst",
+            "task": f"Analyze market sentiment, media narrative, and analyst opinions on {company}.",
+            "focus": "Use news and sentiment tools to gauge market perception.",
+        },
+        {
+            "name": "Regulatory Analyst",
+            "role": "regulatory and compliance analyst",
+            "task": f"Analyze {company}'s regulatory environment, legal exposure, and compliance.",
+            "focus": "Use legal and regulatory tools to assess risk.",
+        },
+        {
+            "name": "Competitive Analyst",
+            "role": "competitive intelligence analyst",
+            "task": f"Analyze {company}'s competitive positioning and market share.",
+            "focus": "Use market research tools to map competitive landscape.",
+        },
+    ]
+
+    print(f"Query: {query}")
+    print(f"Company: {company}")
+    print(f"Model: {model}")
+    print("Running naive multi-agent (ALL tools available to ALL agents)...")
+
+    start_time = time.perf_counter()
+    all_tool_calls = []
+    agent_outputs = []
+
+    # Run each agent with tool calling
+    for agent in agents:
+        print(f"  Running {agent['name']}...")
+
+        agent_prompt = f"""You are a {agent['role']} conducting due diligence on {company}.
+
+You have access to ALL research tools. {agent['focus']}
+
+Your task: {agent['task']}
+
+{formatting_instructions}
+
+Use the available tools to gather data, then provide your analysis."""
+
+        messages = [
+            SystemMessage(content=agent_prompt),
+            HumanMessage(content=query),
+        ]
+
+        agent_tool_calls = []
+        max_iterations = 5
+        iterations = 0
+
+        while iterations < max_iterations:
+            iterations += 1
+            response = llm_with_tools.invoke(messages)
+            usage.add(
+                response.response_metadata.get("token_usage", {}).get("prompt_tokens", 0),
+                response.response_metadata.get("token_usage", {}).get("completion_tokens", 0)
+            )
+
+            if hasattr(response, "tool_calls") and response.tool_calls:
+                messages.append(response)
+                tool_messages = []
+
+                for tc in response.tool_calls:
+                    tool_name = tc.get("name", "")
+                    tool_args = tc.get("args", {})
+
+                    try:
+                        result = str(probe_map[tool_name].invoke(**tool_args)) if tool_name in probe_map else f"Tool not found"
+                    except Exception as e:
+                        result = f"Error: {str(e)}"
+
+                    agent_tool_calls.append({"agent": agent["name"], "tool": tool_name})
+                    tool_messages.append(ToolMessage(content=result, tool_call_id=tc.get("id", "")))
+
+                messages.extend(tool_messages)
+            else:
+                break
+
+        content = response.content if hasattr(response, "content") else str(response)
+        agent_outputs.append({
+            "agent": agent["name"],
+            "output": content,
+            "tool_calls": agent_tool_calls,
+        })
+        all_tool_calls.extend(agent_tool_calls)
+        print(f"    {len(agent_tool_calls)} tool calls")
+
+    # Synthesis step (also gets all tools)
+    print("  Running synthesis...")
+    synthesis_prompt = f"""You are a senior analyst synthesizing due diligence findings for {company}.
+
+## Agent Outputs
+
+""" + "\n\n".join([f"### {ao['agent']}\n{ao['output']}" for ao in agent_outputs]) + f"""
+
+{formatting_instructions}
+
+## Your Task
+Synthesize all findings into a comprehensive due diligence report with:
+1. Executive Summary
+2. Investment Thesis (Bull/Bear cases)
+3. Risk Assessment (Financial, Regulatory, Competitive, Sentiment - score 1-10)
+4. Information Conflicts between analysts
+5. Recommendation (Rating, Conviction, Monitoring triggers)"""
+
+    messages = [
+        SystemMessage(content=synthesis_prompt),
+        HumanMessage(content="Synthesize the due diligence findings into a final report."),
+    ]
+
+    response = llm_with_tools.invoke(messages)
+    usage.add(
+        response.response_metadata.get("token_usage", {}).get("prompt_tokens", 0),
+        response.response_metadata.get("token_usage", {}).get("completion_tokens", 0)
+    )
+    final_output = response.content if hasattr(response, "content") else str(response)
+
+    end_time = time.perf_counter()
+    duration_ms = (end_time - start_time) * 1000
+    cost = calculate_cost(model, usage.input_tokens, usage.output_tokens)
+
+    # Check for cross-contamination: did sentiment analyst use financial tools?
+    cross_contamination = []
+    for tc in all_tool_calls:
+        if tc["agent"] == "Sentiment Analyst" and tc["tool"] in ["get_financial_data", "search_sec_filings", "search_earnings_transcripts"]:
+            cross_contamination.append(tc)
+        if tc["agent"] == "Financial Analyst" and tc["tool"] in ["search_news", "get_social_sentiment", "get_analyst_ratings"]:
+            cross_contamination.append(tc)
+
+    print(f"Completed in {duration_ms:.0f}ms")
+    print(f"Tokens: {usage.input_tokens} input, {usage.output_tokens} output")
+    print(f"Total tool calls: {len(all_tool_calls)}")
+    print(f"Cross-contamination instances: {len(cross_contamination)}")
+    print(f"Cost: ${cost:.4f}")
+
+    return BenchmarkResult(
+        name="naive_multi_agent_dd",
+        query=query,
+        output=final_output,
+        duration_ms=duration_ms,
+        token_usage=usage,
+        cost_usd=cost,
+        model=model,
+        metadata={
+            "company": company,
+            "benchmark_type": "due_diligence",
+            "approach": "naive_multi_agent",
+            "agents": [a["name"] for a in agents],
+            "total_tool_calls": len(all_tool_calls),
+            "tool_calls_by_agent": {ao["agent"]: len(ao["tool_calls"]) for ao in agent_outputs},
+            "cross_contamination": cross_contamination,
+            "cross_contamination_count": len(cross_contamination),
+        },
+    )
+
+
+async def run_astro_dd_constellation(
+    query: str,
+    company: str,
+    constellation_id: str = "const-dd-001",
+) -> BenchmarkResult:
+    """Run the Due Diligence constellation benchmark."""
+    from astro_backend_service.foundry import Foundry
+    from astro_backend_service.executor.runner import ConstellationRunner
+
+    print("\n" + "=" * 60)
+    print("ASTRO DUE DILIGENCE CONSTELLATION BENCHMARK")
+    print("=" * 60)
+
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    DATABASE_NAME = os.getenv("MONGO_DB", "astro")
+
+    # Patch get_llm to track tokens
+    usage = TokenUsage()
+    original_get_llm = None
+
+    def patched_get_llm(temperature: float = 0):
+        from langchain_openai import ChatOpenAI
+        from pydantic import SecretStr
+
+        api_key = os.getenv("OPENAI_API_KEY")
+        model = os.getenv("LLM_MODEL", "gpt-5-nano")
+        base_llm = ChatOpenAI(
+            model=model,
+            temperature=temperature,
+            api_key=SecretStr(api_key),
+        )
+        return TokenTrackingLLM(base_llm, usage)
+
+    # Monkey-patch the get_llm function
+    import astro_backend_service.llm_utils as llm_utils
+    original_get_llm = llm_utils.get_llm
+    llm_utils.get_llm = patched_get_llm
+
+    try:
+        # Initialize Foundry
+        foundry = Foundry(MONGO_URI, DATABASE_NAME)
+        await foundry.startup()
+
+        # Create runner
+        runner = ConstellationRunner(foundry)
+
+        # Set up variables
+        run_variables = {
+            "company_name": company,
+        }
+
+        model = os.getenv("LLM_MODEL", "gpt-5-nano")
+
+        print(f"Query: {query}")
+        print(f"Company: {company}")
+        print(f"Constellation: {constellation_id}")
+        print(f"Model: {model}")
+        print("Running due diligence constellation...")
+
+        start_time = time.perf_counter()
+        run = await runner.run(
+            constellation_id=constellation_id,
+            variables=run_variables,
+            original_query=query,
+        )
+        end_time = time.perf_counter()
+
+        duration_ms = (end_time - start_time) * 1000
+        output = run.final_output or ""
+        cost = calculate_cost(model, usage.input_tokens, usage.output_tokens)
+
+        # Collect node execution info for DD metrics
+        node_info = {}
+        tool_calls_by_node = {}
+        for node_id, node_output in run.node_outputs.items():
+            # Convert tool calls to serializable dicts
+            tc_list = []
+            if hasattr(node_output, "tool_calls") and node_output.tool_calls:
+                for tc in node_output.tool_calls:
+                    tc_dict = {
+                        "tool": tc.tool_name if hasattr(tc, "tool_name") else str(tc),
+                        "arguments": tc.arguments if hasattr(tc, "arguments") else {},
+                        "result": tc.result[:200] if hasattr(tc, "result") and tc.result else None,
+                        "error": tc.error if hasattr(tc, "error") else None,
+                    }
+                    tc_list.append(tc_dict)
+
+            node_info[node_id] = {
+                "star_id": node_output.star_id,
+                "status": node_output.status,
+                "tool_calls": tc_list,
+            }
+            tool_calls_by_node[node_id] = tc_list
+
+        # Check for probe scope violations
+        scope_violations = []
+        for node_id, tool_calls in tool_calls_by_node.items():
+            if node_id in PROBE_SCOPING_MATRIX:
+                allowed_probes = PROBE_SCOPING_MATRIX[node_id]
+                for tc in tool_calls:
+                    tool_name = tc.get("tool", "") if isinstance(tc, dict) else str(tc)
+                    if tool_name and tool_name not in allowed_probes:
+                        scope_violations.append({
+                            "node": node_id,
+                            "tool": tool_name,
+                            "allowed": allowed_probes,
+                        })
+
+        print(f"Completed in {duration_ms:.0f}ms")
+        print(f"Status: {run.status}")
+        print(f"Nodes executed: {len(run.node_outputs)}")
+        print(f"Tokens: {usage.input_tokens} input, {usage.output_tokens} output")
+        print(f"LLM calls: {usage.calls}")
+        print(f"Cost: ${cost:.4f}")
+        if scope_violations:
+            print(f"WARNING: {len(scope_violations)} probe scope violations detected!")
+
+        await foundry.shutdown()
+
+        return BenchmarkResult(
+            name="astro_dd_constellation",
+            query=query,
+            output=output,
+            duration_ms=duration_ms,
+            token_usage=usage,
+            cost_usd=cost,
+            model=model,
+            metadata={
+                "run_id": run.id,
+                "constellation_id": constellation_id,
+                "company": company,
+                "status": run.status,
+                "nodes_executed": len(run.node_outputs),
+                "node_info": node_info,
+                "benchmark_type": "due_diligence",
+                "approach": "astro_constellation",
+                "scope_violations": scope_violations,
+            },
+        )
+
+    finally:
+        # Restore original get_llm
+        llm_utils.get_llm = original_get_llm
+
+
 async def run_astro_constellation(
     query: str,
     constellation_id: str = "const-001",
@@ -652,7 +1383,7 @@ async def run_astro_constellation(
         from pydantic import SecretStr
 
         api_key = os.getenv("OPENAI_API_KEY")
-        model = os.getenv("LLM_MODEL", "gpt-4-turbo-preview")
+        model = os.getenv("LLM_MODEL", "gpt-5-nano")
         base_llm = ChatOpenAI(
             model=model,
             temperature=temperature,
@@ -691,7 +1422,7 @@ async def run_astro_constellation(
         print(f"Constellation: {constellation_id}")
         print(f"Variables: {run_variables}")
 
-        model = os.getenv("LLM_MODEL", "gpt-4-turbo-preview")
+        model = os.getenv("LLM_MODEL", "gpt-5-nano")
         print(f"Model: {model}")
         print("Running constellation...")
 
@@ -893,6 +1624,138 @@ def print_comparison(
     print("\n🌟 ASTRO OUTPUT (first 500 chars):")
     print("-" * 30)
     print(astro.output[:500] + "..." if len(astro.output) > 500 else astro.output)
+
+
+def print_dd_comparison(results: Dict[str, BenchmarkResult]):
+    """Print Due Diligence specific benchmark comparison."""
+    print("\n" + "=" * 100)
+    print("DUE DILIGENCE BENCHMARK COMPARISON")
+    print("=" * 100)
+
+    result_names = list(results.keys())
+    result_list = list(results.values())
+
+    # Performance metrics
+    print("\n📊 PERFORMANCE METRICS")
+    print("-" * 80)
+
+    header = f"{'Metric':<25}"
+    for name in result_names:
+        header += f" {name.replace('_', ' ').title():>22}"
+    print(header)
+    print("-" * 80)
+
+    metrics = [
+        ("Duration (s)", lambda r: f"{r.duration_ms / 1000:.1f}"),
+        ("Total Tokens", lambda r: f"{r.token_usage.total_tokens:,}"),
+        ("LLM Calls", lambda r: f"{r.token_usage.calls}"),
+        ("Cost (USD)", lambda r: f"${r.cost_usd:.4f}"),
+        ("Output Length", lambda r: f"{len(r.output):,}"),
+    ]
+
+    for label, getter in metrics:
+        row = f"{label:<25}"
+        for r in result_list:
+            row += f" {getter(r):>22}"
+        print(row)
+
+    # DD-specific metrics
+    has_dd_metrics = any(r.dd_metrics for r in result_list)
+    if has_dd_metrics:
+        print("\n🎯 DUE DILIGENCE SPECIFIC METRICS")
+        print("-" * 80)
+
+        dd_metrics = [
+            ("Analytical Independence", lambda r: f"{r.dd_metrics.analytical_independence:.1f}/10" if r.dd_metrics else "N/A"),
+            ("Cross-Contamination", lambda r: f"{r.dd_metrics.cross_contamination_score:.0f} violations" if r.dd_metrics else "N/A"),
+            ("Output Consistency", lambda r: f"{r.dd_metrics.output_consistency:.1f}/10" if r.dd_metrics else "N/A"),
+            ("Conflict Detection", lambda r: f"{r.dd_metrics.conflict_detection:.1f}/10" if r.dd_metrics else "N/A"),
+            ("Conditional Accuracy", lambda r: "✓" if r.dd_metrics and r.dd_metrics.conditional_path_accuracy else "✗" if r.dd_metrics else "N/A"),
+        ]
+
+        for label, getter in dd_metrics:
+            row = f"{label:<25}"
+            for r in result_list:
+                row += f" {getter(r):>22}"
+            print(row)
+
+    # Quality scores
+    has_quality = any(r.quality_score for r in result_list)
+    if has_quality:
+        print("\n⭐ QUALITY SCORES (0-10)")
+        print("-" * 80)
+
+        dimensions = ["completeness", "structure", "actionability", "depth", "overall"]
+        for dim in dimensions:
+            row = f"{dim.capitalize():<25}"
+            for r in result_list:
+                score = getattr(r.quality_score, dim, 0) if r.quality_score else 0
+                row += f" {score:>22.1f}"
+            print(row)
+
+    # Summary with winner determination
+    print("\n🏆 SUMMARY")
+    print("-" * 80)
+
+    # Find best in each category
+    if has_quality:
+        best_quality = max(result_list, key=lambda r: r.quality_score.overall if r.quality_score else 0)
+    fastest = min(result_list, key=lambda r: r.duration_ms)
+    cheapest = min(result_list, key=lambda r: r.cost_usd)
+    if has_dd_metrics:
+        best_independence = max(result_list, key=lambda r: r.dd_metrics.analytical_independence if r.dd_metrics else 0)
+        least_contamination = min(result_list, key=lambda r: r.dd_metrics.cross_contamination_score if r.dd_metrics else float('inf'))
+
+    for name, r in results.items():
+        badges = []
+        if r == fastest:
+            badges.append("⚡ Fastest")
+        if r == cheapest:
+            badges.append("💰 Cheapest")
+        if has_quality and r == best_quality:
+            badges.append("⭐ Best Quality")
+        if has_dd_metrics and r == best_independence:
+            badges.append("🎯 Best Independence")
+        if has_dd_metrics and r == least_contamination:
+            badges.append("🛡️ Least Contamination")
+
+        badge_str = " | ".join(badges) if badges else ""
+        print(f"{name.replace('_', ' ').title():>25}: {badge_str}")
+
+    # Hypothesis validation
+    if has_dd_metrics:
+        print("\n📋 HYPOTHESIS VALIDATION")
+        print("-" * 80)
+
+        astro = results.get("astro_dd_constellation")
+        naive = results.get("naive_multi_agent_dd")
+        zero_shot = results.get("zero_shot_dd")
+
+        if astro and astro.dd_metrics:
+            print(f"\n1. Probe Isolation Test:")
+            if naive and naive.dd_metrics:
+                if astro.dd_metrics.analytical_independence > naive.dd_metrics.analytical_independence:
+                    print(f"   ✓ Astro ({astro.dd_metrics.analytical_independence:.1f}) beats Naive ({naive.dd_metrics.analytical_independence:.1f}) on analytical independence")
+                else:
+                    print(f"   ✗ Naive matches or beats Astro on analytical independence - probe scoping may not matter")
+
+            print(f"\n2. Cross-Contamination Test:")
+            if naive and naive.dd_metrics:
+                if astro.dd_metrics.cross_contamination_score < naive.dd_metrics.cross_contamination_score:
+                    print(f"   ✓ Astro ({astro.dd_metrics.cross_contamination_score}) has fewer scope violations than Naive ({naive.dd_metrics.cross_contamination_score})")
+                else:
+                    print(f"   ✗ Scope violations are similar - isolation thesis may be wrong")
+
+            print(f"\n3. Quality vs Cost Trade-off:")
+            if astro.quality_score and zero_shot and zero_shot.quality_score:
+                quality_diff = astro.quality_score.overall - zero_shot.quality_score.overall
+                cost_ratio = astro.cost_usd / zero_shot.cost_usd if zero_shot.cost_usd > 0 else float('inf')
+                if quality_diff > 0 and cost_ratio < 5:
+                    print(f"   ✓ Astro is {quality_diff:.1f} points better at {cost_ratio:.1f}x cost - justified")
+                elif quality_diff <= 0:
+                    print(f"   ✗ Zero-shot matches quality - orchestration may not be needed")
+                else:
+                    print(f"   ? {quality_diff:.1f} points better at {cost_ratio:.1f}x cost - value judgment required")
 
 
 def print_multi_comparison(
@@ -1164,7 +2027,7 @@ async def main():
         "--model",
         type=str,
         default=None,
-        help="LLM model to use (defaults to LLM_MODEL env var or gpt-4-turbo-preview)",
+        help="LLM model to use (defaults to LLM_MODEL env var or gpt-5-nano)",
     )
     parser.add_argument(
         "--output-dir",
@@ -1207,6 +2070,35 @@ async def main():
         action="store_true",
         help="Run only the Multi Agent Research benchmark",
     )
+    # Due Diligence Benchmark Arguments
+    parser.add_argument(
+        "--due-diligence",
+        action="store_true",
+        help="Run the Due Diligence benchmark (tests tool-scoping, conditional branching)",
+    )
+    parser.add_argument(
+        "--dd-scenario",
+        type=str,
+        choices=["standard", "regulated", "anomaly", "full"],
+        default="standard",
+        help="Due Diligence scenario: standard (no conditionals), regulated (triggers deep-dive), anomaly (triggers forensic), full (both)",
+    )
+    parser.add_argument(
+        "--dd-company",
+        type=str,
+        default=None,
+        help="Company name for due diligence (overrides scenario default)",
+    )
+    parser.add_argument(
+        "--dd-all-approaches",
+        action="store_true",
+        help="Run all three DD approaches: zero-shot, naive multi-agent, and Astro constellation",
+    )
+    parser.add_argument(
+        "--dd-evaluate",
+        action="store_true",
+        help="Run DD-specific evaluations (analytical independence, cross-contamination, etc.)",
+    )
 
     args = parser.parse_args()
 
@@ -1219,8 +2111,90 @@ async def main():
     if args.multi_agent_only:
         args.include_multi_agent = True
 
-    model = args.model or os.getenv("LLM_MODEL", "gpt-4-turbo-preview")
+    # --dd-all-approaches enables DD mode
+    if args.dd_all_approaches:
+        args.due_diligence = True
 
+    model = args.model or os.getenv("LLM_MODEL", "gpt-5-nano")
+
+    # =========================================================================
+    # DUE DILIGENCE BENCHMARK MODE
+    # =========================================================================
+    if args.due_diligence:
+        print("\n" + "🔍" * 30)
+        print("DUE DILIGENCE BENCHMARK")
+        print("🔍" * 30)
+
+        # Get scenario details
+        scenario = DD_BENCHMARK_QUERIES.get(args.dd_scenario, DD_BENCHMARK_QUERIES["standard"])
+        company = args.dd_company or scenario["company"]
+        query = f"Due diligence on {company}"
+        expected_branches = scenario["expected_branches"]
+
+        print(f"\nScenario: {args.dd_scenario}")
+        print(f"Company: {company}")
+        print(f"Query: {query}")
+        print(f"Expected behavior: {scenario['expected_behavior']}")
+        print(f"Model: {model}")
+
+        dd_results = {}
+
+        if args.dd_all_approaches:
+            print("\nRunning all three approaches for comparison...")
+
+            # 1. Zero-shot
+            dd_results["zero_shot_dd"] = await run_zero_shot_dd(query, company, model)
+
+            # 2. Naive Multi-Agent (no probe scoping)
+            dd_results["naive_multi_agent_dd"] = await run_naive_multi_agent_dd(query, company, model)
+
+            # 3. Astro Constellation (with probe scoping)
+            dd_results["astro_dd_constellation"] = await run_astro_dd_constellation(
+                query, company, constellation_id="const-dd-001"
+            )
+        else:
+            # Just run Astro constellation
+            dd_results["astro_dd_constellation"] = await run_astro_dd_constellation(
+                query, company, constellation_id="const-dd-001"
+            )
+
+        # Run evaluations
+        if args.dd_evaluate or args.evaluate_quality:
+            print("\n" + "=" * 60)
+            print("RUNNING DD EVALUATIONS")
+            print("=" * 60)
+
+            for name, result in dd_results.items():
+                print(f"\n  Evaluating {name}...")
+
+                # Quality score
+                print(f"    - Quality scoring...")
+                result.quality_score = await evaluate_quality(
+                    result.output, result.query, model
+                )
+
+                # DD-specific metrics
+                print(f"    - DD metrics...")
+                node_outputs = result.metadata.get("node_info", {})
+                result.dd_metrics = await evaluate_dd_metrics(
+                    result.output,
+                    result.query,
+                    model,
+                    node_outputs=node_outputs,
+                    expected_branches=expected_branches,
+                )
+
+        # Print DD comparison
+        print_dd_comparison(dd_results)
+
+        # Save results
+        save_multi_results(dd_results, args.output_dir)
+
+        return
+
+    # =========================================================================
+    # ORIGINAL BENCHMARK MODE (Market Research)
+    # =========================================================================
     print("\n" + "🚀" * 30)
     print("ORCHESTRATION BENCHMARK")
     print("🚀" * 30)

@@ -16,11 +16,13 @@ from astro_backend_service.executor.events import (
     RunCompletedEvent,
     RunFailedEvent,
     RunPausedEvent,
+    RunResumedEvent,
     RunStartedEvent,
     truncate_output,
 )
 from astro_backend_service.executor.exceptions import (
     ExecutionError,
+    ExecutionPausedException,
     ParallelExecutionError,
 )
 from astro_backend_service.executor.run import NodeOutput, Run
@@ -95,13 +97,16 @@ class ConstellationRunner:
             logger.error(f"Constellation not found: {constellation_id}")
             raise ValueError(f"Constellation '{constellation_id}' not found")
 
+        # Store original_query in variables for persistence (needed for resume)
+        variables_with_query = {**variables, "_original_query": original_query}
+
         # Create run record
         run = Run(
             id=generate_run_id(),
             constellation_id=constellation_id,
             constellation_name=constellation.name,
             status="running",
-            variables=variables,
+            variables=variables_with_query,
             started_at=datetime.now(timezone.utc),
             node_outputs={},
         )
@@ -163,6 +168,12 @@ class ConstellationRunner:
                     duration_ms=duration_ms,
                 )
             )
+
+        except ExecutionPausedException as e:
+            # HITL pause - not an error, just halt execution gracefully
+            logger.info(f"Run paused for confirmation: id={run.id}, node={e.node_id}")
+            # Run is already saved with awaiting_confirmation status in _pause_for_confirmation()
+            # Just return without marking as failed
 
         except Exception as e:
             run.status = "failed"
@@ -313,6 +324,18 @@ class ConstellationRunner:
             elif hasattr(result, "result"):
                 # WorkerOutput
                 node_output.output = result.result
+                # Transfer tool calls if present
+                if hasattr(result, "tool_calls") and result.tool_calls:
+                    from astro_backend_service.executor.run import ToolCallRecord
+                    node_output.tool_calls = [
+                        ToolCallRecord(
+                            tool_name=tc.tool_name,
+                            arguments=tc.arguments,
+                            result=tc.result,
+                            error=tc.error,
+                        )
+                        for tc in result.tool_calls
+                    ]
             elif hasattr(result, "worker_outputs"):
                 # ExecutionResult - combine worker outputs
                 outputs = []
@@ -369,11 +392,17 @@ class ConstellationRunner:
             from astro_backend_service.models import EvalDecision, EvalStar
 
             if isinstance(star, EvalStar) and isinstance(result, EvalDecision):
-                await self._handle_eval_decision(result, constellation, context, run)
+                await self._handle_eval_decision(
+                    result, constellation, context, run, node.id
+                )
 
             # Handle human-in-the-loop
             if node.requires_confirmation:
                 await self._pause_for_confirmation(node, run, context)
+
+        except ExecutionPausedException:
+            # HITL pause - not a failure, re-raise to halt execution
+            raise
 
         except Exception as e:
             logger.error(f"Node execution failed: node_id={node.id}, star_id={node.star_id}, error={e}", exc_info=True)
@@ -435,7 +464,14 @@ class ConstellationRunner:
         node: "StarNode",
         context: ExecutionContext,
     ) -> Dict[str, Any]:
-        """Resolve variable bindings from context."""
+        """Resolve variable bindings from context.
+
+        Resolution order:
+        1. Explicit variables in context.variables
+        2. Upstream node outputs (by variable name matching node_id pattern)
+        3. Upstream node outputs (by execution order for common variable names)
+        4. Default values
+        """
         star = self.foundry.get_star(node.star_id)
         if star is None:
             return {}
@@ -446,13 +482,80 @@ class ConstellationRunner:
 
         bindings: Dict[str, Any] = {}
         for var in directive.template_variables:
+            # 1. Check explicit variables first
             if var.name in context.variables:
                 bindings[var.name] = context.variables[var.name]
-            elif var.default is not None:
+                continue
+
+            # 2. Check node_outputs - try to find matching output
+            found_in_outputs = False
+
+            # 2a. Check for direct node_id match (e.g., variable "node_excel_parser")
+            if var.name in context.node_outputs:
+                output = context.node_outputs[var.name]
+                bindings[var.name] = self._extract_output_value(output)
+                found_in_outputs = True
+                continue
+
+            # 2b. Check for semantic match based on variable name patterns
+            # Map common variable names to likely upstream outputs
+            var_to_node_patterns = {
+                "structure_analysis": ["excel_parser", "parser"],
+                "detected_patterns": ["dependency_mapper", "pattern_detector"],
+                "dependency_map": ["dependency_mapper"],
+                "interview_results": ["expert_interview", "interviewer"],
+                "interview_transcript": ["expert_interview", "interviewer"],
+                # Progress extractor outputs structured metrics for the eval
+                "interview_state": ["progress_extractor", "expert_interview", "interviewer"],
+                "blueprint_progress": ["progress_extractor", "expert_interview", "blueprint_compiler"],
+                "verification_results": ["reconstructor", "verifier"],
+                "validated_input": ["input_validator", "validator"],
+                "model_blueprint": ["blueprint_compiler"],
+            }
+
+            if var.name in var_to_node_patterns:
+                for pattern in var_to_node_patterns[var.name]:
+                    for node_id, output in context.node_outputs.items():
+                        if pattern in node_id.lower():
+                            bindings[var.name] = self._extract_output_value(output)
+                            found_in_outputs = True
+                            break
+                    if found_in_outputs:
+                        break
+
+            if found_in_outputs:
+                continue
+
+            # 2c. Fallback: use the most recent upstream output for generic variable names
+            if not found_in_outputs and context.node_outputs:
+                # Get the last completed node's output
+                last_output = list(context.node_outputs.values())[-1] if context.node_outputs else None
+                if last_output is not None:
+                    bindings[var.name] = self._extract_output_value(last_output)
+                    found_in_outputs = True
+                    continue
+
+            # 3. Use default if available
+            if var.default is not None:
                 bindings[var.name] = var.default
             elif var.required:
                 raise ValueError(f"Required variable '{var.name}' not provided")
+
         return bindings
+
+    def _extract_output_value(self, output: Any) -> Any:
+        """Extract the actual value from a node output object."""
+        if output is None:
+            return None
+        # Handle different output types
+        if hasattr(output, "result"):
+            return output.result
+        if hasattr(output, "formatted_result"):
+            return output.formatted_result
+        if hasattr(output, "output"):
+            return output.output
+        # Return as-is if it's already a simple value
+        return output
 
     async def _wait_for_upstream(
         self, upstream_nodes: List["StarNode"], run: Run
@@ -472,6 +575,7 @@ class ConstellationRunner:
         constellation: "Constellation",
         context: ExecutionContext,
         run: Run,
+        current_node_id: str,
     ) -> None:
         """Handle EvalStar routing decision."""
         from astro_backend_service.models import StarType
@@ -489,19 +593,45 @@ class ConstellationRunner:
                     "loops reached)"
                 )
             else:
-                # Loop back to planning star
-                planning_node = self._find_node_by_star_type(
-                    constellation, StarType.PLANNING
-                )
-                if planning_node:
+                # Find the loop target from edges with 'loop' condition
+                loop_target_id = self._find_loop_target(constellation, current_node_id)
+
+                if loop_target_id:
+                    loop_target_node = self._get_node(constellation, loop_target_id)
+                    logger.info(f"EvalStar loop: returning to {loop_target_id}")
                     # Clear downstream outputs
                     self._clear_downstream_outputs(
-                        planning_node.id, constellation, context
+                        loop_target_id, constellation, context
                     )
-                    # Re-execute from planning star
+                    # Re-execute from loop target
                     await self._execute_from_node(
-                        planning_node.id, constellation, context, run
+                        loop_target_id, constellation, context, run
                     )
+                else:
+                    # Fallback: try to find a PLANNING star
+                    planning_node = self._find_node_by_star_type(
+                        constellation, StarType.PLANNING
+                    )
+                    if planning_node:
+                        logger.info(f"EvalStar loop: falling back to planning node {planning_node.id}")
+                        self._clear_downstream_outputs(
+                            planning_node.id, constellation, context
+                        )
+                        await self._execute_from_node(
+                            planning_node.id, constellation, context, run
+                        )
+                    else:
+                        logger.warning("EvalStar loop decision but no loop target found, continuing...")
+
+    def _find_loop_target(
+        self, constellation: "Constellation", eval_node_id: str
+    ) -> Optional[str]:
+        """Find the loop target node ID from edges with 'loop' in condition."""
+        for edge in constellation.edges:
+            if edge.source == eval_node_id and edge.condition:
+                if "loop" in edge.condition.lower():
+                    return edge.target
+        return None
 
     def _find_node_by_star_type(
         self, constellation: "Constellation", star_type: Any
@@ -600,7 +730,9 @@ class ConstellationRunner:
             )
 
         await self._save_run(run)
-        # Execution pauses here - resumed via resume_run()
+
+        # Raise exception to halt execution loop - resumed via resume_run()
+        raise ExecutionPausedException(run.id, node.id)
 
     async def resume_run(
         self,
@@ -638,6 +770,16 @@ class ConstellationRunner:
         # Inject additional context if provided
         if additional_context:
             run.additional_context = additional_context
+            # Also append to the awaiting node's output so downstream nodes see full context
+            if awaiting_node_id and awaiting_node_id in run.node_outputs:
+                node_output = run.node_outputs[awaiting_node_id]
+                if node_output.output:
+                    node_output.output = (
+                        f"{node_output.output}\n\n"
+                        f"--- Expert Response ---\n{additional_context}"
+                    )
+                else:
+                    node_output.output = f"--- Expert Response ---\n{additional_context}"
 
         await self._save_run(run)
 
@@ -646,10 +788,13 @@ class ConstellationRunner:
         if constellation is None:
             raise ValueError(f"Constellation '{run.constellation_id}' not found")
 
+        # Restore original_query from persisted variables
+        original_query = run.variables.get("_original_query", "")
+
         context = ExecutionContext(
             run_id=run.id,
             constellation_id=run.constellation_id,
-            original_query="",  # Would need to restore from run
+            original_query=original_query,
             constellation_purpose=constellation.description,
             variables=run.variables,
             foundry=self.foundry,
@@ -661,24 +806,46 @@ class ConstellationRunner:
             if node_output.output:
                 context.node_outputs[node_id] = node_output.output
 
+        # Emit resumed event
+        await effective_stream.emit(
+            RunResumedEvent(
+                run_id=run.id,
+                resumed_from_node=awaiting_node_id or "",
+                additional_context=additional_context,
+            )
+        )
+
         # Continue from the node after the paused one
-        if awaiting_node_id:
-            downstream = constellation.get_downstream_nodes(awaiting_node_id)
-            # Calculate node index for resumed execution
-            execution_order = constellation.topological_order()
-            try:
-                base_idx = execution_order.index(awaiting_node_id)
-                node_index = base_idx  # Approximate - count star nodes before this
-            except ValueError:
-                node_index = len(run.node_outputs)
+        # Execute all remaining nodes in topological order (not just immediate downstream)
+        try:
+            if awaiting_node_id:
+                execution_order = constellation.topological_order()
+                try:
+                    base_idx = execution_order.index(awaiting_node_id)
+                except ValueError:
+                    base_idx = 0
 
-            for node in downstream:
-                node_index += 1
-                await self._execute_node(node, constellation, context, run, node_index)
+                # Get all nodes after the paused node in topological order
+                remaining_node_ids = execution_order[base_idx + 1:]
+                node_index = base_idx
 
-        run.status = "completed"
-        run.completed_at = datetime.now(timezone.utc)
-        run.final_output = self._extract_final_output(run)
+                from astro_backend_service.models import EndNode, StartNode
+
+                for node_id in remaining_node_ids:
+                    node = self._get_node(constellation, node_id)
+                    if isinstance(node, (StartNode, EndNode)):
+                        continue
+                    node_index += 1
+                    await self._execute_node(node, constellation, context, run, node_index)
+
+            run.status = "completed"
+            run.completed_at = datetime.now(timezone.utc)
+            run.final_output = self._extract_final_output(run)
+
+        except ExecutionPausedException as e:
+            # Another HITL pause encountered - gracefully halt
+            logger.info(f"Run paused again for confirmation: id={run.id}, node={e.node_id}")
+            return run
 
         # Calculate duration
         duration_ms = None

@@ -298,3 +298,54 @@ def hitl_constellation() -> Constellation:
             Edge(id="e2", source="worker", target="end", condition=None),
         ],
     )
+
+
+@pytest.fixture
+def hitl_multi_node_constellation() -> Constellation:
+    """Create a constellation with HITL node followed by another node.
+
+    Structure: Start -> Node A (HITL) -> Node B -> End
+
+    This tests that execution halts at Node A and Node B does NOT execute.
+    """
+    start = StartNode(
+        id="start",
+        type=NodeType.START,
+        position=Position(x=0, y=0),
+    )
+    end = EndNode(
+        id="end",
+        type=NodeType.END,
+        position=Position(x=600, y=0),
+    )
+    node_a = StarNode(
+        id="node_a",
+        type=NodeType.STAR,
+        position=Position(x=200, y=0),
+        star_id="worker_star",
+        display_name="Node A (HITL)",
+        requires_confirmation=True,
+        confirmation_prompt="Approve Node A output?",
+    )
+    node_b = StarNode(
+        id="node_b",
+        type=NodeType.STAR,
+        position=Position(x=400, y=0),
+        star_id="worker_star",
+        display_name="Node B",
+        requires_confirmation=False,
+    )
+
+    return Constellation(
+        id="hitl_multi_node",
+        name="HITL Multi-Node",
+        description="Test that HITL halts execution before downstream nodes",
+        start=start,
+        end=end,
+        nodes=[node_a, node_b],
+        edges=[
+            Edge(id="e1", source="start", target="node_a", condition=None),
+            Edge(id="e2", source="node_a", target="node_b", condition=None),
+            Edge(id="e3", source="node_b", target="end", condition=None),
+        ],
+    )

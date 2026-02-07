@@ -78,6 +78,16 @@ class RunPausedEvent(StreamEvent):
     prompt: str = Field(..., description="Confirmation prompt to show user")
 
 
+class RunResumedEvent(StreamEvent):
+    """Emitted when a paused run is resumed after confirmation."""
+
+    event_type: Literal["run_resumed"] = "run_resumed"
+    resumed_from_node: str = Field(..., description="Node that was confirmed")
+    additional_context: Optional[str] = Field(
+        None, description="Additional context provided by user on resume"
+    )
+
+
 # =============================================================================
 # Node Lifecycle Events
 # =============================================================================
@@ -208,6 +218,7 @@ AnyStreamEvent = Union[
     RunCompletedEvent,
     RunFailedEvent,
     RunPausedEvent,
+    RunResumedEvent,
     NodeStartedEvent,
     NodeCompletedEvent,
     NodeFailedEvent,

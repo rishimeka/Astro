@@ -1,0 +1,31 @@
+{
+  "timestamp": "20260202_231303",
+  "query": "Due diligence on Airbnb",
+  "results": {
+    "astro_dd_constellation": {
+      "name": "astro_dd_constellation",
+      "query": "Due diligence on Airbnb",
+      "output": "# Due Diligence Report for Airbnb\n\n## 1. Executive Summary\nThe due diligence analysis for Airbnb reveals significant gaps in data across financial, regulatory, sentiment, and competitive dimensions due to execution errors from multiple analysts. Consequently, the overall risk assessment remains unknown, limiting our ability to make informed investment decisions. Immediate recovery of the missing data is essential to provide a comprehensive evaluation of Airbnb's viability and risks.\n\n## 2. Investment Thesis\n### Bull Case\n1. **Strong Market Position**: Airbnb has established itself as a leader in the short-term rental market, benefiting from a growing trend towards alternative accommodations (Competitive Analyst).\n2. **Diverse Revenue Streams**: The company has diversified its offerings beyond traditional rentals, including experiences and long-term stays, which could enhance revenue resilience (Competitive Analyst).\n3. **Brand Recognition and Loyalty**: Airbnb's strong brand presence a...",
+      "output_length": 3805,
+      "duration_ms": 37448.97091691382,
+      "duration_seconds": 37.45,
+      "token_usage": {
+        "input_tokens": 11155,
+        "output_tokens": 2198,
+        "total_tokens": 13353,
+        "llm_calls": 8
+      },
+      "cost_usd": 0.003,
+      "model": "gpt-4o-mini",
+      "metadata": {
+        "run_id": "run_8709cacec3a7",
+        "constellation_id": "const-dd-001",
+        "company": "Airbnb",
+        "status": "completed",
+        "nodes_executed": 8,
+        "node_info": {
+          "financial_analyst": {
+            "star_id": "star-dd-financial",
+            "status": "completed",
+            "tool_calls": [
+              
