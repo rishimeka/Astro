@@ -228,6 +228,18 @@ class FoundryPersistence:
         result = await self.runs.update_one({"_id": id}, {"$set": updates})
         return result.modified_count > 0
 
+    async def upsert_run(self, run: Dict[str, Any]) -> None:
+        """Insert or replace run in MongoDB using upsert.
+
+        More efficient than read-before-write pattern.
+
+        Args:
+            run: Run data dict with 'id' field.
+        """
+        doc = dict(run)
+        doc["_id"] = run["id"]
+        await self.runs.replace_one({"_id": run["id"]}, doc, upsert=True)
+
     # =========================================================================
     # Reference Checks
     # =========================================================================

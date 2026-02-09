@@ -14,7 +14,7 @@
     outline: none;
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236C72FF' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%234A9DEA' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 8px center;
     padding-right: 32px;
@@ -27,8 +27,8 @@
 
 .select:focus {
     border-color: var(--accent-primary);
-    background-color: rgba(108, 114, 255, 0.15);
-    box-shadow: 0 0 0 3px rgba(108, 114, 255, 0.2);
+    background-color: rgba(74, 157, 234, 0.15);
+    box-shadow: 0 0 0 3px rgba(74, 157, 234, 0.2);
 }
 
 .select:hover:not(:disabled):not(.select-error) {

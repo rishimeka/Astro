@@ -3,9 +3,10 @@
 import { useState, use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Edit2, Trash2, Save, X, FileText, Settings, Tag } from 'lucide-react';
+import { Edit2, Trash2, Save, X, FileText, Settings, Tag } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { ContentViewer } from '@/components/ContentViewer';
+import { ContentEditor } from '@/components/ContentEditor';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import { Spinner, PageLoader } from '@/components/Loading';
 import { useDirective } from '@/hooks/useDirectives';
@@ -108,6 +109,7 @@ export default function DirectiveDetailPage({ params }: DirectiveDetailProps) {
       <PageHeader
         title={isEditing ? 'Edit Directive' : directive.name}
         subtitle={isEditing ? undefined : directive.description}
+        backHref="/directives"
         breadcrumbs={[
           { label: 'Directives', href: '/directives' },
           { label: directive.name },
@@ -135,7 +137,7 @@ export default function DirectiveDetailPage({ params }: DirectiveDetailProps) {
           ) : (
             <div className={styles.actions}>
               <button
-                className="btn btn-black-and-white btn-outline"
+                className="btn btn-error btn-outline"
                 onClick={() => setShowDeleteModal(true)}
                 title="Delete"
               >
@@ -148,10 +150,6 @@ export default function DirectiveDetailPage({ params }: DirectiveDetailProps) {
                 <Edit2 size={16} />
                 Edit
               </button>
-              <Link href="/directives" className="btn btn-black-and-white btn-outline">
-                <ArrowLeft size={16} />
-                Back
-              </Link>
             </div>
           )
         }
@@ -207,14 +205,14 @@ export default function DirectiveDetailPage({ params }: DirectiveDetailProps) {
                 <FileText size={18} />
                 Content
               </h3>
-              <textarea
-                className={`textarea ${styles.contentTextarea}`}
+              <ContentEditor
                 value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                rows={15}
+                onChange={setEditContent}
+                className={styles.contentTextarea}
+                placeholder="Enter directive content with @probe:name, @directive:id, and @variable:name references..."
               />
               <p className={styles.hint}>
-                Use @probe:name, @directive:id, and @variable:name to reference probes, directives, and variables.
+                Type @ to see autocomplete suggestions for probes and directives.
               </p>
             </section>
           </>

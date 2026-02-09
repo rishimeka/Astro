@@ -110,18 +110,58 @@
   letter-spacing: 0.5px;
 }
 
-// Configuration Section (pre-run)
-.configSection {
-  display: flex;
-  flex-direction: column;
+// Pre-execution split-panel layout
+.preExecutionLayout {
+  display: grid;
+  grid-template-columns: 1fr 400px;
   gap: var(--space-section-gap);
+  min-height: 600px;
 }
 
-.configCard {
+// Left panel: Graph preview
+.graphPreviewPanel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+}
+
+.graphPreviewContainer {
+  flex: 1;
+  min-height: 400px;
+}
+
+// Right panel: Variables form
+.variablesPanel {
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   padding: var(--space-card-padding);
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
 }
 
 .sectionTitle {
@@ -130,41 +170,6 @@
   font-weight: 400;
   color: var(--text-primary);
   margin: 0 0 8px 0;
-}
-
-.configDescription {
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin: 0 0 24px 0;
-  line-height: var(--leading-normal);
-}
-
-.variablesForm {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.fieldWrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.fieldLabel {
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.configActions {
-  display: flex;
-  gap: var(--space-element-gap);
-  padding-top: 16px;
-  border-top: 1px solid var(--border-subtle);
 }
 
 // Status Section (during/after run)
@@ -200,7 +205,7 @@
   text-transform: capitalize;
 
   &.running {
-    background: rgba(108, 114, 255, 0.15);
+    background: rgba(74, 157, 234, 0.15);
     color: var(--accent-primary);
     border: 1px solid var(--accent-primary);
   }
@@ -324,6 +329,21 @@
 }
 
 // Responsive
+@media (max-width: 1024px) {
+  .preExecutionLayout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .graphPreviewPanel {
+    min-height: 350px;
+  }
+
+  .variablesPanel {
+    max-height: none;
+  }
+}
+
 @media (max-width: 768px) {
   .actions {
     flex-wrap: wrap;
@@ -346,5 +366,13 @@
 
   .graphContainer {
     min-height: 400px;
+  }
+
+  .preExecutionLayout {
+    min-height: auto;
+  }
+
+  .graphPreviewPanel {
+    min-height: 300px;
   }
 }

@@ -1,19 +1,18 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,
-  Play,
   CheckCircle,
   XCircle,
   AlertCircle,
   Loader2,
+  Eye,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { Spinner } from '@/components/Loading';
-import { ExecutionCanvas, ConfirmationModal } from '@/components/Execution';
+import { ExecutionCanvas, ConfirmationModal, VariableForm } from '@/components/Execution';
 import { ENDPOINTS } from '@/lib/api/endpoints';
 import { api } from '@/lib/api/client';
 import type { Constellation, RunStatus } from '@/types/astro';
@@ -96,9 +95,6 @@ function NewRunContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Variables form state
-  const [variables, setVariables] = useState<Record<string, string>>({});
-
   // Execution state
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionState, setExecutionState] = useState<ExecutionState | null>(null);
@@ -116,11 +112,6 @@ function NewRunContent() {
       try {
         const data = await api.get<Constellation>(ENDPOINTS.CONSTELLATION(constellationId));
         setConstellation(data);
-
-        // Initialize variables from constellation's start node
-        if (data.start.original_query) {
-          setVariables({ _query: '' });
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load constellation');
       } finally {
@@ -131,11 +122,12 @@ function NewRunContent() {
     fetchConstellation();
   }, [constellationId]);
 
-  const handleVariableChange = (key: string, value: string) => {
-    setVariables((prev) => ({ ...prev, [key]: value }));
+  // Handle cancel from VariableForm - navigate back
+  const handleVariableCancel = () => {
+    router.push('/runs');
   };
 
-  const startExecution = async () => {
+  const startExecution = useCallback(async (variables: Record<string, string>) => {
     if (!constellationId) return;
 
     setIsExecuting(true);
@@ -201,7 +193,12 @@ function NewRunContent() {
           : null
       );
     }
-  };
+  }, [constellationId]);
+
+  // Handle VariableForm submission - start execution with the provided variables
+  const handleVariableSubmit = useCallback((variables: Record<string, string>) => {
+    startExecution(variables);
+  }, [startExecution]);
 
   const handleSSEEvent = (eventType: SSEEventType, data: Record<string, unknown>) => {
     setExecutionState((prev) => {
@@ -376,7 +373,6 @@ function NewRunContent() {
         <h2>Unable to Start Run</h2>
         <p>{error || 'Constellation not found'}</p>
         <Link href="/constellations" className="btn btn-primary btn-outline">
-          <ArrowLeft size={16} />
           Back to Constellations
         </Link>
       </div>
@@ -393,70 +389,63 @@ function NewRunContent() {
       <PageHeader
         title={isExecuting ? 'Running Constellation' : 'New Run'}
         subtitle={constellation.name}
+        backHref="/runs"
         breadcrumbs={[
           { label: 'Runs', href: '/runs' },
           { label: 'New Run' },
         ]}
         actions={
-          <div className={styles.actions}>
-            {isExecuting && executionState?.status === 'running' && (
-              <span className={styles.liveIndicator}>
-                <span className={styles.liveDot} />
-                Running
-              </span>
-            )}
-            {isComplete && (
-              <span className={styles.completeIndicator}>
-                <CheckCircle size={16} />
-                Complete
-              </span>
-            )}
-            {isFailed && (
-              <span className={styles.failedIndicator}>
-                <XCircle size={16} />
-                Failed
-              </span>
-            )}
-            <Link href="/runs" className="btn btn-black-and-white btn-outline">
-              <ArrowLeft size={16} />
-              Back
-            </Link>
-          </div>
+          isExecuting ? (
+            <div className={styles.actions}>
+              {executionState?.status === 'running' && (
+                <span className={styles.liveIndicator}>
+                  <span className={styles.liveDot} />
+                  Running
+                </span>
+              )}
+              {isComplete && (
+                <span className={styles.completeIndicator}>
+                  <CheckCircle size={16} />
+                  Complete
+                </span>
+              )}
+              {isFailed && (
+                <span className={styles.failedIndicator}>
+                  <XCircle size={16} />
+                  Failed
+                </span>
+              )}
+            </div>
+          ) : undefined
         }
       />
 
-      {/* Pre-execution: Show variables form */}
+      {/* Pre-execution: Split-panel layout with graph preview and variables form */}
       {!isExecuting && (
-        <section className={styles.configSection}>
-          <div className={styles.configCard}>
-            <h3 className={styles.sectionTitle}>Configuration</h3>
-            <p className={styles.configDescription}>
-              Configure variables and inputs for this constellation run.
-            </p>
-
-            <div className={styles.variablesForm}>
-              <div className={styles.fieldWrapper}>
-                <label className={styles.fieldLabel}>Query / Input</label>
-                <textarea
-                  className="textarea"
-                  placeholder="Enter your query or input for this run..."
-                  value={variables._query || ''}
-                  onChange={(e) => handleVariableChange('_query', e.target.value)}
-                  rows={4}
-                />
-              </div>
+        <section className={styles.preExecutionLayout}>
+          {/* Left Panel: Graph Preview */}
+          <div className={styles.graphPreviewPanel}>
+            <div className={styles.panelHeader}>
+              <Eye size={16} />
+              <h3>Constellation Preview</h3>
             </div>
-
-            <div className={styles.configActions}>
-              <button
-                className="btn btn-primary"
-                onClick={startExecution}
-                disabled={!variables._query?.trim()}
-              >
-                <Play size={16} />
-                Start Run
-              </button>
+            <div className={styles.graphPreviewContainer}>
+              <ExecutionCanvas
+                nodes={graphData.nodes}
+                edges={graphData.edges}
+                nodeStates={{}}
+                currentNodeId={null}
+              />
             </div>
+          </div>
+
+          {/* Right Panel: Variables Form */}
+          <div className={styles.variablesPanel}>
+            <VariableForm
+              constellationId={constellationId!}
+              onSubmit={handleVariableSubmit}
+              onCancel={handleVariableCancel}
+            />
           </div>
         </section>
       )}

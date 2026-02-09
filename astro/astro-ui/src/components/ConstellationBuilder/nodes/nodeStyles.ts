@@ -24,7 +24,7 @@ export const startNodeStyle: CSSProperties = {
   ...circularNodeStyle,
   backgroundColor: 'var(--accent-primary)',
   border: 'none',
-  boxShadow: '0 4px 12px rgba(108, 114, 255, 0.3)',
+  boxShadow: '0 4px 12px rgba(74, 157, 234, 0.3)',
 };
 
 // End node specific style
@@ -55,7 +55,7 @@ export const starNodeHoverStyle: CSSProperties = {
 
 export const starNodeSelectedStyle: CSSProperties = {
   borderColor: 'var(--accent-primary)',
-  boxShadow: '0 0 0 2px rgba(108, 114, 255, 0.2)',
+  boxShadow: '0 0 0 2px rgba(74, 157, 234, 0.2)',
 };
 
 export const starNodeErrorStyle: CSSProperties = {

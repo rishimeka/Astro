@@ -250,7 +250,7 @@ The package includes CSS custom properties for theming:
 
 ```scss
 :root {
-  --accent-primary: #6C72FF;
+  --accent-primary: #4A9DEA;
   --bg-primary: #0D1117;
   --text-primary: #FFFFFF;
   --font-body: 'Outfit', sans-serif;

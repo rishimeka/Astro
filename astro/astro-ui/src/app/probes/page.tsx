@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/PageHeader';
 import { DataTable, Column } from '@/components/DataTable';
 import { SearchInput } from '@/components/SearchInput';
@@ -56,10 +57,15 @@ const columns: Column<Probe>[] = [
 ];
 
 export default function ProbeList() {
+  const router = useRouter();
   const { probes, isLoading, error, refetch } = useProbes();
   const [search, setSearch] = useState('');
   const [sortColumn, setSortColumn] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleRowClick = (probe: Probe) => {
+    router.push(`/probes/${encodeURIComponent(probe.name)}`);
+  };
 
   const filteredData = useMemo(() => {
     let data = [...probes];
@@ -173,6 +179,7 @@ export default function ProbeList() {
           sortColumn={sortColumn}
           sortDirection={sortDirection}
           onSort={handleSort}
+          onRowClick={handleRowClick}
           emptyMessage="No probes available"
           keyExtractor={(probe) => probe.name}
         />

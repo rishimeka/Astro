@@ -1,0 +1,119 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pairsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pair,
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.keyInput {
+  flex: 1;
+  min-width: 120px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.valueInput {
+  flex: 2;
+  min-width: 150px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.typeSelect {
+  width: 100px;
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+.removeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: var(--accent-danger);
+    color: var(--accent-danger);
+    background: rgba(255, 92, 92, 0.1);
+  }
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: var(--accent-primary-subtle);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.emptyHint {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+  padding: 12px;
+  text-align: center;
+  background: var(--bg-primary);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 768px) {
+  .pair,
+  .addRow {
+    flex-wrap: wrap;
+  }
+
+  .keyInput {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  .valueInput {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .typeSelect {
+    width: 90px;
+  }
+}

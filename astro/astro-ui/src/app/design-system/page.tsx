@@ -94,10 +94,10 @@ const { theme, toggleTheme, setTheme } = useTheme();
 
         <h3 className="heading-03 mb-4">Accent Colors</h3>
         <div className={styles.colorGrid}>
-          <ColorSwatch name="--accent-primary" value="#6C72FF" />
-          <ColorSwatch name="--accent-primary-hover" value="#5A60E8" />
-          <ColorSwatch name="--accent-primary-active" value="#4A50D8" />
-          <ColorSwatch name="--accent-primary-subtle" value="rgba(108, 114, 255, 0.1)" />
+          <ColorSwatch name="--accent-primary" value="#4A9DEA" />
+          <ColorSwatch name="--accent-primary-hover" value="#3A8DDA" />
+          <ColorSwatch name="--accent-primary-active" value="#2A7DCA" />
+          <ColorSwatch name="--accent-primary-subtle" value="#4A9DEA1a" />
           <ColorSwatch name="--accent-danger" value="#FF5C5C" />
         </div>
 

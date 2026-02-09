@@ -70,13 +70,28 @@ class ExecutionStar(OrchestratorStar):
                     # Create dynamic worker
                     star = await context.create_dynamic_star(task)
 
-                # Create a sub-context for this task
-                task_context = context.model_copy()
-                task_context.variables = {
-                    **context.variables,
-                    "task_description": task.description,
-                    "task_context": plan.context,
-                }
+                # Create a lightweight sub-context sharing node_outputs and
+                # tool_result_cache by reference (read-only from workers)
+                from astro_backend_service.executor.context import ExecutionContext
+
+                task_context = ExecutionContext(
+                    run_id=context.run_id,
+                    constellation_id=context.constellation_id,
+                    original_query=context.original_query,
+                    constellation_purpose=context.constellation_purpose,
+                    variables={
+                        **context.variables,
+                        "task_description": task.description,
+                        "task_context": plan.context,
+                    },
+                    node_outputs=context.node_outputs,
+                    tool_result_cache=context.tool_result_cache,
+                    loop_count=context.loop_count,
+                    foundry=context.foundry,
+                    stream=context.stream,
+                    current_node_id=context.current_node_id,
+                    current_node_name=context.current_node_name,
+                )
 
                 # Execute the worker
                 if hasattr(star, "execute"):

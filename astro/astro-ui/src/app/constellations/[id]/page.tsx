@@ -163,6 +163,7 @@ export default function ConstellationDetailPage({ params }: ConstellationDetailP
       <PageHeader
         title={constellation.name}
         subtitle={constellation.description}
+        backHref="/constellations"
         breadcrumbs={[
           { label: 'Constellations', href: '/constellations' },
           { label: constellation.name },
@@ -170,7 +171,7 @@ export default function ConstellationDetailPage({ params }: ConstellationDetailP
         actions={
           <div className={styles.actions}>
             <button
-              className="btn btn-black-and-white btn-outline"
+              className="btn btn-error btn-outline"
               onClick={handleDelete}
               title="Delete"
             >

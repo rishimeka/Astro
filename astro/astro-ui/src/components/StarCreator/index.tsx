@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Star as StarIcon,
@@ -12,27 +12,42 @@ import {
   Layers,
   Settings,
   Check,
+  Search,
+  Tag,
 } from 'lucide-react';
 import { useDirectives } from '@/hooks/useDirectives';
 import { useProbes } from '@/hooks/useProbes';
 import { useStarMutations } from '@/hooks/useStars';
 import { Spinner } from '@/components/Loading';
-import { StarType } from '@/types/astro';
+import { KeyValueEditor } from '@/components/KeyValueEditor';
+import { StarType, Probe } from '@/types/astro';
 import styles from './StarCreator.module.scss';
+
+// Extract tag from probe name (e.g., "fetch_google_news_headlines" → "google_news")
+function extractProbeTag(name: string): string {
+  // Remove common prefixes like "fetch_", "get_", "search_", etc.
+  const withoutPrefix = name.replace(/^(fetch_|get_|search_|find_|list_|read_|write_|create_|update_|delete_)/, '');
+
+  // Get the first two parts as the tag (e.g., "google_news_headlines" → "google_news")
+  const parts = withoutPrefix.split('_');
+  if (parts.length >= 2) {
+    return parts.slice(0, 2).join('_');
+  }
+  return parts[0] || 'other';
+}
 
 interface FormState {
   name: string;
   type: StarType | '';
   directive_id: string;
   probe_ids: string[];
-  config: string;
+  config: Record<string, unknown>;
 }
 
 interface FormErrors {
   name?: string;
   type?: string;
   directive_id?: string;
-  config?: string;
 }
 
 const STAR_TYPES: {
@@ -73,11 +88,48 @@ export default function StarCreator() {
     type: '',
     directive_id: '',
     probe_ids: [],
-    config: '{}',
+    config: {},
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Probe filtering
+  const [probeSearch, setProbeSearch] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Extract unique tags from all probes
+  const probeTags = useMemo(() => {
+    const tags = new Set<string>();
+    probes.forEach((probe) => {
+      tags.add(extractProbeTag(probe.name));
+    });
+    return Array.from(tags).sort();
+  }, [probes]);
+
+  // Filter probes based on search and selected tags
+  const filteredProbes = useMemo(() => {
+    return probes.filter((probe) => {
+      // Search filter
+      const searchLower = probeSearch.toLowerCase();
+      const matchesSearch =
+        !probeSearch ||
+        probe.name.toLowerCase().includes(searchLower) ||
+        probe.description.toLowerCase().includes(searchLower);
+
+      // Tag filter
+      const probeTag = extractProbeTag(probe.name);
+      const matchesTags = selectedTags.length === 0 || selectedTags.includes(probeTag);
+
+      return matchesSearch && matchesTags;
+    });
+  }, [probes, probeSearch, selectedTags]);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
 
   const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
@@ -106,15 +158,6 @@ export default function StarCreator() {
       newErrors.directive_id = 'Please select a directive';
     }
 
-    // Validate JSON config
-    if (formState.config) {
-      try {
-        JSON.parse(formState.config);
-      } catch {
-        newErrors.config = 'Invalid JSON format';
-      }
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -126,7 +169,6 @@ export default function StarCreator() {
 
     try {
       const id = generateId(formState.name);
-      const config = formState.config ? JSON.parse(formState.config) : {};
 
       await createStar({
         id,
@@ -134,7 +176,7 @@ export default function StarCreator() {
         type: formState.type as StarType,
         directive_id: formState.directive_id,
         probe_ids: needsProbes(formState.type) ? formState.probe_ids : undefined,
-        config,
+        config: formState.config,
       });
 
       router.push(`/stars/${id}`);
@@ -253,27 +295,74 @@ export default function StarCreator() {
               No probes available. Create probes first or continue without them.
             </div>
           ) : (
-            <div className={styles.probeList}>
-              {probes.map((probe) => (
-                <label
-                  key={probe.name}
-                  className={`${styles.probeItem} ${
-                    formState.probe_ids.includes(probe.name) ? styles.selected : ''
-                  }`}
-                >
+            <>
+              {/* Filter Bar */}
+              <div className={styles.probeFilters}>
+                <div className={styles.probeSearchWrapper}>
+                  <Search size={16} className={styles.probeSearchIcon} />
                   <input
-                    type="checkbox"
-                    className={`checkbox ${styles.probeCheckbox}`}
-                    checked={formState.probe_ids.includes(probe.name)}
-                    onChange={() => toggleProbe(probe.name)}
+                    type="text"
+                    className={`input ${styles.probeSearchInput}`}
+                    value={probeSearch}
+                    onChange={(e) => setProbeSearch(e.target.value)}
+                    placeholder="Search probes..."
                   />
-                  <div className={styles.probeInfo}>
-                    <div className={styles.probeName}>{probe.name}</div>
-                    <div className={styles.probeDescription}>{probe.description}</div>
+                </div>
+
+                {probeTags.length > 0 && (
+                  <div className={styles.probeTags}>
+                    <Tag size={14} className={styles.probeTagIcon} />
+                    {probeTags.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        className={`${styles.probeTagChip} ${
+                          selectedTags.includes(tag) ? styles.selected : ''
+                        }`}
+                        onClick={() => toggleTag(tag)}
+                      >
+                        {tag.replace(/_/g, ' ')}
+                      </button>
+                    ))}
                   </div>
-                </label>
-              ))}
-            </div>
+                )}
+              </div>
+
+              {/* Probe List */}
+              {filteredProbes.length === 0 ? (
+                <div className={styles.noProbes}>
+                  No probes match your filters.
+                </div>
+              ) : (
+                <div className={styles.probeList}>
+                  {filteredProbes.map((probe) => (
+                    <label
+                      key={probe.name}
+                      className={`${styles.probeItem} ${
+                        formState.probe_ids.includes(probe.name) ? styles.selected : ''
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className={`checkbox ${styles.probeCheckbox}`}
+                        checked={formState.probe_ids.includes(probe.name)}
+                        onChange={() => toggleProbe(probe.name)}
+                      />
+                      <div className={styles.probeInfo}>
+                        <div className={styles.probeName}>{probe.name}</div>
+                        <div className={styles.probeDescription}>{probe.description}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {formState.probe_ids.length > 0 && (
+                <div className={styles.probeSelectedCount}>
+                  {formState.probe_ids.length} probe{formState.probe_ids.length !== 1 ? 's' : ''} selected
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -285,19 +374,13 @@ export default function StarCreator() {
           Configuration (Optional)
         </h3>
 
-        <div className={styles.field}>
-          <label className={styles.fieldLabel}>Config JSON</label>
-          <textarea
-            className={`textarea ${styles.configEditor} ${errors.config ? 'textarea-error' : ''}`}
-            value={formState.config}
-            onChange={(e) => updateField('config', e.target.value)}
-            placeholder="{}"
-          />
-          {errors.config && <p className={styles.fieldError}>{errors.config}</p>}
-          <p className={styles.fieldHint}>
-            Additional configuration options in JSON format.
-          </p>
-        </div>
+        <KeyValueEditor
+          value={formState.config}
+          onChange={(value) => updateField('config', value)}
+        />
+        <p className={styles.fieldHint}>
+          Add configuration options like temperature, max_tokens, etc.
+        </p>
       </div>
 
       {/* Actions */}

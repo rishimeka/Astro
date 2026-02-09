@@ -145,11 +145,11 @@ function ExecutionCanvasInner({
   const nodeColor = (node: Node) => {
     const executionState = nodeStates[node.id];
     if (executionState?.status === 'completed') return '#10B981';
-    if (executionState?.status === 'running') return '#6C72FF';
+    if (executionState?.status === 'running') return '#4A9DEA';
     if (executionState?.status === 'failed') return '#EF4444';
-    if (node.type === 'start') return '#6C72FF';
+    if (node.type === 'start') return '#4A9DEA';
     if (node.type === 'end') return 'rgba(255, 255, 255, 0.3)';
-    return 'rgba(108, 114, 255, 0.3)';
+    return 'rgba(74, 157, 234, 0.3)';
   };
 
   return (

@@ -583,6 +583,10 @@ class Foundry:
         """Update run."""
         return await self._persistence.update_run(id, updates)
 
+    async def upsert_run(self, run: Dict[str, Any]) -> None:
+        """Upsert run (insert or replace)."""
+        await self._persistence.upsert_run(run)
+
     async def update_run_status(self, id: str, status: str) -> bool:
         """Update run status."""
         return await self._persistence.update_run(id, {"status": status})

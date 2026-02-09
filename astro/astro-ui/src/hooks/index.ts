@@ -8,6 +8,18 @@ export type {
   ExecutionState,
 } from './useExecutionStream';
 
+// High-level constellation execution hook
+export { useConstellationExecution } from './useConstellationExecution';
+export type {
+  ExecutionState as ConstellationExecutionState,
+  ExecutionStatusType,
+  NodeStatus,
+  NodeStatusType,
+  NodeOutput,
+  AwaitingConfirmation,
+  UseConstellationExecutionResult,
+} from './useConstellationExecution';
+
 // Chat hooks
 export { useChat } from './useChat';
 export type { ChatMessage, UseChat } from './useChat';

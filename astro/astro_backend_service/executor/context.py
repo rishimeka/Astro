@@ -38,6 +38,9 @@ class ExecutionContext(BaseModel):
     node_outputs: Dict[str, StarOutput] = Field(default_factory=dict)
     loop_count: int = Field(default=0)
 
+    # Cache for tool/probe results across stars (keyed on tool_name + sorted args JSON)
+    tool_result_cache: Dict[str, str] = Field(default_factory=dict)
+
     # Foundry reference for lookups
     foundry: Any = Field(default=None)  # Typed as Any to avoid circular import
 
@@ -249,6 +252,31 @@ class ExecutionContext(BaseModel):
             self.node_outputs[n.id] for n in upstream_nodes if n.id in self.node_outputs
         ]
 
+    def get_direct_upstream_outputs(self) -> Dict[str, "StarOutput"]:
+        """Get outputs from only direct upstream nodes of the current node.
+
+        Uses the constellation graph to find direct predecessors.
+        Falls back to all node_outputs if graph lookup fails.
+
+        Returns:
+            Dict of node_id to output for direct upstream nodes only.
+        """
+        if self.current_node_id is None:
+            return dict(self.node_outputs)
+
+        try:
+            constellation = self.get_constellation()
+            upstream_nodes = constellation.get_upstream_nodes(self.current_node_id)
+            upstream_ids = {n.id for n in upstream_nodes}
+            return {
+                nid: output
+                for nid, output in self.node_outputs.items()
+                if nid in upstream_ids
+            }
+        except Exception:
+            # Fallback to all outputs if graph lookup fails
+            return dict(self.node_outputs)
+
     def get_upstream_output(self, output_type: Type[Any]) -> Optional[Any]:
         """Get first upstream output of given type (e.g., Plan).
 
@@ -402,6 +430,32 @@ Constraints:
                 return output_docs
 
         return []
+
+    def get_cached_tool_result(self, tool_name: str, tool_args: Dict[str, Any]) -> Optional[str]:
+        """Check if a tool call result is cached.
+
+        Args:
+            tool_name: Name of the tool.
+            tool_args: Arguments to the tool.
+
+        Returns:
+            Cached result string or None.
+        """
+        import json
+        cache_key = f"{tool_name}:{json.dumps(tool_args, sort_keys=True, default=str)}"
+        return self.tool_result_cache.get(cache_key)
+
+    def cache_tool_result(self, tool_name: str, tool_args: Dict[str, Any], result: str) -> None:
+        """Cache a tool call result.
+
+        Args:
+            tool_name: Name of the tool.
+            tool_args: Arguments to the tool.
+            result: The result string to cache.
+        """
+        import json
+        cache_key = f"{tool_name}:{json.dumps(tool_args, sort_keys=True, default=str)}"
+        self.tool_result_cache[cache_key] = result
 
 
 class WorkerContext(BaseModel):

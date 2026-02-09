@@ -242,7 +242,7 @@ The UI uses a comprehensive token-based design system. Key tokens:
 
 ```scss
 // Primary accent
---accent-primary: #6C72FF;
+--accent-primary: #4A9DEA;
 --accent-secondary: #A78BFA;
 
 // Backgrounds

@@ -13,7 +13,7 @@
 
 .startNode {
   background-color: var(--accent-primary);
-  box-shadow: 0 4px 12px rgba(108, 114, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(74, 157, 234, 0.3);
 
   &.completed {
     background-color: #10B981;
@@ -75,7 +75,7 @@
 
   &.selected {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(108, 114, 255, 0.3);
+    box-shadow: 0 0 0 3px rgba(74, 157, 234, 0.3);
   }
 
   &.pending {
@@ -90,12 +90,12 @@
 
   &.running {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(108, 114, 255, 0.2);
+    box-shadow: 0 0 0 3px rgba(74, 157, 234, 0.2);
     animation: pulse 2s infinite;
 
     &.selected {
       animation: none;
-      box-shadow: 0 0 0 4px rgba(108, 114, 255, 0.4);
+      box-shadow: 0 0 0 4px rgba(74, 157, 234, 0.4);
     }
   }
 
@@ -104,7 +104,7 @@
 
     &.selected {
       border-color: var(--accent-primary);
-      box-shadow: 0 0 0 3px rgba(108, 114, 255, 0.3);
+      box-shadow: 0 0 0 3px rgba(74, 157, 234, 0.3);
     }
 
     .statusIndicator {
@@ -118,7 +118,7 @@
 
     &.selected {
       border-color: var(--accent-primary);
-      box-shadow: 0 0 0 3px rgba(108, 114, 255, 0.3);
+      box-shadow: 0 0 0 3px rgba(74, 157, 234, 0.3);
     }
 
     .statusIndicator {
@@ -132,7 +132,7 @@
 
     &.selected {
       border-color: var(--accent-primary);
-      box-shadow: 0 0 0 3px rgba(108, 114, 255, 0.3);
+      box-shadow: 0 0 0 3px rgba(74, 157, 234, 0.3);
     }
 
     .statusIndicator {
@@ -188,7 +188,7 @@
   color: var(--text-muted);
 
   &.running {
-    background: rgba(108, 114, 255, 0.15);
+    background: rgba(74, 157, 234, 0.15);
     color: var(--accent-primary);
   }
 }
@@ -209,7 +209,7 @@
   font-size: 12px;
   color: var(--accent-primary);
   padding: 6px 8px;
-  background: rgba(108, 114, 255, 0.1);
+  background: rgba(74, 157, 234, 0.1);
   border-radius: var(--radius-sm);
   margin-top: 6px;
 }
@@ -240,12 +240,12 @@
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(108, 114, 255, 0.4);
+    box-shadow: 0 0 0 0 rgba(74, 157, 234, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(108, 114, 255, 0);
+    box-shadow: 0 0 0 10px rgba(74, 157, 234, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(108, 114, 255, 0);
+    box-shadow: 0 0 0 0 rgba(74, 157, 234, 0);
   }
 }

@@ -2,7 +2,7 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Settings, FileText } from 'lucide-react';
+import { Settings, FileText } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { PageLoader } from '@/components/Loading';
 import { useProbe } from '@/hooks/useProbes';
@@ -34,17 +34,25 @@ export default function ProbeDetailPage({ params }: ProbeDetailProps) {
     );
   }
 
-  // Build metadata for display
-  const parameterEntries = Object.entries(probe.parameters || {}).map(([key, value]) => {
-    const param = value as { type?: string; required?: boolean; default?: unknown; items?: string };
-    let typeStr = param.type || 'unknown';
-    if (param.type === 'array' && param.items) {
-      typeStr = `array<${param.items}>`;
+  // Build metadata for display - parameters is a JSON Schema object
+  const parametersSchema = probe.parameters as {
+    type?: string;
+    properties?: Record<string, { type?: string; default?: unknown; items?: { type?: string } }>;
+    required?: string[];
+  } | undefined;
+
+  const requiredParams = new Set(parametersSchema?.required || []);
+  const properties = parametersSchema?.properties || {};
+
+  const parameterEntries = Object.entries(properties).map(([key, value]) => {
+    let typeStr = value.type || 'unknown';
+    if (value.type === 'array' && value.items?.type) {
+      typeStr = `array<${value.items.type}>`;
     }
     return [key, {
       type: typeStr,
-      required: param.required ?? false,
-      default: param.default,
+      required: requiredParams.has(key),
+      default: value.default,
     }];
   });
 
@@ -53,16 +61,11 @@ export default function ProbeDetailPage({ params }: ProbeDetailProps) {
       <PageHeader
         title={probe.name}
         subtitle="Probe (Read-only from API)"
+        backHref="/probes"
         breadcrumbs={[
           { label: 'Probes', href: '/probes' },
           { label: probe.name },
         ]}
-        actions={
-          <Link href="/probes" className="btn btn-black-and-white btn-outline">
-            <ArrowLeft size={16} />
-            Back
-          </Link>
-        }
       />
 
       <div className={styles.content}>

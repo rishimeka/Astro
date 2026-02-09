@@ -21,7 +21,7 @@
 .input:focus {
     border-color: var(--accent-primary);
     background-color: var(--accent-primary-subtle);
-    box-shadow: 0 0 0 3px rgba(108, 114, 255, 0.2);
+    box-shadow: 0 0 0 3px rgba(74, 157, 234, 0.2);
 }
 
 .input:hover:not(:disabled):not(.input-error) {

@@ -14,7 +14,7 @@ function StartNodeComponent({ data, selected }: StartNodeProps) {
   const nodeStyle = {
     ...startNodeStyle,
     ...(selected && {
-      boxShadow: '0 0 0 3px rgba(108, 114, 255, 0.4), 0 4px 12px rgba(108, 114, 255, 0.3)',
+      boxShadow: '0 0 0 3px rgba(74, 157, 234, 0.4), 0 4px 12px rgba(74, 157, 234, 0.3)',
     }),
   };
 

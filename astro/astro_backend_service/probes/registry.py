@@ -48,6 +48,20 @@ class ProbeRegistry:
         return cls._probes.get(name)
 
     @classmethod
+    def get_many(cls, names: List[str]) -> List[Probe]:
+        """Get multiple probes by name using direct dict lookup.
+
+        Missing names are silently skipped.
+
+        Args:
+            names: List of probe names to look up.
+
+        Returns:
+            List of Probe instances found.
+        """
+        return [cls._probes[n] for n in names if n in cls._probes]
+
+    @classmethod
     def all(cls) -> List[Probe]:
         """Get all registered probes.
 

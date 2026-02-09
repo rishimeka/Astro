@@ -1320,7 +1320,7 @@ DD_STARS = [
         ai_generated=False,
         metadata={"benchmark": "due-diligence", "role": "financial"},
         probe_ids=["search_sec_filings", "get_financial_data", "search_earnings_transcripts"],
-        max_iterations=3,
+        max_iterations=5,  # Increased from 3 to prevent "Maximum iterations reached"
     ),
     WorkerStar(
         id="star-dd-sentiment",

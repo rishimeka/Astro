@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, use, useEffect } from 'react';
+import { useState, use, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   Edit2,
   Trash2,
   Save,
@@ -14,13 +13,16 @@ import {
   Cpu,
   Sparkles,
   Tag,
+  Search,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import { KeyValueEditor } from '@/components/KeyValueEditor';
 import { MetadataPanel } from '@/components/MetadataPanel';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import { Spinner, PageLoader } from '@/components/Loading';
 import { useStar } from '@/hooks/useStars';
 import { useDirective } from '@/hooks/useDirectives';
+import { useProbes } from '@/hooks/useProbes';
 import { api } from '@/lib/api/client';
 import { ENDPOINTS } from '@/lib/api/endpoints';
 import { StarType } from '@/types/astro';
@@ -48,11 +50,34 @@ const starTypeColors: Record<StarType, string> = {
   [StarType.SYNTHESIS]: 'var(--accent-quaternary)',
 };
 
+// Atomic star types that support probe_ids
+const ATOMIC_STAR_TYPES: StarType[] = [
+  StarType.WORKER,
+  StarType.PLANNING,
+  StarType.EVAL,
+  StarType.SYNTHESIS,
+];
+
+function isAtomicStarType(type: StarType): boolean {
+  return ATOMIC_STAR_TYPES.includes(type);
+}
+
+// Extract tag from probe name (e.g., "fetch_google_news_headlines" → "google_news")
+function extractProbeTag(name: string): string {
+  const withoutPrefix = name.replace(/^(fetch_|get_|search_|find_|list_|read_|write_|create_|update_|delete_)/, '');
+  const parts = withoutPrefix.split('_');
+  if (parts.length >= 2) {
+    return parts.slice(0, 2).join('_');
+  }
+  return parts[0] || 'other';
+}
+
 export default function StarDetailPage({ params }: StarDetailProps) {
   const { id } = use(params);
   const router = useRouter();
   const { star, isLoading, error } = useStar(id);
   const { directive } = useDirective(star?.directive_id || null);
+  const { probes, isLoading: probesLoading } = useProbes();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -61,13 +86,52 @@ export default function StarDetailPage({ params }: StarDetailProps) {
 
   // Edit form state
   const [editName, setEditName] = useState('');
-  const [editConfig, setEditConfig] = useState('{}');
+  const [editConfig, setEditConfig] = useState<Record<string, unknown>>({});
+  const [editProbeIds, setEditProbeIds] = useState<string[]>([]);
+
+  // Probe filtering state
+  const [probeSearch, setProbeSearch] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Extract unique tags from all probes
+  const probeTags = useMemo(() => {
+    const tags = new Set<string>();
+    probes.forEach((probe) => {
+      tags.add(extractProbeTag(probe.name));
+    });
+    return Array.from(tags).sort();
+  }, [probes]);
+
+  // Filter probes based on search and selected tags
+  const filteredProbes = useMemo(() => {
+    return probes.filter((probe) => {
+      const searchLower = probeSearch.toLowerCase();
+      const matchesSearch =
+        !probeSearch ||
+        probe.name.toLowerCase().includes(searchLower) ||
+        probe.description.toLowerCase().includes(searchLower);
+
+      const probeTag = extractProbeTag(probe.name);
+      const matchesTags = selectedTags.length === 0 || selectedTags.includes(probeTag);
+
+      return matchesSearch && matchesTags;
+    });
+  }, [probes, probeSearch, selectedTags]);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
 
   // Initialize edit form when star loads
   useEffect(() => {
     if (star) {
       setEditName(star.name);
-      setEditConfig(star.config ? JSON.stringify(star.config, null, 2) : '{}');
+      setEditConfig(star.config || {});
+      // Initialize probe IDs for atomic star types
+      const probeIds = 'probe_ids' in star ? (star.probe_ids as string[]) : [];
+      setEditProbeIds(probeIds);
     }
   }, [star]);
 
@@ -90,8 +154,18 @@ export default function StarDetailPage({ params }: StarDetailProps) {
 
   const handleEdit = () => {
     setEditName(star.name);
-    setEditConfig(JSON.stringify(star.config, null, 2));
+    setEditConfig(star.config || {});
+    const probeIds = 'probe_ids' in star ? (star.probe_ids as string[]) : [];
+    setEditProbeIds(probeIds);
     setIsEditing(true);
+  };
+
+  const toggleProbe = (probeName: string) => {
+    setEditProbeIds((prev) =>
+      prev.includes(probeName)
+        ? prev.filter((id) => id !== probeName)
+        : [...prev, probeName]
+    );
   };
 
   const handleCancelEdit = () => {
@@ -99,21 +173,23 @@ export default function StarDetailPage({ params }: StarDetailProps) {
   };
 
   const handleSave = async () => {
-    // Validate JSON config
-    let parsedConfig;
-    try {
-      parsedConfig = JSON.parse(editConfig);
-    } catch {
-      alert('Invalid JSON in config field');
-      return;
-    }
-
     setIsSaving(true);
     try {
-      await api.put(ENDPOINTS.STAR(id), {
+      const updatePayload: {
+        name: string;
+        config: Record<string, unknown>;
+        probe_ids?: string[];
+      } = {
         name: editName,
-        config: parsedConfig,
-      });
+        config: editConfig,
+      };
+
+      // Include probe_ids for atomic star types
+      if (star && isAtomicStarType(star.type)) {
+        updatePayload.probe_ids = editProbeIds;
+      }
+
+      await api.put(ENDPOINTS.STAR(id), updatePayload);
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to save star:', error);
@@ -136,14 +212,22 @@ export default function StarDetailPage({ params }: StarDetailProps) {
     }
   };
 
-  // Get probe IDs if star has them
-  const probeIds = 'probe_ids' in star ? (star.probe_ids as string[]) : [];
+  // Get probe IDs - combine directive probes with star probes
+  const starProbeIds = 'probe_ids' in star ? (star.probe_ids as string[]) : [];
+  const directiveProbeIds = directive?.probe_ids ?? [];
+
+  // Combined set is the union of both (what will actually be available during execution)
+  const combinedProbeIds = [...new Set([...directiveProbeIds, ...starProbeIds])];
+
+  // Check if there are any probes to show
+  const hasAnyProbes = combinedProbeIds.length > 0;
 
   return (
     <div className={styles.page}>
       <PageHeader
         title={isEditing ? 'Edit Star' : star.name}
         subtitle={isEditing ? undefined : `${starTypeLabels[star.type]} Star`}
+        backHref="/stars"
         breadcrumbs={[
           { label: 'Stars', href: '/stars' },
           { label: star.name },
@@ -171,7 +255,7 @@ export default function StarDetailPage({ params }: StarDetailProps) {
           ) : (
             <div className={styles.actions}>
               <button
-                className="btn btn-black-and-white btn-outline"
+                className="btn btn-error btn-outline"
                 onClick={() => setShowDeleteModal(true)}
                 title="Delete"
               >
@@ -184,10 +268,6 @@ export default function StarDetailPage({ params }: StarDetailProps) {
                 <Edit2 size={16} />
                 Edit
               </button>
-              <Link href="/stars" className="btn btn-black-and-white btn-outline">
-                <ArrowLeft size={16} />
-                Back
-              </Link>
             </div>
           )
         }
@@ -214,17 +294,123 @@ export default function StarDetailPage({ params }: StarDetailProps) {
                 <Settings size={18} />
                 Configuration
               </h3>
-              <textarea
-                className={`textarea ${styles.configTextarea}`}
+              <KeyValueEditor
                 value={editConfig}
-                onChange={(e) => setEditConfig(e.target.value)}
-                rows={10}
-                placeholder="{}"
+                onChange={setEditConfig}
               />
               <p className={styles.hint}>
-                Configuration must be valid JSON.
+                Add configuration options like temperature, max_tokens, etc.
               </p>
             </section>
+
+            {/* Probe Selection - only for atomic star types */}
+            {star && isAtomicStarType(star.type) && (
+              <section className={styles.section}>
+                <h3 className={styles.sectionTitle}>
+                  <Tag size={18} />
+                  Probes
+                </h3>
+                <p className={styles.hint} style={{ marginTop: '-12px', marginBottom: '16px' }}>
+                  Select probes that this star can use as tools.
+                </p>
+
+                {probesLoading ? (
+                  <div className={styles.loadingState}>
+                    <Spinner size="sm" />
+                    Loading probes...
+                  </div>
+                ) : probes.length === 0 ? (
+                  <div className={styles.noProbes}>
+                    No probes available. Create probes first or continue without them.
+                  </div>
+                ) : (
+                  <>
+                    {/* Probe Filter Bar */}
+                    <div className={styles.probeFilters}>
+                      <div className={styles.probeSearchWrapper}>
+                        <Search size={16} className={styles.probeSearchIcon} />
+                        <input
+                          type="text"
+                          className={`input ${styles.probeSearchInput}`}
+                          value={probeSearch}
+                          onChange={(e) => setProbeSearch(e.target.value)}
+                          placeholder="Search probes..."
+                        />
+                      </div>
+
+                      {probeTags.length > 0 && (
+                        <div className={styles.probeTags}>
+                          <Tag size={14} className={styles.probeTagIcon} />
+                          {probeTags.map((tag) => (
+                            <button
+                              key={tag}
+                              type="button"
+                              className={`${styles.probeTagChip} ${
+                                selectedTags.includes(tag) ? styles.probeTagChipSelected : ''
+                              }`}
+                              onClick={() => toggleTag(tag)}
+                            >
+                              {tag.replace(/_/g, ' ')}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Probe List */}
+                    {filteredProbes.length === 0 ? (
+                      <div className={styles.noProbes}>
+                        No probes match your filters.
+                      </div>
+                    ) : (
+                      <div className={styles.editProbeList}>
+                        {filteredProbes.map((probe) => {
+                          const isInherited = directiveProbeIds.includes(probe.name);
+                          const isSelected = editProbeIds.includes(probe.name);
+                          const isChecked = isInherited || isSelected;
+
+                          return (
+                            <label
+                              key={probe.name}
+                              className={`${styles.probeItem} ${isChecked ? styles.probeItemSelected : ''} ${isInherited ? styles.probeItemInherited : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                className={`checkbox ${styles.probeCheckbox}`}
+                                checked={isChecked}
+                                disabled={isInherited}
+                                onChange={() => toggleProbe(probe.name)}
+                              />
+                              <div className={styles.probeInfo}>
+                                <div className={styles.probeName}>
+                                  {probe.name}
+                                  {isInherited && (
+                                    <span className={styles.inheritedBadge}>Inherited</span>
+                                  )}
+                                </div>
+                                <div className={styles.probeDescription}>{probe.description}</div>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className={styles.probeSelectedCount}>
+                      {directiveProbeIds.length > 0 && (
+                        <span>{directiveProbeIds.length} inherited from directive</span>
+                      )}
+                      {editProbeIds.length > 0 && (
+                        <span>{directiveProbeIds.length > 0 ? ' + ' : ''}{editProbeIds.length} additional</span>
+                      )}
+                      {directiveProbeIds.length === 0 && editProbeIds.length === 0 && (
+                        <span>No probes selected</span>
+                      )}
+                    </div>
+                  </>
+                )}
+              </section>
+            )}
           </>
         ) : (
           // View Mode
@@ -293,23 +479,90 @@ export default function StarDetailPage({ params }: StarDetailProps) {
               )}
             </section>
 
-            {probeIds.length > 0 && (
+            {hasAnyProbes && (
               <section className={styles.section}>
                 <h3 className={styles.sectionTitle}>
                   <Tag size={18} />
                   Probes
                 </h3>
-                <div className={styles.probeList}>
-                  {probeIds.map((probeId) => (
-                    <Link
-                      key={probeId}
-                      href={`/probes/${encodeURIComponent(probeId)}`}
-                      className={styles.probeLink}
-                    >
-                      {probeId}
-                    </Link>
-                  ))}
+
+                {/* Combined (Resolved) - what will actually be available during execution */}
+                <div className={styles.probeSubsection}>
+                  <h4 className={styles.probeSubsectionTitle}>
+                    Combined (Resolved)
+                    <span className={styles.probeCount}>{combinedProbeIds.length}</span>
+                  </h4>
+                  <p className={styles.probeSubsectionHint}>
+                    These probes will be available during execution
+                  </p>
+                  <div className={styles.probeList}>
+                    {combinedProbeIds.map((probeId) => {
+                      const isInherited = directiveProbeIds.includes(probeId);
+                      const isAdditional = starProbeIds.includes(probeId);
+                      return (
+                        <Link
+                          key={probeId}
+                          href={`/probes/${encodeURIComponent(probeId)}`}
+                          className={`${styles.probeLink} ${isInherited && isAdditional ? styles.probeBoth : isInherited ? styles.probeInherited : styles.probeAdditional}`}
+                          title={isInherited && isAdditional ? 'From both Directive and Star' : isInherited ? 'Inherited from Directive' : 'Added on Star'}
+                        >
+                          {probeId}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Inherited from Directive */}
+                {directiveProbeIds.length > 0 && (
+                  <div className={styles.probeSubsection}>
+                    <h4 className={styles.probeSubsectionTitle}>
+                      <span className={styles.probeInheritedIndicator} />
+                      Inherited from Directive
+                      <span className={styles.probeCount}>{directiveProbeIds.length}</span>
+                    </h4>
+                    <div className={styles.probeList}>
+                      {directiveProbeIds.map((probeId) => (
+                        <Link
+                          key={probeId}
+                          href={`/probes/${encodeURIComponent(probeId)}`}
+                          className={`${styles.probeLink} ${styles.probeInherited}`}
+                        >
+                          {probeId}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional on Star */}
+                {starProbeIds.length > 0 && (
+                  <div className={styles.probeSubsection}>
+                    <h4 className={styles.probeSubsectionTitle}>
+                      <span className={styles.probeAdditionalIndicator} />
+                      Additional on Star
+                      <span className={styles.probeCount}>{starProbeIds.length}</span>
+                    </h4>
+                    <div className={styles.probeList}>
+                      {starProbeIds.map((probeId) => (
+                        <Link
+                          key={probeId}
+                          href={`/probes/${encodeURIComponent(probeId)}`}
+                          className={`${styles.probeLink} ${styles.probeAdditional}`}
+                        >
+                          {probeId}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Show loading state if directive hasn't loaded yet */}
+                {!directive && star.directive_id && (
+                  <p className={styles.probeLoadingHint}>
+                    Loading directive probes...
+                  </p>
+                )}
               </section>
             )}
 

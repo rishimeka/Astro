@@ -1,0 +1,382 @@
+{
+  "timestamp": "20260208_232636",
+  "query": "Due diligence on Airbnb",
+  "results": {
+    "astro_dd_constellation": {
+      "name": "astro_dd_constellation",
+      "query": "Due diligence on Airbnb",
+      "output": "Below is a synthesized due diligence report for Airbnb (ABNB) integrating all provided analyses. Claims are tied to the originating analyst(s), with conflicting views presented fairly and reconcilable where possible. Data gaps are highlighted, and clear monitoring triggers are defined.\n\n1) Executive Summary (3-5 sentences)\n- Airbnb faces a high regulatory risk environment across multiple jurisdictions (FTC/DOJ in the U.S., EU DSA considerations, NYC housing rules, and FERC-related filings), with active investigations, settlements, and material litigation shaping near-term risk (Regulatory Analyst; Regulatory Deep Dive). \n- Demand growth and monetization experiments (longer stays, experiences, Luxe) remain supportive catalysts, underscored by broadly bullish buy-side sentiment and analyst upgrades (Sentiment Analyst). \n- However, a lack of current financial metrics leaves a significant data gap for risk normalization, contributing to an elevated integrated risk score and caution on near...",
+      "output_length": 5015,
+      "duration_ms": 305692.3922919668,
+      "duration_seconds": 305.69,
+      "token_usage": {
+        "input_tokens": 45469,
+        "output_tokens": 42451,
+        "total_tokens": 87920,
+        "llm_calls": 14
+      },
+      "cost_usd": 1.7282,
+      "model": "gpt-5-nano",
+      "metadata": {
+        "run_id": "run_c9381f0943b0",
+        "constellation_id": "const-dd-001",
+        "company": "Airbnb",
+        "status": "completed",
+        "nodes_executed": 8,
+        "node_info": {
+          "financial_analyst": {
+            "star_id": "star-dd-financial",
+            "status": "completed",
+            "tool_calls": [
+              {
+                "tool": "get_financial_data",
+                "arguments": {
+                  "company": "Airbnb",
+                  "metrics": [
+                    "revenue",
+                    "net_income",
+                    "eps",
+                    "pe_ratio",
+                    "ev_ebitda",
+                    "debt_to_equity",
+                    "current_ratio",
+                    "free_cash_flow",
+                    "margins"
+                  ],
+                  "period": "quarterly"
+                },
+                "result": "{'data': {'company': 'Airbnb', 'revenue': 3730000000, 'net_income': 1370000000, 'eps': 2.13, 'pe_ratio': 22.5, 'ev_ebitda': 18.2, 'debt_to_equity': 0.42, 'current_ratio': 1.85, 'free_cash_flow': 11000",
+                "error": null
+              },
+              {
+                "tool": "search_sec_filings",
+                "arguments": {
+                  "company": "Airbnb"
+                },
+                "result": "{'filings': [{'company': 'Airbnb', 'filing_type': '10-K', 'filing_date': '2026-02-07', 'accession_number': '0001155972-24-989606', 'cik': '1559720', 'form_url': 'https://www.sec.gov/cgi-bin/browse-edg",
+                "error": null
+              },
+              {
+                "tool": "search_earnings_transcripts",
+                "arguments": {
+                  "company": "Airbnb",
+                  "quarter": "latest",
+                  "keywords": [
+                    "revenue",
+                    "net income",
+                    "EBITDA",
+                    "free cash flow"
+                  ]
+                },
+                "result": "{'transcript': \"[Earnings Call Transcript for Airbnb]\\n\\nOperator: Good afternoon and welcome to Airbnb's earnings call...\\n\\n[Management prepared remarks discussing new products, margin expansion, ma",
+                "error": null
+              },
+              {
+                "tool": "get_financial_data",
+                "arguments": {
+                  "company": "Airbnb",
+                  "metrics": [
+                    "revenue",
+                    "net_income",
+                    "eps",
+                    "pe_ratio",
+                    "ev_ebitda",
+                    "ps_ratio",
+                    "debt_to_equity",
+                    "current_ratio",
+                    "free_cash_flow",
+                    "gross_margin",
+                    "operating_margin",
+                    "cash_and_equivalents",
+                    "total_debt",
+                    "working_capital",
+                    "operating_cash_flow",
+                    "investing_cash_flow",
+                    "financing_cash_flow"
+                  ],
+                  "period": "quarterly"
+                },
+                "result": "{'data': {'company': 'Airbnb', 'revenue': 3730000000, 'net_income': 1370000000, 'eps': 2.13, 'pe_ratio': 22.5, 'ev_ebitda': 18.2, 'debt_to_equity': 0.42, 'current_ratio': 1.85, 'free_cash_flow': 11000",
+                "error": null
+              },
+              {
+                "tool": "get_financial_data",
+                "arguments": {
+                  "company": "Airbnb",
+                  "metrics": [
+                    "revenue",
+                    "net_income",
+                    "eps",
+                    "pe_ratio",
+                    "ev_ebitda",
+                    "ps_ratio",
+                    "debt_to_equity",
+                    "current_ratio",
+                    "free_cash_flow",
+                    "gross_margin",
+                    "operating_margin",
+                    "cash_and_equivalents",
+                    "total_debt",
+                    "working_capital",
+                    "operating_cash_flow",
+                    "investing_cash_flow",
+                    "financing_cash_flow"
+                  ],
+                  "period": "quarterly"
+                },
+                "result": "{'data': {'company': 'Airbnb', 'revenue': 3730000000, 'net_income': 1370000000, 'eps': 2.13, 'pe_ratio': 22.5, 'ev_ebitda': 18.2, 'debt_to_equity': 0.42, 'current_ratio': 1.85, 'free_cash_flow': 11000",
+                "error": null
+              },
+              {
+                "tool": "search_sec_filings",
+                "arguments": {
+                  "company": "Airbnb",
+                  "filing_type": "10-Q",
+                  "date_range": "1y"
+                },
+                "result": "{'filings': [{'company': 'Airbnb', 'filing_type': '10-Q', 'filing_date': '2026-01-17', 'accession_number': '0001155972-24-186768', 'cik': '1559720', 'form_url': 'https://www.sec.gov/cgi-bin/browse-edg",
+                "error": null
+              }
+            ]
+          },
+          "sentiment_analyst": {
+            "star_id": "star-dd-sentiment",
+            "status": "completed",
+            "tool_calls": [
+              {
+                "tool": "search_news",
+                "arguments": {
+                  "query": "Airbnb",
+                  "date_range": "30d",
+                  "sources": [
+                    "reuters",
+                    "bloomberg",
+                    "wsj",
+                    "ft"
+                  ]
+                },
+                "result": "[{'title': 'NYC listings drop 80% after short-term rental law enforcement begins', 'source': 'ft', 'published': '2026-02-07', 'summary': \"Coverage of Airbnb's recent developments and market dynamics.\"",
+                "error": null
+              },
+              {
+                "tool": "get_analyst_ratings",
+                "arguments": {
+                  "company": "Airbnb"
+                },
+                "result": "{'company': 'Airbnb', 'consensus_rating': 'buy', 'current_price': 135.5, 'average_price_target': 155.0, 'price_target_range': {'low': 120.0, 'high': 200.0}, 'analyst_count': 42, 'ratings_breakdown': {",
+                "error": null
+              },
+              {
+                "tool": "get_social_sentiment",
+                "arguments": {
+                  "company": "Airbnb",
+                  "platforms": [
+                    "twitter",
+                    "reddit",
+                    "stocktwits"
+                  ],
+                  "date_range": "30d"
+                },
+                "result": "{'company': 'Airbnb', 'overall_sentiment': 0.07, 'sentiment_label': 'neutral', 'mention_count': 42949, 'platform_breakdown': {'twitter': {'sentiment_score': 0.05, 'mention_count': 14085, 'engagement':",
+                "error": null
+              }
+            ]
+          },
+          "regulatory_analyst": {
+            "star_id": "star-dd-regulatory",
+            "status": "completed",
+            "tool_calls": [
+              {
+                "tool": "search_sec_filings",
+                "arguments": {
+                  "company": "Airbnb",
+                  "date_range": "3y",
+                  "filing_type": "8-K"
+                },
+                "result": "{'filings': [{'company': 'Airbnb', 'filing_type': '8-K', 'filing_date': '2026-01-22', 'accession_number': '0001155972-24-177354', 'cik': '1559720', 'form_url': 'https://www.sec.gov/cgi-bin/browse-edga",
+                "error": null
+              },
+              {
+                "tool": "search_regulatory_filings",
+                "arguments": {
+                  "company": "Airbnb",
+                  "date_range": "3y",
+                  "regulatory_body": "all"
+                },
+                "result": "[{'filing_id': 'REG-FTC-79923', 'regulatory_body': 'FTC', 'filing_type': 'Antitrust Review', 'date': '2025-11-19', 'status': 'under_review', 'summary': \"Regulatory filing with FTC regarding Airbnb's o",
+                "error": null
+              },
+              {
+                "tool": "search_legal_cases",
+                "arguments": {
+                  "company": "Airbnb",
+                  "case_type": "all",
+                  "status": "all"
+                },
+                "result": "[{'case_id': 'CASE-AIR-0001', 'case_type': 'regulatory', 'title': 'NYC Short-Term Rental Registration Law', 'status': 'active', 'filed_date': '2023-09-05', 'court': 'NYC Department of Buildings', 'amo",
+                "error": null
+              }
+            ]
+          },
+          "competitive_analyst": {
+            "star_id": "star-dd-competitive",
+            "status": "completed",
+            "tool_calls": [
+              {
+                "tool": "get_market_research",
+                "arguments": {
+                  "industry": "short-term vacation rental market",
+                  "metrics": [
+                    "market_size",
+                    "growth_rate",
+                    "market_share",
+                    "trends"
+                  ]
+                },
+                "result": "{'industry': 'short-term rental', 'query': 'short-term vacation rental market', 'market_size': {'value': 125000000000, 'formatted': '$125.0B', 'year': 2024}, 'growth_rate': {'cagr_5yr': '11.2%', 'proj",
+                "error": null
+              },
+              {
+                "tool": "get_financial_data",
+                "arguments": {
+                  "company": "Airbnb",
+                  "metrics": [
+                    "revenue",
+                    "net_income",
+                    "margins"
+                  ]
+                },
+                "result": "{'data': {'company': 'Airbnb', 'revenue': 10500000000, 'net_income': 2800000000, 'gross_margin': '82.1%', 'operating_margin': '15.8%'}, 'company': 'Airbnb', 'period': 'annual', 'as_of_date': '2026-02-",
+                "error": null
+              },
+              {
+                "tool": "get_financial_data",
+                "arguments": {
+                  "company": "Expedia Group",
+                  "metrics": [
+                    "revenue",
+                    "net_income",
+                    "margins"
+                  ]
+                },
+                "result": "{'data': {'company': 'Expedia Group', 'revenue': 18000000000, 'net_income': 2411409226, 'gross_margin': '54.7%', 'operating_margin': '18.4%'}, 'company': 'Expedia Group', 'period': 'annual', 'as_of_da",
+                "error": null
+              },
+              {
+                "tool": "get_financial_data",
+                "arguments": {
+                  "company": "Booking Holdings",
+                  "metrics": [
+                    "revenue",
+                    "net_income",
+                    "margins"
+                  ]
+                },
+                "result": "{'data': {'company': 'Booking Holdings', 'revenue': 11000000000, 'net_income': 682068893, 'gross_margin': '47.4%', 'operating_margin': '15.5%'}, 'company': 'Booking Holdings', 'period': 'annual', 'as_",
+                "error": null
+              },
+              {
+                "tool": "get_financial_data",
+                "arguments": {
+                  "company": "Airbnb",
+                  "metrics": [
+                    "revenue",
+                    "free_cash_flow"
+                  ]
+                },
+                "result": "{'data': {'company': 'Airbnb', 'revenue': 10500000000, 'free_cash_flow': 3800000000}, 'company': 'Airbnb', 'period': 'annual', 'as_of_date': '2026-02-08'}",
+                "error": null
+              },
+              {
+                "tool": "search_news",
+                "arguments": {
+                  "query": "Airbnb competitive landscape Vrbo Booking.com strategy 2024 2025",
+                  "date_range": "90d"
+                },
+                "result": "[{'title': 'Sector Analysis: Airbnb competitive landscape Vrbo Booking.com strategy 2024 2025 Position', 'source': 'Reuters', 'published': '2026-01-10', 'summary': \"Coverage of Airbnb competitive land",
+                "error": null
+              }
+            ]
+          },
+          "forensic_analyst": {
+            "star_id": "star-dd-forensic",
+            "status": "completed",
+            "tool_calls": []
+          },
+          "regulatory_deep_dive": {
+            "star_id": "star-dd-regulatory-deep",
+            "status": "completed",
+            "tool_calls": [
+              {
+                "tool": "search_news",
+                "arguments": {
+                  "query": "Airbnb regulation privacy data privacy EU DSA short-term rental regulation 2025",
+                  "date_range": "90d",
+                  "sources": [
+                    "reuters",
+                    "bloomberg",
+                    "ft"
+                  ]
+                },
+                "result": "[{'title': 'Sector Analysis: Airbnb regulation privacy data privacy EU DSA short-term rental regulation 2025 Position', 'source': 'reuters', 'published': '2026-01-22', 'summary': \"Coverage of Airbnb r",
+                "error": null
+              },
+              {
+                "tool": "search_regulatory_filings",
+                "arguments": {
+                  "company": "Airbnb",
+                  "regulatory_body": "SEC",
+                  "date_range": "1y"
+                },
+                "result": "[{'filing_id': 'REG-SEC-93444', 'regulatory_body': 'SEC', 'filing_type': '8-K Disclosure', 'date': '2025-08-07', 'status': 'approved', 'summary': \"Regulatory filing with SEC regarding Airbnb's operati",
+                "error": null
+              },
+              {
+                "tool": "search_regulatory_filings",
+                "arguments": {
+                  "company": "Airbnb",
+                  "regulatory_body": "FTC",
+                  "date_range": "1y"
+                },
+                "result": "[{'filing_id': 'REG-FTC-85827', 'regulatory_body': 'FTC', 'filing_type': 'Merger Notification', 'date': '2025-11-12', 'status': 'under_review', 'summary': \"Regulatory filing with FTC regarding Airbnb'",
+                "error": null
+              },
+              {
+                "tool": "search_sec_filings",
+                "arguments": {
+                  "company": "Airbnb",
+                  "date_range": "1y"
+                },
+                "result": "{'filings': [{'company': 'Airbnb', 'filing_type': '10-K', 'filing_date': '2026-01-29', 'accession_number': '0001155972-24-767040', 'cik': '1559720', 'form_url': 'https://www.sec.gov/cgi-bin/browse-edg",
+                "error": null
+              },
+              {
+                "tool": "search_legal_cases",
+                "arguments": {
+                  "company": "Airbnb",
+                  "case_type": "regulatory",
+                  "status": "all"
+                },
+                "result": "[{'case_id': 'CASE-AIR-0001', 'case_type': 'regulatory', 'title': 'NYC Short-Term Rental Registration Law', 'status': 'active', 'filed_date': '2023-09-05', 'court': 'NYC Department of Buildings', 'amo",
+                "error": null
+              }
+            ]
+          },
+          "risk_scorer": {
+            "star_id": "star-dd-risk-scorer",
+            "status": "completed",
+            "tool_calls": []
+          },
+          "final_synthesis": {
+            "star_id": "star-dd-synthesis",
+            "status": "completed",
+            "tool_calls": []
+          }
+        },
+        "benchmark_type": "due_diligence",
+        "approach": "astro_constellation",
+        "scope_violations": []
+      }
+    }
+  }
+}

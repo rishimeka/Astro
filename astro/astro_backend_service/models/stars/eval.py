@@ -16,10 +16,19 @@ if TYPE_CHECKING:
 class EvalStar(AtomicStar):
     """
     Evaluates results against original intent.
+    Can use probes/tools to verify results (e.g., run tests, check outputs).
     Decides: continue to next node OR loop back to PlanningStar.
     """
 
     type: StarType = Field(default=StarType.EVAL, frozen=True)
+
+    # Eval-specific configuration
+    max_tool_iterations: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Maximum iterations for tool calling during evaluation",
+    )
 
     def validate_star(self) -> List[str]:
         """Validate EvalStar configuration."""
@@ -29,7 +38,7 @@ class EvalStar(AtomicStar):
         return errors
 
     async def execute(self, context: "ExecutionContext") -> "EvalDecision":
-        """Evaluate execution results and decide routing.
+        """Evaluate execution results and decide routing, optionally using tools.
 
         Args:
             context: Execution context with upstream outputs.
@@ -41,9 +50,13 @@ class EvalStar(AtomicStar):
 
         from astro_backend_service.llm_utils import get_llm
         from astro_backend_service.models.outputs import EvalDecision, Plan
+        from astro_backend_service.models.stars.tool_support import execute_with_tools
 
         # Get directive
         directive = context.get_directive(self.directive_id)
+
+        # Resolve probes for this star (directive probes + star probes)
+        resolved_probes = self.resolve_probes(directive)
 
         # Get the plan to check success criteria
         plan = context.get_upstream_output(Plan)
@@ -51,9 +64,10 @@ class EvalStar(AtomicStar):
             plan.success_criteria if plan else "Task completed successfully"
         )
 
-        # Collect execution results
+        # Collect execution results from direct upstream only
+        direct_upstream = context.get_direct_upstream_outputs()
         results_parts: List[str] = []
-        for node_id, output in context.node_outputs.items():
+        for node_id, output in direct_upstream.items():
             if hasattr(output, "result"):
                 results_parts.append(f"- {node_id}: {output.result[:500]}")
             elif hasattr(output, "worker_outputs"):
@@ -68,9 +82,18 @@ class EvalStar(AtomicStar):
             "\n".join(results_parts) if results_parts else "No results available"
         )
 
+        # Build tool instructions if probes are available
+        tool_instructions = ""
+        if resolved_probes:
+            tool_instructions = """
+You have access to tools that can help verify the execution results.
+Use these tools to run tests, check outputs, validate data, or perform other verification tasks before making your decision.
+Once you have gathered sufficient verification data, output your final decision as JSON."""
+
         system_prompt = f"""{directive.content}
 
 You are an evaluation agent. Your job is to assess whether the execution results meet the success criteria.
+{tool_instructions}
 
 Respond with JSON in this exact format:
 {{
@@ -100,11 +123,13 @@ Evaluate these results. Should we continue to finalization or loop back for impr
         ]
 
         try:
-            response = llm.invoke(messages)
-            raw_content = (
-                response.content if hasattr(response, "content") else str(response)
+            # Execute with tool support
+            content, tool_calls, iterations = await execute_with_tools(
+                llm=llm,
+                messages=messages,
+                probe_ids=resolved_probes,
+                max_iterations=self.max_tool_iterations,
             )
-            content = raw_content if isinstance(raw_content, str) else str(raw_content)
 
             # Parse JSON
             if "```json" in content:

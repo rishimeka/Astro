@@ -64,6 +64,7 @@ class ConstellationRunner:
 
         self.foundry: Foundry = foundry
         self._loop_count_lock = asyncio.Lock()
+        self._node_save_counter = 0
 
     async def run(
         self,
@@ -331,7 +332,7 @@ class ConstellationRunner:
                         ToolCallRecord(
                             tool_name=tc.tool_name,
                             arguments=tc.arguments,
-                            result=tc.result,
+                            result=tc.result[:500] + "... [truncated]" if tc.result and len(tc.result) > 500 else tc.result,
                             error=tc.error,
                         )
                         for tc in result.tool_calls
@@ -363,6 +364,11 @@ class ConstellationRunner:
                 )
             else:
                 node_output.output = str(result)
+
+            # NOTE: We do NOT truncate the main output here. Fix 2.4 only truncates
+            # tool_calls metadata (line 335) to reduce storage overhead, but the
+            # main output should be preserved for synthesis and final results.
+            # Truncating here broke benchmarks and synthesis quality.
 
             node_output.status = "completed"
             node_output.completed_at = datetime.now(timezone.utc)
@@ -435,7 +441,10 @@ class ConstellationRunner:
             context.current_node_id = None
             context.current_node_name = None
 
-        await self._save_run(run)
+        # Save at checkpoints: every 3rd node, on failures, or HITL pause
+        self._node_save_counter += 1
+        if self._node_save_counter % 3 == 0 or node_output.status == "failed":
+            await self._save_run(run)
 
     async def _execute_star(
         self,
@@ -906,7 +915,7 @@ class ConstellationRunner:
         return last_output
 
     async def _save_run(self, run: Run) -> None:
-        """Persist run to database via Foundry."""
+        """Persist run to database via Foundry using upsert."""
         run_data = run.model_dump()
         # Convert datetime to ISO strings for MongoDB
         if run_data.get("started_at"):
@@ -920,12 +929,7 @@ class ConstellationRunner:
             if node_output.get("completed_at"):
                 node_output["completed_at"] = node_output["completed_at"].isoformat()
 
-        # Check if run exists and update or create
-        existing = await self.foundry.get_run(run.id)
-        if existing:
-            await self.foundry.update_run(run.id, run_data)
-        else:
-            await self.foundry.create_run(run_data)
+        await self.foundry.upsert_run(run_data)
 
     async def _get_run(self, run_id: str) -> Run:
         """Load run from database via Foundry."""

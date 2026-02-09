@@ -16,10 +16,19 @@ if TYPE_CHECKING:
 class PlanningStar(AtomicStar):
     """
     Generates structured execution plan.
-    Single LLM call, validates output matches plan schema.
+    Can use probes/tools to gather context for better planning.
+    Validates output matches plan schema.
     """
 
     type: StarType = Field(default=StarType.PLANNING, frozen=True)
+
+    # Planning-specific configuration
+    max_tool_iterations: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Maximum iterations for tool calling during planning",
+    )
 
     def validate_star(self) -> List[str]:
         """Validate PlanningStar configuration."""
@@ -28,7 +37,7 @@ class PlanningStar(AtomicStar):
         return errors
 
     async def execute(self, context: "ExecutionContext") -> "Plan":
-        """Generate an execution plan.
+        """Generate an execution plan, optionally using tools to gather context.
 
         Args:
             context: Execution context with the original query.
@@ -40,13 +49,26 @@ class PlanningStar(AtomicStar):
 
         from astro_backend_service.llm_utils import get_llm
         from astro_backend_service.models.outputs import Plan, Task
+        from astro_backend_service.models.stars.tool_support import execute_with_tools
 
         # Get directive for system prompt
         directive = context.get_directive(self.directive_id)
 
+        # Resolve probes for this star (directive probes + star probes)
+        resolved_probes = self.resolve_probes(directive)
+
+        # Build tool instructions if probes are available
+        tool_instructions = ""
+        if resolved_probes:
+            tool_instructions = """
+You have access to tools that can help gather context for better planning.
+Use these tools to understand the current state, gather requirements, or fetch relevant information before creating your plan.
+Once you have gathered sufficient context, output your final plan as JSON."""
+
         system_prompt = f"""{directive.content}
 
 You are a planning agent. Given the user's request and context, create a structured execution plan.
+{tool_instructions}
 
 Output your plan as JSON with this structure:
 {{
@@ -90,7 +112,7 @@ Keep the plan focused and actionable. Each task should be completable by a singl
 
         user_message = "\n".join(user_parts)
 
-        # Get LLM and generate plan
+        # Get LLM
         llm = get_llm(temperature=0.3)
 
         messages = [
@@ -99,11 +121,13 @@ Keep the plan focused and actionable. Each task should be completable by a singl
         ]
 
         try:
-            response = llm.invoke(messages)
-            raw_content = (
-                response.content if hasattr(response, "content") else str(response)
+            # Execute with tool support
+            content, tool_calls, iterations = await execute_with_tools(
+                llm=llm,
+                messages=messages,
+                probe_ids=resolved_probes,
+                max_iterations=self.max_tool_iterations,
             )
-            content = raw_content if isinstance(raw_content, str) else str(raw_content)
 
             # Parse JSON response
             # Handle markdown code blocks

@@ -1,6 +1,7 @@
 'use client';
 
 import { ContentViewer } from '@/components/ContentViewer';
+import { ContentEditor } from '@/components/ContentEditor';
 import styles from './DirectiveWizard.module.scss';
 
 export interface Step2Data {
@@ -19,7 +20,7 @@ export default function Step2Content({ data, onChange, errors }: Step2ContentPro
       <h2 className={styles.stepTitle}>Directive Content</h2>
       <p className={styles.stepDescription}>
         Write your prompt template. Use @variable:name syntax for dynamic values, @probe:name for probe references,
-        and @directive:id for directive references.
+        and @directive:id for directive references. Type @ to see autocomplete suggestions.
       </p>
 
       <div className={styles.field}>
@@ -27,10 +28,11 @@ export default function Step2Content({ data, onChange, errors }: Step2ContentPro
           Content
           <span className={styles.fieldRequired}>*</span>
         </label>
-        <textarea
-          className={`textarea ${styles.contentTextarea} ${errors.content ? 'textarea-error' : ''}`}
+        <ContentEditor
           value={data.content}
-          onChange={(e) => onChange({ ...data, content: e.target.value })}
+          onChange={(content) => onChange({ ...data, content })}
+          error={!!errors.content}
+          className={styles.contentTextarea}
           placeholder="You are a helpful assistant that will @variable:task_type the provided code.
 
 Requirements:
@@ -41,7 +43,7 @@ Follow guidelines from @directive:coding-standards."
         />
         {errors.content && <p className={styles.fieldError}>{errors.content}</p>}
         <p className={styles.fieldHint}>
-          Variables will be extracted automatically and configurable in the next step.
+          Variables will be extracted automatically and configurable in the next step. Type @ for autocomplete.
         </p>
       </div>
 

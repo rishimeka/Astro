@@ -715,8 +715,8 @@ class TriggeringAgent:
     def _extract_variable_value(self, message: str, var_name: str) -> str:
         """Extract the variable value from the user's message.
 
-        Uses LLM when available for intelligent extraction, with
-        heuristic fallback.
+        Uses heuristic extraction. When the user directly answers a
+        variable question (e.g. "Acme Corp"), the response is the value.
 
         Args:
             message: The user's message.
@@ -725,13 +725,6 @@ class TriggeringAgent:
         Returns:
             The extracted value.
         """
-        # Try LLM-based extraction if available
-        if self.llm_client is not None:
-            extracted = self._llm_extract_single_value(message, var_name)
-            if extracted:
-                return extracted
-
-        # Fallback: Clean up the message using heuristics
         value = message.strip()
 
         # Remove common prefixes like "it's", "the", "I want", etc.
@@ -753,41 +746,6 @@ class TriggeringAgent:
                 break
 
         return value.strip()
-
-    def _llm_extract_single_value(
-        self, message: str, var_name: str
-    ) -> Optional[str]:
-        """Use LLM to extract a single variable value from message.
-
-        Args:
-            message: The user's message.
-            var_name: The variable name being extracted.
-
-        Returns:
-            The extracted value, or None if extraction failed.
-        """
-        from langchain_core.messages import HumanMessage, SystemMessage
-
-        # Format variable name for display
-        display_name = var_name.replace("_", " ")
-
-        system_prompt = get_prompt(
-            "triggering_agent.md",
-            "value_extractor",
-            display_name=display_name,
-        )
-        user_prompt = f"User's response: {message}"
-
-        try:
-            response = self.llm_client.invoke(
-                [
-                    SystemMessage(content=system_prompt),
-                    HumanMessage(content=user_prompt),
-                ]
-            )
-            return response.content.strip() if hasattr(response, "content") else None
-        except Exception:
-            return None
 
     def _build_original_query(self, conversation: Conversation) -> str:
         """Build the original query from conversation context.
@@ -883,6 +841,26 @@ class TriggeringAgent:
 
         return best_match if best_score >= 1 else None
 
+    def _constellation_has_synthesis_star(self, constellation: Any) -> bool:
+        """Check if a constellation contains a SynthesisStar node.
+
+        Args:
+            constellation: The constellation to check.
+
+        Returns:
+            True if the constellation has a SynthesisStar.
+        """
+        if constellation is None:
+            return False
+
+        from astro_backend_service.models.stars.synthesis import SynthesisStar
+
+        for node in constellation.nodes:
+            star = self.foundry.get_star(node.star_id)
+            if isinstance(star, SynthesisStar):
+                return True
+        return False
+
     async def _invoke_constellation(
         self,
         constellation_id: str,
@@ -916,14 +894,17 @@ class TriggeringAgent:
             )
             logger.info(f"Constellation execution complete: run_id={run.id}, status={run.status}")
 
-            # Apply synthesis if needed
+            # Apply synthesis if needed (skip if constellation already has a SynthesisStar)
             output = run.final_output or ""
             constellation = self.foundry.get_constellation(constellation_id)
 
-            if SynthesisAgent.should_run(self.user_preferences, constellation):
+            has_synthesis_star = self._constellation_has_synthesis_star(constellation)
+            if not has_synthesis_star and SynthesisAgent.should_run(self.user_preferences, constellation):
                 logger.debug("Applying synthesis to output")
                 agent = SynthesisAgent(self.user_preferences, self.llm_client)
                 output = agent.format_output(output)
+            elif has_synthesis_star:
+                logger.debug("Skipping post-run synthesis: constellation already contains a SynthesisStar")
 
             return {
                 "output": output,
@@ -995,13 +976,17 @@ class TriggeringAgent:
             )
             logger.info(f"Generic constellation execution complete: run_id={run.id}, status={run.status}")
 
-            # Apply synthesis if needed
+            # Apply synthesis if needed (skip if constellation already has a SynthesisStar)
             output = run.final_output or ""
 
-            if SynthesisAgent.should_run(self.user_preferences, None):
+            generic_constellation = self.foundry.get_constellation("_generic_constellation")
+            has_synthesis_star = self._constellation_has_synthesis_star(generic_constellation)
+            if not has_synthesis_star and SynthesisAgent.should_run(self.user_preferences, generic_constellation):
                 logger.debug("Applying synthesis to output")
                 agent = SynthesisAgent(self.user_preferences, self.llm_client)
                 output = agent.format_output(output)
+            elif has_synthesis_star:
+                logger.debug("Skipping post-run synthesis: generic constellation already contains a SynthesisStar")
 
             return {
                 "output": output,

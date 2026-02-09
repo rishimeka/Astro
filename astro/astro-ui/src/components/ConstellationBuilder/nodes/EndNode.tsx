@@ -15,7 +15,7 @@ function EndNodeComponent({ data, selected }: EndNodeProps) {
     ...endNodeStyle,
     ...(selected && {
       borderColor: 'var(--accent-primary)',
-      boxShadow: '0 0 0 3px rgba(108, 114, 255, 0.4)',
+      boxShadow: '0 0 0 3px rgba(74, 157, 234, 0.4)',
     }),
   };
 

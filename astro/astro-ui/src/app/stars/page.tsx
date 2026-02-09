@@ -33,7 +33,7 @@ const typeColors: Record<StarType, string> = {
   [StarType.EXECUTION]: '#10B981',
   [StarType.DOCEX]: '#8B5CF6',
   [StarType.EVAL]: '#F59E0B',
-  [StarType.WORKER]: '#6C72FF',
+  [StarType.WORKER]: '#4A9DEA',
   [StarType.SYNTHESIS]: '#EC4899',
 };
 

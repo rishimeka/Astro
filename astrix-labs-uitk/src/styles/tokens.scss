@@ -8,11 +8,11 @@
        COLOR TOKENS
        ======================================== */
 
-    /* Primary Accent - Indigo */
-    --accent-primary: #6C72FF;
-    --accent-primary-hover: #5A60E8;
-    --accent-primary-active: #4A50D8;
-    --accent-primary-subtle: rgba(108, 114, 255, 0.1);
+    /* Primary Accent - Blue */
+    --accent-primary: #4A9DEA;
+    --accent-primary-hover: #3A8DDA;
+    --accent-primary-active: #2A7DCA;
+    --accent-primary-subtle: #4A9DEA1a;
 
     /* Danger Accent - Red */
     --accent-danger: #FF5C5C;
@@ -83,7 +83,7 @@
        ======================================== */
 
     --shadow-card: 0 20px 40px rgba(0, 0, 0, 0.6);
-    --shadow-accent: 0 4px 12px rgba(108, 114, 255, 0.3);
+    --shadow-accent: 0 4px 12px rgba(74, 157, 234, 0.3);
     --backdrop-blur: blur(10px);
 }
 
@@ -108,11 +108,11 @@
    ======================================== */
 
 [data-theme="light"] {
-    /* Primary Accent - Indigo (slightly darker for light bg) */
-    --accent-primary: #5A60E8;
-    --accent-primary-hover: #4A50D8;
-    --accent-primary-active: #3A40C8;
-    --accent-primary-subtle: rgba(90, 96, 232, 0.12);
+    /* Primary Accent - Blue (slightly darker for light bg) */
+    --accent-primary: #3A8DDA;
+    --accent-primary-hover: #2A7DCA;
+    --accent-primary-active: #1A6DBA;
+    --accent-primary-subtle: rgba(58, 141, 218, 0.12);
 
     /* Danger Accent - Red */
     --accent-danger: #DC2626;
@@ -142,7 +142,7 @@
 
     /* Effects */
     --shadow-card: 0 20px 40px rgba(0, 0, 0, 0.08);
-    --shadow-accent: 0 4px 12px rgba(90, 96, 232, 0.25);
+    --shadow-accent: 0 4px 12px rgba(58, 141, 218, 0.25);
 }
 
 [data-theme="light"]::selection {

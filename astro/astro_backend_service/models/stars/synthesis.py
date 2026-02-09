@@ -1,6 +1,6 @@
 """SynthesisStar - aggregates outputs from multiple upstream Stars."""
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from pydantic import Field
 
@@ -15,11 +15,19 @@ if TYPE_CHECKING:
 class SynthesisStar(AtomicStar):
     """
     Aggregates outputs from multiple upstream Stars.
-    Can optionally use probes for output formatting/delivery
+    Can use probes/tools for output formatting and delivery
     (e.g., PDF generation, Slack posting, external storage).
     """
 
     type: StarType = Field(default=StarType.SYNTHESIS, frozen=True)
+
+    # Synthesis-specific configuration
+    max_tool_iterations: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Maximum iterations for tool calling during synthesis",
+    )
 
     def validate_star(self) -> List[str]:
         """Validate SynthesisStar configuration."""
@@ -28,7 +36,7 @@ class SynthesisStar(AtomicStar):
         return errors
 
     async def execute(self, context: "ExecutionContext") -> "SynthesisOutput":
-        """Aggregate and format outputs from upstream stars.
+        """Aggregate and format outputs from upstream stars, optionally using tools.
 
         Args:
             context: Execution context with upstream outputs.
@@ -40,15 +48,28 @@ class SynthesisStar(AtomicStar):
 
         from astro_backend_service.llm_utils import get_llm
         from astro_backend_service.models.outputs import SynthesisOutput
+        from astro_backend_service.models.stars.tool_support import execute_with_tools
 
         # Get directive for formatting instructions
         directive = context.get_directive(self.directive_id)
 
-        # Collect all upstream outputs
+        # Resolve probes for this star (directive probes + star probes)
+        resolved_probes = self.resolve_probes(directive)
+
+        # Collect upstream outputs, filtering out orchestration artifacts
+        # (Plan and EvalDecision are not content to synthesize)
+        # NOTE: Synthesis stars need ALL node outputs (not just direct upstream)
+        # to create comprehensive reports combining all analyst inputs
         sources: List[str] = []
         upstream_content_parts: List[str] = []
 
-        for node_id, output in context.node_outputs.items():
+        # Use all node_outputs for synthesis (special case - needs full context)
+        all_outputs = context.node_outputs
+        for node_id, output in all_outputs.items():
+            # Skip orchestration outputs (Plan has .tasks, EvalDecision has .decision)
+            if hasattr(output, "tasks") or hasattr(output, "decision"):
+                continue
+
             sources.append(node_id)
 
             if hasattr(output, "result"):
@@ -78,10 +99,19 @@ class SynthesisStar(AtomicStar):
 
         upstream_content = "\n\n".join(upstream_content_parts)
 
+        # Build tool instructions if probes are available
+        tool_instructions = ""
+        if resolved_probes:
+            tool_instructions = """
+You have access to tools for formatting and delivering the synthesized output.
+Use these tools to generate PDFs, post to Slack, save to external storage, or perform other delivery tasks.
+Call the appropriate tools after synthesizing the content, then provide a summary of what was done."""
+
         # Build synthesis prompt
         system_prompt = f"""{directive.content}
 
 You are a synthesis agent. Your job is to take the outputs from multiple execution steps and combine them into a coherent, well-formatted final result.
+{tool_instructions}
 
 Guidelines:
 - Combine information logically, eliminating redundancy
@@ -109,11 +139,13 @@ Please synthesize these outputs into a clear, comprehensive final result."""
         ]
 
         try:
-            response = llm.invoke(messages)
-            content = (
-                response.content if hasattr(response, "content") else str(response)
+            # Execute with tool support
+            result, tool_calls, iterations = await execute_with_tools(
+                llm=llm,
+                messages=messages,
+                probe_ids=resolved_probes,
+                max_iterations=self.max_tool_iterations,
             )
-            result = content if isinstance(content, str) else str(content)
 
             # Determine format type from result
             format_type = (
@@ -122,11 +154,24 @@ Please synthesize these outputs into a clear, comprehensive final result."""
                 else "text"
             )
 
+            # Build metadata including tool call info
+            metadata: Dict[str, Any] = {"original_query": context.original_query}
+            if tool_calls:
+                metadata["tool_calls"] = [
+                    {
+                        "tool_name": tc.tool_name,
+                        "result": tc.result,
+                        "error": tc.error,
+                    }
+                    for tc in tool_calls
+                ]
+                metadata["tool_iterations"] = iterations
+
             return SynthesisOutput(
                 formatted_result=result,
                 format_type=format_type,
                 sources=sources,
-                metadata={"original_query": context.original_query},
+                metadata=metadata,
             )
 
         except Exception as e:

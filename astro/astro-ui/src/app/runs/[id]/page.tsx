@@ -5,10 +5,7 @@ import Link from 'next/link';
 import {
   Clock,
   CheckCircle,
-  XCircle,
   AlertCircle,
-  ChevronDown,
-  ChevronRight,
   LayoutGrid,
   List,
 } from 'lucide-react';
@@ -16,7 +13,7 @@ import PageHeader from '@/components/PageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Spinner } from '@/components/Loading';
 import { Markdown } from '@/components/Markdown';
-import { ExecutionCanvas, ConfirmationModal, NodeOutputPanel } from '@/components/Execution';
+import { ExecutionCanvas, ConfirmationModal, NodeOutputPanel, NodeOutputCard } from '@/components/Execution';
 import { useExecutionStream, type NodeExecutionState } from '@/hooks/useExecutionStream';
 import { useStars } from '@/hooks/useStars';
 import { useDirectives } from '@/hooks/useDirectives';
@@ -39,96 +36,6 @@ const NODE_DIMENSIONS = {
 
 interface RunDetailProps {
   params: Promise<{ id: string }>;
-}
-
-function getNodeStatusIcon(status: NodeOutput['status']) {
-  switch (status) {
-    case 'completed':
-      return <CheckCircle size={16} className={styles.statusCompleted} />;
-    case 'failed':
-      return <XCircle size={16} className={styles.statusFailed} />;
-    case 'running':
-      return <Spinner size="sm" />;
-    case 'pending':
-    default:
-      return <Clock size={16} className={styles.statusPending} />;
-  }
-}
-
-function NodeOutputCard({
-  nodeOutput,
-  isExpanded,
-  onToggle,
-  stars,
-}: {
-  nodeOutput: NodeOutput;
-  isExpanded: boolean;
-  onToggle: () => void;
-  stars: StarSummary[];
-}) {
-  const star = stars.find(s => s.id === nodeOutput.star_id);
-
-  return (
-    <div className={`${styles.nodeCard} ${styles[`status-${nodeOutput.status}`]}`}>
-      <button className={styles.nodeHeader} onClick={onToggle}>
-        <div className={styles.nodeHeaderLeft}>
-          {getNodeStatusIcon(nodeOutput.status)}
-          <span className={styles.nodeName}>{star?.name || nodeOutput.star_id}</span>
-          <span className={styles.nodeId}>{nodeOutput.node_id}</span>
-        </div>
-        <div className={styles.nodeHeaderRight}>
-          {nodeOutput.started_at && (
-            <span className={styles.nodeTime}>
-              {formatDateTime(nodeOutput.started_at)}
-            </span>
-          )}
-          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </div>
-      </button>
-
-      {isExpanded && (
-        <div className={styles.nodeBody}>
-          {nodeOutput.output && (
-            <div className={styles.nodeSection}>
-              <h4 className={styles.nodeSectionTitle}>Output</h4>
-              <div className={styles.outputContent}>
-                <Markdown>{nodeOutput.output}</Markdown>
-              </div>
-            </div>
-          )}
-
-          {nodeOutput.error && (
-            <div className={styles.nodeSection}>
-              <h4 className={styles.nodeSectionTitle}>Error</h4>
-              <pre className={styles.errorContent}>{nodeOutput.error}</pre>
-            </div>
-          )}
-
-          {nodeOutput.tool_calls && nodeOutput.tool_calls.length > 0 && (
-            <div className={styles.nodeSection}>
-              <h4 className={styles.nodeSectionTitle}>Tool Calls</h4>
-              <div className={styles.toolCalls}>
-                {nodeOutput.tool_calls.map((call, idx) => (
-                  <div key={idx} className={styles.toolCall}>
-                    <code>{JSON.stringify(call, null, 2)}</code>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className={styles.nodeMeta}>
-            {nodeOutput.started_at && (
-              <span>Started: {formatDateTime(nodeOutput.started_at)}</span>
-            )}
-            {nodeOutput.completed_at && (
-              <span>Completed: {formatDateTime(nodeOutput.completed_at)}</span>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 // Convert constellation to React Flow format with auto-layout
@@ -668,15 +575,18 @@ export default function RunDetailPage({ params }: RunDetailProps) {
                 <p className={styles.emptyText}>No node outputs yet.</p>
               ) : (
                 <div className={styles.nodeList}>
-                  {sortedNodeOutputs.map((nodeOutput) => (
-                    <NodeOutputCard
-                      key={nodeOutput.node_id}
-                      nodeOutput={nodeOutput}
-                      isExpanded={expandedNodes.has(nodeOutput.node_id)}
-                      onToggle={() => toggleNode(nodeOutput.node_id)}
-                      stars={stars}
-                    />
-                  ))}
+                  {sortedNodeOutputs.map((nodeOutput) => {
+                    const star = stars.find(s => s.id === nodeOutput.star_id);
+                    return (
+                      <NodeOutputCard
+                        key={nodeOutput.node_id}
+                        nodeOutput={nodeOutput}
+                        isExpanded={expandedNodes.has(nodeOutput.node_id)}
+                        onToggle={() => toggleNode(nodeOutput.node_id)}
+                        starName={star?.name}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </section>

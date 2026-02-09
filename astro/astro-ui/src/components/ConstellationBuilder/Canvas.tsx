@@ -40,7 +40,7 @@ const defaultEdgeOptions = {
 
 // Connection line style when dragging
 const connectionLineStyle = {
-  stroke: '#6C72FF',
+  stroke: '#4A9DEA',
   strokeWidth: 2,
 };
 
@@ -185,9 +185,9 @@ const CanvasInner = forwardRef<CanvasRef, CanvasProps>(function CanvasInner({
 
   // Get node color for minimap
   const nodeColor = (node: Node) => {
-    if (node.type === 'start') return '#6C72FF';
+    if (node.type === 'start') return '#4A9DEA';
     if (node.type === 'end') return 'rgba(255, 255, 255, 0.3)';
-    return 'rgba(108, 114, 255, 0.5)';
+    return 'rgba(74, 157, 234, 0.5)';
   };
 
   return (

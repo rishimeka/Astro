@@ -67,7 +67,7 @@
   }
 
   &.running {
-    background: rgba(108, 114, 255, 0.15);
+    background: rgba(74, 157, 234, 0.15);
     color: var(--accent-primary);
 
     svg {
@@ -169,7 +169,7 @@
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(108, 114, 255, 0.1);
+    background: rgba(74, 157, 234, 0.1);
     border-color: var(--accent-primary);
   }
 }
@@ -179,9 +179,9 @@
   font-size: 13px;
   color: var(--accent-primary);
   padding: 12px;
-  background: rgba(108, 114, 255, 0.1);
+  background: rgba(74, 157, 234, 0.1);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(108, 114, 255, 0.3);
+  border: 1px solid rgba(74, 157, 234, 0.3);
   line-height: 1.5;
 }
 

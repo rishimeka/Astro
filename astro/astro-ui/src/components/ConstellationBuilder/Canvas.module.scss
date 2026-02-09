@@ -36,7 +36,7 @@
   }
 
   :global(.react-flow__selection) {
-    background: rgba(108, 114, 255, 0.1);
+    background: rgba(74, 157, 234, 0.1);
     border: 1px solid var(--accent-primary);
   }
 }
@@ -98,12 +98,12 @@
 // Pulse animation for running nodes
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(108, 114, 255, 0.4);
+    box-shadow: 0 0 0 0 rgba(74, 157, 234, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(108, 114, 255, 0);
+    box-shadow: 0 0 0 10px rgba(74, 157, 234, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(108, 114, 255, 0);
+    box-shadow: 0 0 0 0 rgba(74, 157, 234, 0);
   }
 }

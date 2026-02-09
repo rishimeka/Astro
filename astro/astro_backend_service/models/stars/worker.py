@@ -1,8 +1,11 @@
 """WorkerStar - generic flexible execution unit."""
 
+import logging
 from typing import TYPE_CHECKING, List
 
 from pydantic import Field
+
+logger = logging.getLogger(__name__)
 
 from astro_backend_service.models.star_types import StarType
 from astro_backend_service.models.stars.base import AtomicStar
@@ -51,9 +54,6 @@ class WorkerStar(AtomicStar):
         # Substitute template variables in the prompt
         for var_name, var_value in context.variables.items():
             system_prompt = system_prompt.replace(
-                f"{{{{${var_name}}}}}", str(var_value)
-            )
-            system_prompt = system_prompt.replace(
                 f"@variable:{var_name}", str(var_value)
             )
 
@@ -66,11 +66,11 @@ class WorkerStar(AtomicStar):
         if context.constellation_purpose:
             user_message_parts.append(f"Overall goal: {context.constellation_purpose}")
 
-        # Include upstream outputs for context
-        upstream_outputs = list(context.node_outputs.values())
-        if upstream_outputs:
+        # Include direct upstream outputs for context (not all prior outputs)
+        direct_upstream = context.get_direct_upstream_outputs()
+        if direct_upstream:
             user_message_parts.append("\nContext from previous steps:")
-            for i, output in enumerate(upstream_outputs):
+            for i, (node_id, output) in enumerate(direct_upstream.items()):
                 if hasattr(output, "result"):
                     user_message_parts.append(f"- Step {i+1}: {output.result[:500]}")
                 elif hasattr(output, "formatted_result"):
@@ -105,14 +105,15 @@ class WorkerStar(AtomicStar):
         tool_calls: List[ToolCall] = []
         iterations = 0
 
-        # Get available probes/tools - ONLY those assigned to this star
+        # Get available probes/tools - combining Directive + Star probes
         from astro_backend_service.probes.registry import ProbeRegistry
 
-        # Filter probes to only those in this star's probe_ids (probe scoping)
-        all_probes = ProbeRegistry.all()
-        if self.probe_ids:
-            # Only include probes that are explicitly allowed for this star
-            available_probes = [p for p in all_probes if p.name in self.probe_ids]
+        # Resolve final probe set: Directive.probe_ids ∪ Star.probe_ids (deduplicated)
+        resolved_probe_ids = self.resolve_probes(directive)
+
+        # Filter probes to only those in the resolved set (probe scoping)
+        if resolved_probe_ids:
+            available_probes = ProbeRegistry.get_many(resolved_probe_ids)
         else:
             # If no probe_ids specified, no tools available (synthesis-only star)
             available_probes = []
@@ -164,10 +165,15 @@ class WorkerStar(AtomicStar):
                             tool_result = None
                             tool_error = None
                             try:
-                                if tool_name in probe_map:
+                                # Check tool result cache
+                                cached = context.get_cached_tool_result(tool_name, tool_args)
+                                if cached is not None:
+                                    tool_result = cached
+                                elif tool_name in probe_map:
                                     tool_result = str(
                                         probe_map[tool_name].invoke(**tool_args)
                                     )
+                                    context.cache_tool_result(tool_name, tool_args, tool_result)
                                 else:
                                     tool_error = f"Tool '{tool_name}' not found"
                             except Exception as e:
@@ -203,6 +209,13 @@ class WorkerStar(AtomicStar):
                         else str(response)
                     )
                     result = content if isinstance(content, str) else str(content)
+
+                    # Debug: Log response metadata to understand truncation
+                    if hasattr(response, "response_metadata"):
+                        finish_reason = response.response_metadata.get("finish_reason", "unknown")
+                        logger.info(f"LLM finish_reason: {finish_reason}, output_length: {len(result)} chars")
+                        if finish_reason == "length":
+                            logger.warning(f"LLM hit max_tokens limit! Output truncated at {len(result)} chars")
 
                     return WorkerOutput(
                         result=result,

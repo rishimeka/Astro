@@ -63,7 +63,7 @@ def find_matching_constellation(
         if match:
             return match
 
-    # Fallback to keyword matching
+    # Fallback to keyword matching (heuristic-only variable extraction)
     for summary in constellation_summaries:
         description_lower = summary.get("description", "").lower()
         name_lower = summary.get("name", "").lower()
@@ -74,7 +74,7 @@ def find_matching_constellation(
                 query,
                 conversation_history,
                 summary.get("required_variables", []),
-                llm_client,
+                llm_client=None,  # Heuristic only - LLM match already attempted
             )
 
             missing = []
