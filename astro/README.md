@@ -106,7 +106,3 @@ npm run build    # Type check via build
 When the backend is running, visit:
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
-
-## Architecture
-
-See `.claude/documents/Architecture for V1.md` for detailed architecture documentation.
