@@ -1,0 +1,64 @@
+/* Switch Styles */
+.switch-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.switch {
+    display: none;
+}
+
+.switch-label {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.switch-label::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #FFF;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s ease;
+}
+
+.switch:checked + .switch-label {
+    background-color: #5A4CFF;
+}
+
+.switch:checked + .switch-label::after {
+    left: 22px;
+}
+
+.switch:focus + .switch-label {
+    outline: 2px solid #5A4CFF;
+    outline-offset: 2px;
+}
+
+.switch-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.switch-disabled + .switch-label {
+    cursor: not-allowed;
+}
+
+.switch-text {
+    font-family: Outfit, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #FFF;
+    user-select: none;
+}

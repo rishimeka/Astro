@@ -1,0 +1,172 @@
+/* ========================================
+   DESIGN TOKENS
+   Single source of truth for visual language
+   ======================================== */
+
+:root {
+    /* ========================================
+       COLOR TOKENS
+       ======================================== */
+
+    /* Primary Accent - Blue */
+    --accent-primary: #4A9DEA;
+    --accent-primary-hover: #3A8DDA;
+    --accent-primary-active: #2A7DCA;
+    --accent-primary-subtle: #4A9DEA1a;
+
+    /* Danger Accent - Red */
+    --accent-danger: #FF5C5C;
+    --accent-danger-hover: #E84A4A;
+    --accent-danger-active: #D83A3A;
+
+    /* Semantic Colors */
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-info: #3B82F6;
+
+    /* Text Hierarchy */
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-accent: var(--accent-primary);
+
+    /* Backgrounds */
+    --bg-primary: #0D1117;
+    --bg-elevated: rgba(20, 24, 30, 0.6);
+    --bg-alert: rgba(10, 10, 10, 0.4);
+    --bg-code: #ffffff0a;
+
+    /* ========================================
+       BORDER TOKENS
+       ======================================== */
+
+    --border-default: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.12);
+    --border-alert: var(--accent-primary);
+    --border-danger: var(--accent-danger);
+
+    /* ========================================
+       SPACING TOKENS
+       ======================================== */
+
+    --space-section-vertical: 1rem;
+    --space-section-horizontal: 2rem;
+    --space-section-gap: 1rem;
+    --space-card-padding: 1.5rem;
+    --space-element-gap: 1rem;
+
+    /* ========================================
+       RADIUS TOKENS
+       ======================================== */
+
+    --radius-sm: 6px;
+    /* System cards, alert cards */
+    --radius-md: 10px;
+    /* Inputs, CTAs, interactive elements */
+
+    /* ========================================
+        TYPOGRAPHY TOKENS
+       ======================================== */
+
+    /* Font Families */
+    --font-display: 'Libre Baskerville', Georgia, serif;
+    --font-body: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+
+    /* Line Heights */
+    --leading-tight: 1.2;
+    --leading-snug: 1.4;
+    --leading-normal: 1.6;
+
+    /* ========================================
+       EFFECTS
+       ======================================== */
+
+    --shadow-card: 0 20px 40px rgba(0, 0, 0, 0.6);
+    --shadow-accent: 0 4px 12px rgba(74, 157, 234, 0.3);
+    --backdrop-blur: blur(10px);
+}
+
+/* ========================================
+   TEXT SELECTION
+   Readable highlight for dark mode
+   ======================================== */
+
+::selection {
+    background: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+::-moz-selection {
+    background: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+/* ========================================
+   LIGHT MODE TOKENS
+   Inverted color scheme for light theme
+   ======================================== */
+
+[data-theme="light"] {
+    /* Primary Accent - Blue (slightly darker for light bg) */
+    --accent-primary: #3A8DDA;
+    --accent-primary-hover: #2A7DCA;
+    --accent-primary-active: #1A6DBA;
+    --accent-primary-subtle: rgba(58, 141, 218, 0.12);
+
+    /* Danger Accent - Red */
+    --accent-danger: #DC2626;
+    --accent-danger-hover: #B91C1C;
+    --accent-danger-active: #991B1B;
+
+    /* Semantic Colors (slightly adjusted for light bg) */
+    --color-success: #059669;
+    --color-warning: #D97706;
+    --color-info: #2563EB;
+
+    /* Text Hierarchy */
+    --text-primary: #0F172A;
+    --text-secondary: rgba(15, 23, 42, 0.7);
+    --text-muted: rgba(15, 23, 42, 0.5);
+    --text-accent: var(--accent-primary);
+
+    /* Backgrounds */
+    --bg-primary: #F8FAFC;
+    --bg-elevated: rgba(255, 255, 255, 0.8);
+    --bg-alert: rgba(241, 245, 249, 0.8);
+    --bg-code: rgba(15, 23, 42, 0.05);
+
+    /* Borders */
+    --border-default: rgba(15, 23, 42, 0.1);
+    --border-strong: rgba(15, 23, 42, 0.15);
+
+    /* Effects */
+    --shadow-card: 0 20px 40px rgba(0, 0, 0, 0.08);
+    --shadow-accent: 0 4px 12px rgba(58, 141, 218, 0.25);
+}
+
+[data-theme="light"]::selection {
+    background: var(--accent-primary);
+    color: #FFFFFF;
+}
+
+[data-theme="light"]::-moz-selection {
+    background: var(--accent-primary);
+    color: #FFFFFF;
+}
+
+/* ========================================
+   MOBILE-SPECIFIC TOKENS
+   Override spacing for mobile devices
+   ======================================== */
+
+@media (max-width: 768px) {
+    :root {
+        /* Reduced spacing for mobile */
+        --space-section-vertical: 0.75rem;
+        --space-section-horizontal: 1rem;
+        --space-section-gap: 1rem;
+        --space-card-padding: 1.25rem;
+        --space-element-gap: 0.75rem;
+    }
+}

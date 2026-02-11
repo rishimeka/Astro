@@ -1,0 +1,47 @@
+.modeToggle {
+  display: inline-flex;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 4px;
+}
+
+.toggleButton {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(.active) {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+
+  &.active {
+    background: var(--accent-primary);
+    color: #ffffff;
+  }
+}
+
+@media (max-width: 768px) {
+  .modeToggle {
+    width: 100%;
+  }
+
+  .toggleButton {
+    flex: 1;
+    padding: 10px 12px;
+  }
+}

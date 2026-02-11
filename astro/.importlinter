@@ -1,0 +1,29 @@
+[importlinter]
+root_package = astro
+
+[importlinter:contract:1]
+name = Interfaces cannot import from anything
+type = forbidden
+source_modules =
+    astro.interfaces
+forbidden_modules =
+    astro.core
+    astro.orchestration
+    astro.launchpad
+
+[importlinter:contract:2]
+name = Core cannot import from orchestration or launchpad
+type = forbidden
+source_modules =
+    astro.core
+forbidden_modules =
+    astro.orchestration
+    astro.launchpad
+
+[importlinter:contract:3]
+name = Orchestration cannot import from launchpad
+type = forbidden
+source_modules =
+    astro.orchestration
+forbidden_modules =
+    astro.launchpad

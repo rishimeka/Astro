@@ -1,0 +1,129 @@
+.wrapper {
+  position: relative;
+}
+
+.content {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-code);
+  padding: var(--space-card-padding);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+.reference {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+
+  &:hover {
+    filter: brightness(1.2);
+  }
+}
+
+.probe {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3B82F6;
+}
+
+.directive {
+  background: rgba(139, 126, 200, 0.15);
+  color: #8B7EC8;
+}
+
+.variable {
+  background: rgba(245, 158, 11, 0.15);
+  color: #F59E0B;
+}
+
+/* Tooltip */
+.tooltip {
+  position: fixed;
+  z-index: 1000;
+  min-width: 200px;
+  max-width: 350px;
+  background: #14181E;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 10px 12px;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.15s ease;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltipHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tooltipType {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tooltipProbe .tooltipType {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3B82F6;
+}
+
+.tooltipDirective .tooltipType {
+  background: rgba(139, 126, 200, 0.2);
+  color: #8B7EC8;
+}
+
+.tooltipVariable .tooltipType {
+  background: rgba(245, 158, 11, 0.2);
+  color: #F59E0B;
+}
+
+.tooltipName {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tooltipDescription {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .content {
+    font-size: 12px;
+    padding: var(--space-element-gap);
+  }
+
+  .tooltip {
+    min-width: 180px;
+    max-width: 280px;
+  }
+}

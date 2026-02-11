@@ -1,0 +1,180 @@
+.container {
+  position: relative;
+  width: 100%;
+}
+
+.textarea {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 250px;
+  resize: vertical;
+  width: 100%;
+}
+
+.dropdown {
+  position: absolute;
+  z-index: 100;
+  min-width: 280px;
+  max-width: 400px;
+  max-height: 240px;
+  background: #14181E;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.suggestionsList {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+}
+
+.suggestionsList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.suggestionsList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.suggestionsList::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+
+.suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.suggestion:hover,
+.suggestion.selected {
+  background: var(--accent-primary-subtle);
+}
+
+.suggestionLabel {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.suggestion.selected .suggestionLabel {
+  color: var(--accent-primary);
+}
+
+.suggestionDescription {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loading {
+  padding: 16px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.noResults {
+  padding: 16px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Syntax highlighting hints in dropdown header */
+.dropdownHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-primary);
+}
+
+.dropdownHeader .typeHint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dropdownHeader .typeHint.probe {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3B82F6;
+}
+
+.dropdownHeader .typeHint.directive {
+  background: rgba(139, 126, 200, 0.15);
+  color: #8B7EC8;
+}
+
+.dropdownHeader .typeHint.variable {
+  background: rgba(245, 158, 11, 0.15);
+  color: #F59E0B;
+}
+
+/* Type suggestions in initial dropdown */
+.typeSuggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.typeSuggestion .typeIcon {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.typeSuggestion .typeIcon.probe {
+  background: #3B82F6;
+}
+
+.typeSuggestion .typeIcon.directive {
+  background: #8B7EC8;
+}
+
+.typeSuggestion .typeIcon.variable {
+  background: #F59E0B;
+}
+
+@media (max-width: 768px) {
+  .textarea {
+    font-size: 12px;
+    min-height: 200px;
+  }
+
+  .dropdown {
+    min-width: 240px;
+    max-width: 300px;
+  }
+
+  .suggestion {
+    padding: 6px 10px;
+  }
+
+  .suggestionLabel {
+    font-size: 12px;
+  }
+
+  .suggestionDescription {
+    font-size: 11px;
+  }
+}

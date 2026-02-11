@@ -1,0 +1,95 @@
+/* Input with Button Container */
+.input-with-button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border: 2px solid #8A8CFE;
+    border-radius: 6px;
+    background-color: rgba(90, 76, 255, 0.05);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.input-with-button:focus-within {
+    border-color: #5A4CFF;
+    background-color: rgba(90, 76, 255, 0.1);
+    box-shadow: 0 0 0 3px rgba(90, 76, 255, 0.2);
+}
+
+.input-with-button:hover {
+    border-color: #5A4CFF;
+}
+
+.input-with-button.input-with-button-error {
+    border-color: #EF4444;
+    background-color: rgba(239, 68, 68, 0.05);
+}
+
+.input-with-button.input-with-button-error:focus-within {
+    border-color: #EF4444;
+    background-color: rgba(239, 68, 68, 0.1);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.input-with-button.input-with-button-disabled {
+    opacity: 0.5;
+}
+
+/* Input Field */
+.input-with-button-input {
+    flex: 1;
+    font-family: JetBrains Mono, monospace;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.6;
+    padding: 10px 12px;
+    border: none;
+    background-color: transparent;
+    color: #FFF;
+    outline: none;
+}
+
+.input-with-button-input::placeholder {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+/* Button Inside Input */
+.input-with-button-btn {
+    border-radius: 0;
+}
+
+/* Override button hover effects */
+.input-with-button .input-with-button-btn {
+    border-color: transparent;
+}
+
+/* Mobile-only responsive styles */
+@media (max-width: 768px) {
+    /* Stack input and button vertically on mobile */
+    .input-with-button {
+        flex-direction: column;
+        align-items: stretch;
+        border-radius: 8px;
+    }
+
+    /* Input takes full width */
+    .input-with-button-input {
+        width: 100%;
+        padding: 14px 16px; /* Larger tap target */
+        font-size: 16px; /* Prevent zoom on iOS */
+        box-sizing: border-box;
+    }
+
+    /* Button takes full width with proper tap target */
+    .input-with-button-btn {
+        width: 100%;
+        min-height: 44px; /* Minimum tap target size */
+        border-radius: 0 0 6px 6px; /* Rounded bottom corners only */
+        margin-top: 0;
+    }
+
+    /* Add separator between input and button */
+    .input-with-button-input {
+        border-bottom: 1px solid rgba(138, 140, 254, 0.3);
+    }
+}

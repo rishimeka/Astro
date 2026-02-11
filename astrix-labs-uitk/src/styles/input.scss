@@ -1,0 +1,45 @@
+/* Input Styles */
+.input {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: var(--leading-normal);
+    width: -webkit-fill-available;
+    padding: 10px 12px;
+    border: 2px solid var(--accent-primary);
+    border-radius: var(--radius-md);
+    background-color: transparent;
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.input::placeholder {
+    color: var(--text-muted);
+}
+
+.input:focus {
+    border-color: var(--accent-primary);
+    background-color: var(--accent-primary-subtle);
+    box-shadow: 0 0 0 3px rgba(74, 157, 234, 0.2);
+}
+
+.input:hover:not(:disabled):not(.input-error) {
+    border-color: var(--accent-primary);
+}
+
+.input.input-error {
+    border-color: var(--accent-danger);
+    background-color: rgba(255, 92, 92, 0.05);
+}
+
+.input.input-error:focus {
+    border-color: var(--accent-danger);
+    background-color: rgba(255, 92, 92, 0.1);
+    box-shadow: 0 0 0 3px rgba(255, 92, 92, 0.2);
+}
+
+.input-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
