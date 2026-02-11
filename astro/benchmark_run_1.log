@@ -1,0 +1,45 @@
+
+🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
+ORCHESTRATION BENCHMARK
+🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
+
+Query: Can you do some company analysis on AirBnB?
+Model: gpt-5-nano
+Including: Zero-Shot, Astro
+
+============================================================
+ZERO-SHOT BENCHMARK
+============================================================
+Query: Can you do some company analysis on AirBnB?
+Model: gpt-5-nano
+Running zero-shot query...
+Completed in 35800ms
+Tokens: 119 input, 4046 output
+Cost: $0.1226
+Traceback (most recent call last):
+  File "/Users/rishimeka/Documents/Code/astrix-labs/astro/scripts/benchmark.py", line 2283, in <module>
+    asyncio.run(main())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 664, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/rishimeka/Documents/Code/astrix-labs/astro/scripts/benchmark.py", line 2216, in main
+    astro_result = await run_astro_constellation(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rishimeka/Documents/Code/astrix-labs/astro/scripts/benchmark.py", line 1367, in run_astro_constellation
+    from astro_backend_service.foundry import Foundry
+  File "/Users/rishimeka/Documents/Code/astrix-labs/astro/astro_backend_service/foundry/__init__.py", line 10, in <module>
+    from astro_backend_service.foundry.foundry import Foundry
+  File "/Users/rishimeka/Documents/Code/astrix-labs/astro/astro_backend_service/foundry/foundry.py", line 14, in <module>
+    from astro_backend_service.probes import ProbeRegistry
+  File "/Users/rishimeka/Documents/Code/astrix-labs/astro/astro_backend_service/probes/__init__.py", line 28, in <module>
+    from astro_backend_service.probes import excel  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rishimeka/Documents/Code/astrix-labs/astro/astro_backend_service/probes/excel.py", line 13, in <module>
+    from openpyxl import Workbook, load_workbook
+ModuleNotFoundError: No module named 'openpyxl'

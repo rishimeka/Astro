@@ -109,8 +109,10 @@ interface SSENodeAwaitingConfirmation {
 // Run start response from API
 interface RunStartResponse {
   run_id: string;
+  constellation_id: string;
+  constellation_name: string;
   status: string;
-  stream_url: string;
+  message: string;
 }
 
 // ============================================================================

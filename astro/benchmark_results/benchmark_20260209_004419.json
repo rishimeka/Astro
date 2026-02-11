@@ -1,0 +1,77 @@
+{
+  "timestamp": "20260209_004419",
+  "query": "Can you do some company analysis on AirBnB?",
+  "results": {
+    "zero_shot": {
+      "name": "zero_shot",
+      "query": "Can you do some company analysis on AirBnB?",
+      "output": "Below is a structured investment research brief on Airbnb, Inc. (Airbnb). It covers a current-day view (using publicly available information up to 2024\u20132025) and presents a balanced view with key drivers, risks, and monitoring points. Please note that exact quarterly figures should be taken from the latest 10-Q/20-F or annual report for precision.\n\nExecutive summary\n- Investment thesis: Airbnb sits at the intersection of secular travel growth and the platform economy, with a scalable model, strong network effects, and meaningful pricing power in a large, growing lodging and experiences market. The long-term thesis remains compelling, though near-term profitability can be sensitive to macro cycles, regulatory developments, and mix shifts between core lodging and experiences.\n- Key positives: dominant brand in the alternative accommodations space, large and expanding global listings, scalable platform economics, ongoing product monetization opportunities (experiences, travel tools, enter...",
+      "output_length": 12072,
+      "duration_ms": 35447.95495807193,
+      "duration_seconds": 35.45,
+      "token_usage": {
+        "input_tokens": 119,
+        "output_tokens": 4876,
+        "total_tokens": 4995,
+        "llm_calls": 1
+      },
+      "cost_usd": 0.1475,
+      "model": "gpt-5-nano",
+      "metadata": {}
+    },
+    "astro": {
+      "name": "astro_constellation",
+      "query": "Can you do some company analysis on AirBnB?",
+      "output": "# Investment Research Report: Airbnb, Inc. (ABNB)\n\n**Date:** 2026-02-09\n\n---\n\n## Executive Summary\nAirbnb sits at an inflection point where resilient travel demand and a scalable monetization engine meet an increasingly complex regulatory backdrop. The bull case hinges on a durable shift toward flexible, demand-driven lodging and the potential for higher take rates and expanded monetization (beyond core bookings) across international markets. Event-driven travel tailwinds (e.g., major events like FIFA World Cup 2026) and continued analyst confidence around profitability create near-term upside catalysts. On the flip side, regulatory crackdowns, host safety costs, and currency headwinds could damp near-term margins and slow growth, especially in high-regulation markets and key international segments.\n\nOverall, the stock offers a balanced risk-reward profile. If regulatory outcomes trend toward navigable licensing regimes, and Airbnb can lift monetization without materially increasing co...",
+      "output_length": 11089,
+      "duration_ms": 214425.4144579172,
+      "duration_seconds": 214.43,
+      "token_usage": {
+        "input_tokens": 293625,
+        "output_tokens": 29346,
+        "total_tokens": 322971,
+        "llm_calls": 10
+      },
+      "cost_usd": 3.8166,
+      "model": "gpt-5-nano",
+      "metadata": {
+        "run_id": "run_f7a213c89395",
+        "constellation_id": "const-001",
+        "status": "completed",
+        "nodes_executed": 6,
+        "node_info": [
+          {
+            "node_id": "planning",
+            "star_id": "star-007",
+            "status": "completed"
+          },
+          {
+            "node_id": "execution",
+            "star_id": "star-008",
+            "status": "completed"
+          },
+          {
+            "node_id": "news_gatherer",
+            "star_id": "star-009",
+            "status": "completed"
+          },
+          {
+            "node_id": "bull_analyst",
+            "star_id": "star-010",
+            "status": "completed"
+          },
+          {
+            "node_id": "bear_analyst",
+            "star_id": "star-011",
+            "status": "completed"
+          },
+          {
+            "node_id": "synthesis",
+            "star_id": "star-012",
+            "status": "completed"
+          }
+        ]
+      }
+    }
+  }
+}

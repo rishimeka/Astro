@@ -100,6 +100,7 @@ async def execute_with_tools(
     probe_ids: List[str],
     max_iterations: int = 5,
     context: Optional[Any] = None,
+    max_tokens: Optional[int] = None,
 ) -> Tuple[str, List["ToolCall"], int]:
     """Execute LLM with optional tool calling support.
 
@@ -129,8 +130,10 @@ async def execute_with_tools(
         # Convert probes to LangChain tools
         langchain_tools, probe_map = create_langchain_tools(available_probes)
 
-        # Bind tools to LLM
+        # Bind tools to LLM, then optionally bind max_tokens
         llm_with_tools = llm.bind_tools(langchain_tools)
+        if max_tokens:
+            llm_with_tools = llm_with_tools.bind(max_tokens=max_tokens)
 
         # Tool calling iteration loop
         while iterations < max_iterations:
@@ -197,7 +200,10 @@ async def execute_with_tools(
     else:
         # No tools available - simple single-shot execution
         iterations = 1
-        response = llm.invoke(messages)
+        if max_tokens:
+            response = llm.invoke(messages, max_tokens=max_tokens)
+        else:
+            response = llm.invoke(messages)
 
         content = response.content if hasattr(response, "content") else str(response)
         result = content if isinstance(content, str) else str(content)

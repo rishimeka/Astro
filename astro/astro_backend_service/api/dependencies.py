@@ -9,7 +9,7 @@ from cachetools import TTLCache
 from astro_backend_service.foundry import Foundry
 from astro_backend_service.executor import ConstellationRunner
 from astro_backend_service.launchpad import TriggeringAgent, Conversation
-from astro_backend_service.llm_utils import get_llm
+from astro_backend_service.llm_utils import get_langchain_llm
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ async def get_triggering_agent() -> TriggeringAgent:
     global _triggering_agent
     if _triggering_agent is None:
         foundry = await get_foundry()
-        llm = get_llm()  # Raises ValueError if OPENAI_API_KEY not set
+        llm = get_langchain_llm()  # Get LangChain chat model for .invoke() support
         _triggering_agent = TriggeringAgent(foundry, llm_client=llm)
         logger.info("TriggeringAgent initialized successfully")
     return _triggering_agent

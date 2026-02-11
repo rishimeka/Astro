@@ -5,11 +5,20 @@ Provides probes for accessing Google News via RSS feeds:
 - Headlines by topic (BUSINESS, TECHNOLOGY, etc.)
 - Headlines by location (city, state, country)
 - Advanced search with keywords, time ranges, and filters
+
+Based on community-discovered Google News RSS API patterns.
+See: https://www.newscatcherapi.com/blog-posts/google-news-rss-search-parameters-the-missing-documentaiton
+
+IMPORTANT LIMITATIONS:
+- All feeds return a maximum of 100 articles per request
+- No official Google documentation exists for these endpoints
+- Rate limiting may apply for excessive requests
+- Article links are Google redirect URLs, not direct source URLs
 """
 
 import asyncio
 from typing import Any, Dict, List, Optional
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlencode
 
 import httpx
 from bs4 import BeautifulSoup
@@ -20,7 +29,7 @@ from astro_backend_service.probes.decorator import probe
 # Google News RSS base URL
 BASE_URL = "https://news.google.com/rss"
 
-# Supported topics
+# Supported standard topics (8 core topics)
 VALID_TOPICS = [
     "WORLD",
     "NATION",
@@ -32,13 +41,40 @@ VALID_TOPICS = [
     "HEALTH",
 ]
 
+# Maximum articles per request (Google News limit)
+MAX_ARTICLES_LIMIT = 100
+
 # Default timeout for HTTP requests (seconds)
 REQUEST_TIMEOUT = 30.0
 
 
 def _build_locale_params(language: str = "en", country: str = "US") -> str:
-    """Build the locale query parameters for Google News RSS."""
-    return f"hl={language}-{country}&gl={country}&ceid={country}:{language}"
+    """Build the locale query parameters for Google News RSS.
+
+    Args:
+        language: Language code (e.g., 'en', 'fr', 'de', 'zh')
+        country: Country code (e.g., 'US', 'GB', 'FR', 'DE', 'JP')
+
+    Returns:
+        Query string with hl (language), gl (country), and ceid (country:language) parameters
+
+    Examples:
+        _build_locale_params("en", "US") → "hl=en-US&gl=US&ceid=US:en"
+        _build_locale_params("fr", "FR") → "hl=fr&gl=FR&ceid=FR:fr"
+        _build_locale_params("zh", "CN") → "hl=zh-CN&gl=CN&ceid=CN:zh"
+
+    Note:
+        For most single-language countries (e.g., France, Germany), the format is simplified.
+        For multi-language countries (e.g., US, GB), hl uses language-country format.
+    """
+    # For multi-language countries, use language-country format for hl
+    # For single-language countries, use just the language code
+    if country in ["US", "GB", "CA", "AU"]:
+        hl = f"{language}-{country}"
+    else:
+        hl = language
+
+    return f"hl={hl}&gl={country}&ceid={country}:{language}"
 
 
 def _parse_rss_items(xml_content: str) -> List[Dict[str, Any]]:
@@ -153,6 +189,10 @@ def fetch_google_news_headlines(
         - count: Number of articles returned
         - feed_url: The RSS feed URL used
     """
+    # Validate max_results
+    if max_results > MAX_ARTICLES_LIMIT:
+        max_results = MAX_ARTICLES_LIMIT
+
     locale_params = _build_locale_params(language, country)
     url = f"{BASE_URL}?{locale_params}"
 
@@ -200,6 +240,10 @@ def fetch_google_news_by_topic(
         - topic: The topic requested
         - feed_url: The RSS feed URL used
     """
+    # Validate max_results
+    if max_results > MAX_ARTICLES_LIMIT:
+        max_results = MAX_ARTICLES_LIMIT
+
     # Validate and normalize topic
     topic_upper = topic.upper()
     if topic_upper not in VALID_TOPICS:
@@ -244,7 +288,8 @@ def fetch_google_news_by_location(
     """Fetch news headlines for a specific geographic location.
 
     Retrieves location-oriented news headlines. Accepts city names,
-    state/region names, or country names.
+    state/region names, or country names. Flexible - abbreviations and
+    full names both work (e.g., 'NY', 'New York', 'NewYork').
 
     Args:
         location: Geographic location (e.g., 'New York', 'California', 'London')
@@ -259,6 +304,10 @@ def fetch_google_news_by_location(
         - location: The location requested
         - feed_url: The RSS feed URL used
     """
+    # Validate max_results
+    if max_results > MAX_ARTICLES_LIMIT:
+        max_results = MAX_ARTICLES_LIMIT
+
     encoded_location = quote_plus(location)
     locale_params = _build_locale_params(language, country)
     url = f"{BASE_URL}/headlines/section/geo/{encoded_location}?{locale_params}"
@@ -294,57 +343,128 @@ def search_google_news(
     before: Optional[str] = None,
     site: Optional[str] = None,
     intitle: Optional[str] = None,
+    allintitle: Optional[str] = None,
+    allintext: Optional[str] = None,
+    inurl: Optional[str] = None,
+    allinurl: Optional[str] = None,
     max_results: int = 100,
 ) -> Dict[str, Any]:
-    """Search Google News with advanced query options.
+    """Search Google News with advanced query options and operators.
 
-    Performs a search query on Google News with support for time filtering,
-    site restrictions, and title matching.
+    Performs a search query on Google News using the full Google search engine syntax
+    for news articles. Supports time filtering, site restrictions, title/text/URL matching,
+    and boolean operators.
 
     Args:
-        query: Search keywords (supports OR, quotes for exact match, -term to exclude)
-        language: Language code (e.g., 'en', 'es'). Default: 'en'
-        country: Country code (e.g., 'US', 'GB'). Default: 'US'
-        when: Relative time filter (e.g., '1h', '12h', '7d', '1m'). Optional.
-        after: Start date in YYYY-MM-DD format. Optional.
-        before: End date in YYYY-MM-DD format. Optional.
-        site: Restrict to specific domain (e.g., 'reuters.com'). Optional.
-        intitle: Require word in article title. Optional.
+        query: Base search keywords. Supports:
+               - AND (default): "Elon Musk" searches for articles with both words
+               - OR: "SpaceX OR Boeing" matches either term
+               - Exact match: '"Goldman Sachs"' matches exact phrase
+               - Exclude: "Apple -fruit" excludes articles mentioning "fruit"
+               - Required: "+tesla" must include the term
+        language: Language code (e.g., 'en', 'es', 'fr', 'de', 'zh'). Default: 'en'
+        country: Country code (e.g., 'US', 'GB', 'FR', 'DE', 'JP'). Default: 'US'
+        when: Relative time filter. Format: {N}h, {N}d, {N}m (hours, days, months)
+              Examples: '1h', '12h', '7d', '30d', '2m'
+              Tested ranges: up to ~101h, standard days, up to ~48m. Optional.
+        after: Start date in YYYY-MM-DD format (e.g., '2024-01-01'). Optional.
+        before: End date in YYYY-MM-DD format (e.g., '2024-01-31'). Optional.
+        site: Restrict to specific domain (e.g., 'reuters.com', 'bloomberg.com'). Optional.
+        intitle: Require word in article title (e.g., 'earnings'). Optional.
+        allintitle: All words must appear in title (e.g., 'Goldman Sachs earnings'). Optional.
+        allintext: All words must appear in article body text. Optional.
+        inurl: Word must appear in article URL (useful for filtering by source). Optional.
+        allinurl: All words must appear in URL. Optional.
         max_results: Maximum number of articles to return (max 100). Default: 100
 
     Returns:
         Dictionary containing:
         - articles: List of article objects with title, link, published, source
         - count: Number of articles returned
-        - query: The search query used
+        - query: The full search query used (with all operators)
         - feed_url: The RSS feed URL used
 
-    Examples:
-        Search for Tesla news from last hour:
-            search_google_news("Tesla", when="1h")
+    Query Operator Examples:
+        Basic search:
+            search_google_news("artificial intelligence")
 
-        Search Reuters for Boeing news:
-            search_google_news("Boeing", site="reuters.com")
-
-        Search for SpaceX or Blue Origin:
-            search_google_news("SpaceX OR Blue Origin")
-
-        Search with date range:
+        Time-based searches:
+            search_google_news("AAPL", when="1h")  # Last hour
+            search_google_news("Tesla", when="7d")  # Last 7 days
             search_google_news("earnings", after="2024-01-01", before="2024-01-31")
-    """
-    # Build the query string with advanced operators
-    query_parts = [query]
 
+        Boolean operators:
+            search_google_news("SpaceX OR Blue Origin")  # Either company
+            search_google_news("Apple -fruit")  # Exclude fruit references
+            search_google_news('"Federal Reserve"')  # Exact phrase
+
+        Site/source filtering:
+            search_google_news("AI", site="reuters.com")  # Reuters only
+            search_google_news("technology", inurl="bloomberg.com")  # Bloomberg articles
+
+        Title/text requirements:
+            search_google_news("TSLA", intitle="earnings")  # "earnings" in title
+            search_google_news("", allintitle="Goldman Sachs quarterly report")
+            search_google_news("finance", allintext="interest rate hike")
+
+        Combined operators:
+            search_google_news(
+                "Tesla",
+                when="7d",
+                site="reuters.com",
+                intitle="earnings"
+            )
+            # Articles from Reuters in last 7 days with "Tesla" and "earnings" in title
+
+        Advanced multi-source:
+            search_google_news(
+                '"earnings report"',
+                inurl="reuters.com OR bloomberg.com",
+                when="12h"
+            )
+            # Earnings reports from Reuters or Bloomberg in last 12 hours
+
+    Note:
+        - Maximum 100 articles per request (Google News limit)
+        - Article links are Google redirect URLs, not direct source URLs
+        - when: parameter ranges based on community testing (may vary)
+        - Excessive requests may trigger rate limiting
+    """
+    # Validate max_results
+    if max_results > MAX_ARTICLES_LIMIT:
+        max_results = MAX_ARTICLES_LIMIT
+
+    # Build the query string with advanced operators
+    query_parts = []
+
+    # Add base query if provided
+    if query:
+        query_parts.append(query)
+
+    # Add advanced operators
+    if allintitle:
+        query_parts.append(f"allintitle:{allintitle}")
+    elif intitle:
+        query_parts.append(f"intitle:{intitle}")
+
+    if allintext:
+        query_parts.append(f"allintext:{allintext}")
+
+    if allinurl:
+        query_parts.append(f"allinurl:{allinurl}")
+    elif inurl:
+        query_parts.append(f"inurl:{inurl}")
+    elif site:
+        # site: is a convenience alias for inurl:
+        query_parts.append(f"inurl:{site}")
+
+    # Add time filters
     if when:
         query_parts.append(f"when:{when}")
     if after:
         query_parts.append(f"after:{after}")
     if before:
         query_parts.append(f"before:{before}")
-    if site:
-        query_parts.append(f"site:{site}")
-    if intitle:
-        query_parts.append(f"intitle:{intitle}")
 
     full_query = " ".join(query_parts)
     encoded_query = quote_plus(full_query)
@@ -403,6 +523,10 @@ def search_google_news_by_company(
         - query: The search query used
         - feed_url: The RSS feed URL used
     """
+    # Validate max_results
+    if max_results > MAX_ARTICLES_LIMIT:
+        max_results = MAX_ARTICLES_LIMIT
+
     # Build query with company name and optional ticker
     if ticker:
         query = f'"{company_name}" OR {ticker}'
@@ -439,6 +563,172 @@ def search_google_news_by_company(
             "company": company_name,
             "ticker": ticker,
             "query": full_query,
+            "feed_url": url,
+            "error": str(e),
+        }
+
+
+@probe
+def fetch_google_news_by_topic_hash(
+    topic_hash: str,
+    language: str = "en",
+    country: str = "US",
+    max_results: int = 100,
+) -> Dict[str, Any]:
+    """Fetch news headlines using a custom Google News topic hash.
+
+    Google internally represents topics as Base64-encoded hash strings. These can be
+    discovered by visiting topic pages in the Google News UI and extracting the hash
+    from the redirected URL.
+
+    This allows access to specialized topics beyond the 8 standard categories
+    (e.g., "US Elections", "Artificial Intelligence", "Climate Change").
+
+    Args:
+        topic_hash: Base64-encoded topic hash from Google News
+                   Example: "CAAqKggKIiRDQkFTRlFvSUwyMHZNRGx6TVdZU0JXVnVMVlZUR2dKVlV5Z0FQAQ"
+        language: Language code (e.g., 'en', 'es'). Default: 'en'
+        country: Country code (e.g., 'US', 'GB'). Default: 'US'
+        max_results: Maximum number of articles to return (max 100). Default: 100
+
+    Returns:
+        Dictionary containing:
+        - articles: List of article objects with title, link, published, source
+        - count: Number of articles returned
+        - topic_hash: The topic hash used
+        - feed_url: The RSS feed URL used
+
+    How to find topic hashes:
+        1. Go to https://news.google.com/
+        2. Search for or navigate to a topic (e.g., "Artificial Intelligence")
+        3. The URL will redirect to a format like:
+           https://news.google.com/topics/CAAqKggKI...?hl=en-US&gl=US&ceid=US:en
+        4. Copy the hash string between /topics/ and the ?
+        5. Use it with this probe
+
+    Examples:
+        # Fetch AI news using discovered topic hash
+        fetch_google_news_by_topic_hash(
+            topic_hash="CAAqKggKIiRDQkFTRlFvSUwyMHZNRGx6TVdZU0JXVnVMVlZUR2dKVlV5Z0FQAQ"
+        )
+    """
+    # Validate max_results
+    if max_results > MAX_ARTICLES_LIMIT:
+        max_results = MAX_ARTICLES_LIMIT
+
+    locale_params = _build_locale_params(language, country)
+    url = f"{BASE_URL}/topics/{topic_hash}?{locale_params}"
+
+    try:
+        xml_content = _fetch_rss(url)
+        articles = _parse_rss_items(xml_content)
+        articles = articles[:max_results]
+
+        return {
+            "articles": articles,
+            "count": len(articles),
+            "topic_hash": topic_hash,
+            "feed_url": url,
+        }
+    except httpx.HTTPError as e:
+        return {
+            "articles": [],
+            "count": 0,
+            "topic_hash": topic_hash,
+            "feed_url": url,
+            "error": str(e),
+        }
+
+
+@probe
+def search_google_news_multi_source(
+    query: str,
+    sources: List[str],
+    language: str = "en",
+    country: str = "US",
+    when: Optional[str] = None,
+    max_results: int = 100,
+) -> Dict[str, Any]:
+    """Search Google News across multiple specific news sources.
+
+    Convenience probe for searching across multiple trusted sources simultaneously.
+    Useful for financial news aggregation, fact-checking, or multi-perspective analysis.
+
+    Args:
+        query: Search keywords
+        sources: List of domain names to search (e.g., ['reuters.com', 'bloomberg.com'])
+        language: Language code (e.g., 'en'). Default: 'en'
+        country: Country code (e.g., 'US'). Default: 'US'
+        when: Relative time filter (e.g., '1h', '7d'). Optional.
+        max_results: Maximum number of articles to return (max 100). Default: 100
+
+    Returns:
+        Dictionary containing:
+        - articles: List of article objects with title, link, published, source
+        - count: Number of articles returned
+        - query: The search query used
+        - sources: List of sources searched
+        - feed_url: The RSS feed URL used
+
+    Examples:
+        # Search for AI news from Reuters and Bloomberg
+        search_google_news_multi_source(
+            query="artificial intelligence",
+            sources=["reuters.com", "bloomberg.com"],
+            when="7d"
+        )
+
+        # Earnings reports from financial news sources
+        search_google_news_multi_source(
+            query='"earnings report"',
+            sources=["reuters.com", "bloomberg.com", "wsj.com", "ft.com"],
+            when="1d"
+        )
+
+        # Tech news from tech-focused publications
+        search_google_news_multi_source(
+            query="Apple",
+            sources=["techcrunch.com", "theverge.com", "arstechnica.com"],
+            when="12h"
+        )
+    """
+    # Validate max_results
+    if max_results > MAX_ARTICLES_LIMIT:
+        max_results = MAX_ARTICLES_LIMIT
+
+    # Build OR query for multiple sources using inurl:
+    source_query = " OR ".join([f"inurl:{source}" for source in sources])
+
+    # Combine with main query
+    query_parts = [query, f"({source_query})"]
+
+    if when:
+        query_parts.append(f"when:{when}")
+
+    full_query = " ".join(query_parts)
+    encoded_query = quote_plus(full_query)
+
+    locale_params = _build_locale_params(language, country)
+    url = f"{BASE_URL}/search?q={encoded_query}&{locale_params}"
+
+    try:
+        xml_content = _fetch_rss(url)
+        articles = _parse_rss_items(xml_content)
+        articles = articles[:max_results]
+
+        return {
+            "articles": articles,
+            "count": len(articles),
+            "query": full_query,
+            "sources": sources,
+            "feed_url": url,
+        }
+    except httpx.HTTPError as e:
+        return {
+            "articles": [],
+            "count": 0,
+            "query": full_query,
+            "sources": sources,
             "feed_url": url,
             "error": str(e),
         }

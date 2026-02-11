@@ -207,7 +207,14 @@ async def run_constellation(
     foundry: Foundry = Depends(get_foundry),
     runner: ConstellationRunner = Depends(get_runner),
 ):
-    """Execute a constellation with SSE streaming."""
+    """Execute a constellation in the background and return run ID immediately.
+
+    This endpoint starts the constellation execution and returns the run ID right away,
+    allowing other requests to be processed concurrently. Use GET /runs/{run_id}/stream
+    to monitor the execution progress via SSE.
+    """
+    from astro_backend_service.executor.runner import generate_run_id
+
     logger.info(f"Run request for constellation: {id}")
     # Verify constellation exists
     constellation = foundry.get_constellation(id)
@@ -215,112 +222,33 @@ async def run_constellation(
         logger.debug(f"Constellation not found for run: {id}")
         raise HTTPException(status_code=404, detail=f"Constellation '{id}' not found")
 
-    async def event_generator():
-        """Generate SSE events during execution."""
-        queue: asyncio.Queue[Dict[str, Any] | None] = asyncio.Queue()
+    # Generate run ID upfront
+    run_id = generate_run_id()
 
-        async def execute():
-            """Execute constellation and emit events."""
-            try:
-                logger.debug(f"Starting execution of constellation: {id}")
-                # Emit run started
-                await queue.put(
-                    {
-                        "event": "run_started",
-                        "data": {"run_id": "pending", "status": "running"},
-                    }
-                )
+    # Start execution in background task - do NOT await
+    async def execute_in_background():
+        """Execute constellation in the background."""
+        try:
+            logger.debug(f"Starting background execution of constellation: {id}, run_id: {run_id}")
+            await runner.run(
+                constellation_id=id,
+                variables=request.variables,
+                original_query=request.variables.get("_query", ""),
+                run_id=run_id,
+            )
+            logger.info(f"Background execution completed: run_id={run_id}")
+        except Exception as e:
+            logger.error(f"Error in background execution for constellation {id}: {e}", exc_info=True)
 
-                # Run the constellation
-                run = await runner.run(
-                    constellation_id=id,
-                    variables=request.variables,
-                    original_query=request.variables.get("_query", ""),
-                )
-                logger.info(f"Constellation {id} execution completed: run_id={run.id}, status={run.status}")
+    # Start the task but don't wait for it
+    asyncio.create_task(execute_in_background())
 
-                # Emit node events
-                for node_id, node_output in run.node_outputs.items():
-                    if node_output.status == "completed":
-                        await queue.put(
-                            {
-                                "event": "node_completed",
-                                "data": {
-                                    "node_id": node_id,
-                                    "status": "completed",
-                                    "output": node_output.output,
-                                },
-                            }
-                        )
-                    elif node_output.status == "failed":
-                        await queue.put(
-                            {
-                                "event": "node_failed",
-                                "data": {
-                                    "node_id": node_id,
-                                    "status": "failed",
-                                    "error": node_output.error,
-                                },
-                            }
-                        )
-
-                # Emit final event based on status
-                if run.status == "completed":
-                    await queue.put(
-                        {
-                            "event": "run_completed",
-                            "data": {
-                                "run_id": run.id,
-                                "status": "completed",
-                                "final_output": run.final_output,
-                            },
-                        }
-                    )
-                elif run.status == "awaiting_confirmation":
-                    await queue.put(
-                        {
-                            "event": "awaiting_confirmation",
-                            "data": {
-                                "run_id": run.id,
-                                "node_id": run.awaiting_node_id,
-                                "prompt": run.awaiting_prompt,
-                            },
-                        }
-                    )
-                elif run.status == "failed":
-                    await queue.put(
-                        {
-                            "event": "run_failed",
-                            "data": {
-                                "run_id": run.id,
-                                "status": "failed",
-                                "error": run.error,
-                            },
-                        }
-                    )
-
-            except Exception as e:
-                logger.error(f"Error executing constellation {id}: {e}", exc_info=True)
-                await queue.put(
-                    {
-                        "event": "run_failed",
-                        "data": {"error": str(e)},
-                    }
-                )
-            finally:
-                await queue.put(None)  # Signal end
-
-        # Start execution in background
-        asyncio.create_task(execute())
-
-        # Stream events
-        while True:
-            event = await queue.get()
-            if event is None:
-                break
-            yield {
-                "event": event["event"],
-                "data": json.dumps(event["data"]),
-            }
-
-    return EventSourceResponse(event_generator())
+    # Return immediately with the run ID
+    # The client should use /runs/{run_id}/stream to monitor progress
+    return {
+        "run_id": run_id,
+        "constellation_id": id,
+        "constellation_name": constellation.name,
+        "status": "started",
+        "message": f"Execution started in background. Use GET /runs/{run_id}/stream to monitor progress.",
+    }

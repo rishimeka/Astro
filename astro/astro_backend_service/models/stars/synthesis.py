@@ -46,7 +46,7 @@ class SynthesisStar(AtomicStar):
         """
         from langchain_core.messages import HumanMessage, SystemMessage
 
-        from astro_backend_service.llm_utils import get_llm
+        from astro_backend_service.llm_utils import get_langchain_llm
         from astro_backend_service.models.outputs import SynthesisOutput
         from astro_backend_service.models.stars.tool_support import execute_with_tools
 
@@ -64,6 +64,9 @@ class SynthesisStar(AtomicStar):
         upstream_content_parts: List[str] = []
 
         # Use all node_outputs for synthesis (special case - needs full context)
+        # Truncate each output to avoid bloated context (configurable, default 3000 chars)
+        max_upstream_length = self.config.get("max_upstream_length", 3000)
+
         all_outputs = context.node_outputs
         for node_id, output in all_outputs.items():
             # Skip orchestration outputs (Plan has .tasks, EvalDecision has .decision)
@@ -73,28 +76,38 @@ class SynthesisStar(AtomicStar):
             sources.append(node_id)
 
             if hasattr(output, "result"):
+                content = output.result[:max_upstream_length]
+                truncated = "..." if len(output.result) > max_upstream_length else ""
                 upstream_content_parts.append(
-                    f"## Output from {node_id}\n{output.result}"
+                    f"## Output from {node_id}\n{content}{truncated}"
                 )
             elif hasattr(output, "formatted_result"):
+                content = output.formatted_result[:max_upstream_length]
+                truncated = "..." if len(output.formatted_result) > max_upstream_length else ""
                 upstream_content_parts.append(
-                    f"## Output from {node_id}\n{output.formatted_result}"
+                    f"## Output from {node_id}\n{content}{truncated}"
                 )
             elif hasattr(output, "worker_outputs"):
                 # ExecutionResult
                 for i, wo in enumerate(output.worker_outputs):
                     if hasattr(wo, "result"):
+                        content = wo.result[:max_upstream_length]
+                        truncated = "..." if len(wo.result) > max_upstream_length else ""
                         upstream_content_parts.append(
-                            f"## Worker {i+1} output\n{wo.result}"
+                            f"## Worker {i+1} output\n{content}{truncated}"
                         )
             elif isinstance(output, dict):
                 if "output" in output:
+                    content = str(output['output'])[:max_upstream_length]
+                    truncated = "..." if len(str(output['output'])) > max_upstream_length else ""
                     upstream_content_parts.append(
-                        f"## Output from {node_id}\n{output['output']}"
+                        f"## Output from {node_id}\n{content}{truncated}"
                     )
                 elif "result" in output:
+                    content = str(output['result'])[:max_upstream_length]
+                    truncated = "..." if len(str(output['result'])) > max_upstream_length else ""
                     upstream_content_parts.append(
-                        f"## Output from {node_id}\n{output['result']}"
+                        f"## Output from {node_id}\n{content}{truncated}"
                     )
 
         upstream_content = "\n\n".join(upstream_content_parts)
@@ -130,8 +143,9 @@ Here are the outputs from the execution steps that need to be synthesized:
 
 Please synthesize these outputs into a clear, comprehensive final result."""
 
-        # Get LLM and synthesize
-        llm = get_llm(temperature=0.3)
+        # Get LangChain LLM for tool calling support - use temperature from config
+        temperature = self.config.get("temperature", 0.3)
+        llm = get_langchain_llm(temperature=temperature)
 
         messages = [
             SystemMessage(content=system_prompt),
@@ -139,12 +153,14 @@ Please synthesize these outputs into a clear, comprehensive final result."""
         ]
 
         try:
-            # Execute with tool support
+            # Execute with tool support (and optional max_tokens from config)
+            max_tokens = self.config.get("max_tokens")
             result, tool_calls, iterations = await execute_with_tools(
                 llm=llm,
                 messages=messages,
                 probe_ids=resolved_probes,
                 max_iterations=self.max_tool_iterations,
+                max_tokens=max_tokens,
             )
 
             # Determine format type from result

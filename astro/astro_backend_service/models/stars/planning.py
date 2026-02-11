@@ -47,7 +47,7 @@ class PlanningStar(AtomicStar):
         """
         from langchain_core.messages import HumanMessage, SystemMessage
 
-        from astro_backend_service.llm_utils import get_llm
+        from astro_backend_service.llm_utils import get_langchain_llm
         from astro_backend_service.models.outputs import Plan, Task
         from astro_backend_service.models.stars.tool_support import execute_with_tools
 
@@ -112,8 +112,9 @@ Keep the plan focused and actionable. Each task should be completable by a singl
 
         user_message = "\n".join(user_parts)
 
-        # Get LLM
-        llm = get_llm(temperature=0.3)
+        # Get LangChain LLM for tool calling support - use temperature from config
+        temperature = self.config.get("temperature", 0.3)
+        llm = get_langchain_llm(temperature=temperature)
 
         messages = [
             SystemMessage(content=system_prompt),
@@ -121,12 +122,14 @@ Keep the plan focused and actionable. Each task should be completable by a singl
         ]
 
         try:
-            # Execute with tool support
+            # Execute with tool support (and optional max_tokens from config)
+            max_tokens = self.config.get("max_tokens")
             content, tool_calls, iterations = await execute_with_tools(
                 llm=llm,
                 messages=messages,
                 probe_ids=resolved_probes,
                 max_iterations=self.max_tool_iterations,
+                max_tokens=max_tokens,
             )
 
             # Parse JSON response

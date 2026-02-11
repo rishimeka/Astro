@@ -24,7 +24,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Astrix Labs",
+  title: "Astro",
   description: "Intelligence meets architecture",
 };
 

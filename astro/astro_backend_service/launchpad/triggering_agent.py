@@ -439,7 +439,9 @@ class TriggeringAgent:
         from langchain_core.messages import AIMessage, BaseMessage
 
         history_messages: List[BaseMessage] = []
-        for msg in conversation.messages[-6:]:  # Last 6 messages for context
+        # Get last 6 messages, but exclude the current message (just added at line 118)
+        # to avoid duplication when we add it separately below
+        for msg in conversation.messages[-7:-1]:  # Skip the last message (current one)
             if msg.role == "user":
                 history_messages.append(HumanMessage(content=msg.content))
             elif msg.role == "assistant":
@@ -465,7 +467,9 @@ class TriggeringAgent:
         try:
             response = self.llm_client.invoke(messages)
             return response.content
-        except Exception:
+        except Exception as e:
+            # Log the error for debugging
+            logger.error(f"Error in _generate_direct_answer: {e}", exc_info=True)
             # Fallback on error
             if is_rejection:
                 return "No problem! What would you like help with instead? I can also answer general questions."

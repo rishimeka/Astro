@@ -42,7 +42,7 @@ class WorkerStar(AtomicStar):
         """
         from langchain_core.messages import HumanMessage, SystemMessage
 
-        from astro_backend_service.llm_utils import get_llm
+        from astro_backend_service.llm_utils import get_langchain_llm, get_llm
         from astro_backend_service.models.outputs import ToolCall, WorkerOutput
 
         # Get the directive for this star
@@ -94,8 +94,8 @@ class WorkerStar(AtomicStar):
             else "Please complete the task."
         )
 
-        # Get LLM and make the call
-        llm = get_llm(temperature=0.7)
+        # Use temperature from config if specified, otherwise default to 0.7
+        temperature = self.config.get("temperature", 0.7)
 
         messages = [
             SystemMessage(content=system_prompt),
@@ -120,6 +120,9 @@ class WorkerStar(AtomicStar):
 
         # If we have tools, bind them to the LLM for tool calling
         if available_probes:
+            # Get LangChain chat model for tool calling support
+            llm = get_langchain_llm(temperature=temperature)
+
             # Convert probes to LangChain tools
             langchain_tools = []
             probe_map = {}  # name -> probe for lookup
@@ -138,8 +141,11 @@ class WorkerStar(AtomicStar):
                 langchain_tools.append(tool)
                 probe_map[probe.name] = probe
 
-            # Bind tools to LLM
+            # Bind tools to LLM, then optionally bind max_tokens
             llm_with_tools = llm.bind_tools(langchain_tools)
+            max_tokens = self.config.get("max_tokens")
+            if max_tokens:
+                llm_with_tools = llm_with_tools.bind(max_tokens=max_tokens)
 
             try:
                 # Iteration loop with tool calling
@@ -241,8 +247,16 @@ class WorkerStar(AtomicStar):
                 )
         else:
             # No tools available - simple single-shot execution
+            # Get LangChain chat model for consistent message handling
+            llm = get_langchain_llm(temperature=temperature)
+
             try:
-                response = llm.invoke(messages)
+                # Apply max_tokens if specified
+                max_tokens = self.config.get("max_tokens")
+                if max_tokens:
+                    response = llm.invoke(messages, max_tokens=max_tokens)
+                else:
+                    response = llm.invoke(messages)
                 iterations = 1
 
                 content = (

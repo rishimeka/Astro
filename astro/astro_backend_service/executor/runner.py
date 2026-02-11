@@ -72,6 +72,7 @@ class ConstellationRunner:
         variables: Dict[str, Any],
         original_query: str = "",
         stream: Optional[ExecutionStream] = None,
+        run_id: Optional[str] = None,
     ) -> Run:
         """Execute a constellation.
 
@@ -80,6 +81,7 @@ class ConstellationRunner:
             variables: Filled template variables.
             original_query: Original user query.
             stream: Optional stream for real-time event emission.
+            run_id: Optional pre-generated run ID (if None, generates a new one).
 
         Returns:
             Run object with status and outputs.
@@ -103,7 +105,7 @@ class ConstellationRunner:
 
         # Create run record
         run = Run(
-            id=generate_run_id(),
+            id=run_id or generate_run_id(),
             constellation_id=constellation_id,
             constellation_name=constellation.name,
             status="running",
