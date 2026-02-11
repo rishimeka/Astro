@@ -9,13 +9,12 @@ echo "🚀 Starting Astro V2 API Server..."
 cd /Users/rishimeka/Documents/Code/astrix-labs/astro
 source .venv/bin/activate
 
-# Install packages in editable mode (only if not already installed)
-echo "📦 Installing packages in editable mode..."
+# Install packages in editable mode
+echo "📦 Ensuring packages are installed in editable mode..."
 pip install -q -e ./astro
-pip install -q -e ./astro-api
 pip install -q -e ./astro-mongodb
+pip install -q -e ./astro-api
 
 # Start the API server
 echo "✅ Packages installed. Starting server on http://localhost:8000"
-cd astro-api
-python -m uvicorn astro_api.main:app --port 8000
+python -m uvicorn astro_api.main:app --port 8000 --reload
