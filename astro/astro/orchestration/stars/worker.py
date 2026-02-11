@@ -1,7 +1,7 @@
 """WorkerStar - generic flexible execution unit."""
 
 import logging
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from pydantic import Field
 
@@ -11,8 +11,8 @@ from astro.orchestration.models.star_types import StarType
 from astro.orchestration.stars.base import AtomicStar
 
 if TYPE_CHECKING:
-    from astro.orchestration.context import ConstellationContext
     from astro.core.models.outputs import WorkerOutput
+    from astro.orchestration.context import ConstellationContext
 
 
 class WorkerStar(AtomicStar):
@@ -41,6 +41,7 @@ class WorkerStar(AtomicStar):
             WorkerOutput with the result.
         """
         from langchain_core.messages import HumanMessage, SystemMessage
+
         from astro.core.llm.utils import get_langchain_llm
         from astro.core.models.outputs import ToolCall, WorkerOutput
 
@@ -63,9 +64,7 @@ class WorkerStar(AtomicStar):
             user_message_parts.append(f"User's request: {context.original_query}")
 
         if context.constellation_purpose:
-            user_message_parts.append(
-                f"Overall goal: {context.constellation_purpose}"
-            )
+            user_message_parts.append(f"Overall goal: {context.constellation_purpose}")
 
         # Include direct upstream outputs for context (not all prior outputs)
         direct_upstream = context.get_direct_upstream_outputs()
@@ -103,7 +102,7 @@ class WorkerStar(AtomicStar):
             HumanMessage(content=user_message),
         ]
 
-        tool_calls: List[ToolCall] = []
+        tool_calls: list[ToolCall] = []
         iterations = 0
 
         # Get available probes/tools - combining Directive + Star probes

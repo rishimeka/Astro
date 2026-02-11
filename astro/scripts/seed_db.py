@@ -14,24 +14,23 @@ import os
 
 from astro_backend_service.foundry.persistence import FoundryPersistence
 from astro_backend_service.models import (
-    Directive,
-    TemplateVariable,
     Constellation,
-    StartNode,
-    EndNode,
-    StarNode,
+    Directive,
     Edge,
+    EndNode,
     Position,
+    StarNode,
+    StartNode,
+    TemplateVariable,
 )
 from astro_backend_service.models.stars import (
-    WorkerStar,
-    PlanningStar,
-    EvalStar,
-    SynthesisStar,
-    ExecutionStar,
     DocExStar,
+    EvalStar,
+    ExecutionStar,
+    PlanningStar,
+    SynthesisStar,
+    WorkerStar,
 )
-
 
 # MongoDB configuration
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")

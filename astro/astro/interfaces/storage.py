@@ -5,7 +5,10 @@ Layer 1 only needs directive storage. Stars, Constellations, and Runs
 are Layer 2 concepts and belong in orchestration_storage.py.
 """
 
-from typing import Protocol, Optional, List, Dict, Any
+from typing import TYPE_CHECKING, Any, Optional, Protocol
+
+if TYPE_CHECKING:
+    from astro.core.models import Directive
 
 
 class CoreStorageBackend(Protocol):
@@ -112,8 +115,8 @@ class CoreStorageBackend(Protocol):
 
     async def list_directives(
         self,
-        filter_metadata: Optional[Dict[str, Any]] = None,
-    ) -> List["Directive"]:
+        filter_metadata: dict[str, Any] | None = None,
+    ) -> list["Directive"]:
         """List all directives, optionally filtered by metadata.
 
         Args:

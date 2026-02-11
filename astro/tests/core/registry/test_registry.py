@@ -1,9 +1,9 @@
 """Tests for Registry (Layer 1 core component)."""
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
-from astro.core.registry import Registry, ValidationError
+
 from astro.core.models.directive import Directive
+from astro.core.registry import Registry, ValidationError
 
 
 class MockCoreStorage:

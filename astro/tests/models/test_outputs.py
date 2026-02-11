@@ -1,16 +1,15 @@
 """Tests for output models."""
 
 import pytest
-
 from astro_backend_service.models import (
-    WorkerOutput,
-    Task,
-    Plan,
-    EvalDecision,
-    SynthesisOutput,
-    ExecutionResult,
-    DocumentExtraction,
     DocExResult,
+    DocumentExtraction,
+    EvalDecision,
+    ExecutionResult,
+    Plan,
+    SynthesisOutput,
+    Task,
+    WorkerOutput,
 )
 from astro_backend_service.models.outputs import ToolCall
 

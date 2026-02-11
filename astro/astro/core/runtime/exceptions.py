@@ -1,7 +1,5 @@
 """Exceptions for the executor module."""
 
-from typing import List
-
 
 class ParallelExecutionError(Exception):
     """Raised when one or more nodes fail during parallel execution.
@@ -11,7 +9,7 @@ class ParallelExecutionError(Exception):
         errors: List of individual exceptions from failed nodes.
     """
 
-    def __init__(self, message: str, errors: List[Exception]) -> None:
+    def __init__(self, message: str, errors: list[Exception]) -> None:
         super().__init__(message)
         self.message = message
         self.errors = errors

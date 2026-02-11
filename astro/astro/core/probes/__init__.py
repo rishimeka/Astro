@@ -4,13 +4,12 @@ This module exports the probe infrastructure and all registered probes.
 Probes are tools that can be bound to LLMs for function calling.
 """
 
-from astro.core.probes.probe import Probe
-from astro.core.probes.registry import ProbeRegistry
+# Import probe implementations to register them
+from astro.core.probes import due_diligence, excel, google_news
 from astro.core.probes.decorator import probe
 from astro.core.probes.exceptions import DuplicateProbeError
-
-# Import probe implementations to register them
-from astro.core.probes import due_diligence, google_news, excel
+from astro.core.probes.probe import Probe
+from astro.core.probes.registry import ProbeRegistry
 
 __all__ = [
     "Probe",

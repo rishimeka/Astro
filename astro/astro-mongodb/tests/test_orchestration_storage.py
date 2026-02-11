@@ -1,8 +1,10 @@
 """Tests for MongoDBOrchestrationStorage."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from astro_mongodb.orchestration_storage import MongoDBOrchestrationStorage
 
 
@@ -533,6 +535,6 @@ async def test_list_runs_with_limit(storage):
     storage._db = mock_db
     mock_db.__getitem__ = MagicMock(return_value=mock_collection)
 
-    results = await storage.list_runs(limit=50)
+    _ = await storage.list_runs(limit=50)
 
     mock_cursor.limit.assert_called_once_with(50)

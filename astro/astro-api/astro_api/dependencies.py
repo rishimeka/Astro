@@ -14,25 +14,23 @@ It creates singletons for:
 
 import logging
 import os
-from typing import Any, Optional
-
-from cachetools import TTLCache
+from typing import Any
 
 # TODO: Once Agent 1 & 3 complete, uncomment these imports
 # from astro.core.registry import Registry
 # from astro.core.memory import SecondBrain, ContextWindow, LongTermMemory
 # from astro.orchestration.runner import ConstellationRunner
 # from astro_mongodb import MongoDBCoreStorage, MongoDBOrchestrationStorage, MongoDBMemory
-
 # Launchpad components (Phase 4 - completed)
 from astro.launchpad import (
-    LaunchpadController,
+    ConstellationPipeline,
     Conversation,
     Interpreter,
+    LaunchpadController,
     RunningAgent,
     ZeroShotPipeline,
-    ConstellationPipeline,
 )
+from cachetools import TTLCache
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +39,10 @@ CONVERSATION_CACHE_SIZE = 1000
 CONVERSATION_TTL_SECONDS = 3600
 
 # Global singletons
-_registry: Optional[Any] = None
-_second_brain: Optional[Any] = None
-_constellation_runner: Optional[Any] = None
-_launchpad_controller: Optional[LaunchpadController] = None
+_registry: Any | None = None
+_second_brain: Any | None = None
+_constellation_runner: Any | None = None
+_launchpad_controller: LaunchpadController | None = None
 
 # Conversation cache (TTLCache prevents unbounded memory growth)
 _conversations: TTLCache[str, Conversation] = TTLCache(
@@ -69,8 +67,8 @@ async def get_registry() -> Any:
         logger.debug(f"Initializing Registry with db={db_name}")
 
         # V2: Use MongoDBCoreStorage with Registry
-        from astro_mongodb import MongoDBCoreStorage
         from astro.core.registry import Registry
+        from astro_mongodb import MongoDBCoreStorage
 
         core_storage = MongoDBCoreStorage(mongo_uri, db_name)
         _registry = Registry(storage=core_storage)
@@ -93,9 +91,6 @@ async def get_second_brain() -> Any:
     """
     global _second_brain
     if _second_brain is None:
-        mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-        db_name = os.getenv("MONGO_DB", "astro")
-
         logger.debug("Initializing SecondBrain...")
 
         # TODO: Uncomment once Agent 1 completes
@@ -252,8 +247,8 @@ async def get_launchpad_controller() -> LaunchpadController:
         )
 
         # Create DirectiveGenerator and ContextGatherer
-        from astro.launchpad.directive_generator import DirectiveGenerator
         from astro.launchpad.context_gatherer import ContextGatherer
+        from astro.launchpad.directive_generator import DirectiveGenerator
 
         directive_generator = DirectiveGenerator(
             directive_registry=registry,

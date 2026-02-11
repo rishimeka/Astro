@@ -13,7 +13,7 @@ minimizing user friction.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from astro.launchpad.conversation import Conversation
 from astro.launchpad.directive_generator import GatheredContext
@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 class InferredContext:
     """What can be inferred from the query without asking."""
 
-    role_expertise: Optional[str] = None
-    approach_steps: List[str] = field(default_factory=list)
-    output_format: Optional[str] = None
-    constraints: List[str] = field(default_factory=list)
-    tone_style: Optional[str] = None
+    role_expertise: str | None = None
+    approach_steps: list[str] = field(default_factory=list)
+    output_format: str | None = None
+    constraints: list[str] = field(default_factory=list)
+    tone_style: str | None = None
     confidence: float = 0.0  # 0.0-1.0
 
 
@@ -70,7 +70,9 @@ class ContextGatherer:
 
         # Step 1: Analyze query to infer what we can
         inferred = await self._analyze_query(query, conversation)
-        logger.info(f"ContextGatherer: Inferred context with confidence {inferred.confidence:.2f}")
+        logger.info(
+            f"ContextGatherer: Inferred context with confidence {inferred.confidence:.2f}"
+        )
 
         # Step 2: Generate questions for missing information
         questions = self._generate_questions(inferred, query)
@@ -79,7 +81,7 @@ class ContextGatherer:
         # Step 3: Collect answers from user
         # NOTE: This is a placeholder - actual implementation needs UI/API integration
         # For now, return what we inferred
-        answers = {}  # Would be populated from user responses
+        answers: dict[str, Any] = {}  # Would be populated from user responses
 
         # Step 4: Compile into GatheredContext
         context = GatheredContext(
@@ -159,8 +161,12 @@ Return JSON:
         messages = [{"role": "user", "content": prompt}]
 
         try:
-            response = await self.llm.ainvoke(messages, temperature=0.3, max_tokens=1000)
-            content = response.content if hasattr(response, "content") else str(response)
+            response = await self.llm.ainvoke(
+                messages, temperature=0.3, max_tokens=1000
+            )
+            content = (
+                response.content if hasattr(response, "content") else str(response)
+            )
 
             # Parse JSON response
             import json
@@ -191,7 +197,7 @@ Return JSON:
 
     def _generate_questions(
         self, inferred: InferredContext, query: str
-    ) -> List[Question]:
+    ) -> list[Question]:
         """Generate clarifying questions for missing information.
 
         Args:
@@ -249,7 +255,7 @@ Return JSON:
 
         return questions
 
-    def _get_history(self, conversation: Conversation) -> List[Dict[str, str]]:
+    def _get_history(self, conversation: Conversation) -> list[dict[str, str]]:
         """Extract conversation history as list of message dicts.
 
         Args:
@@ -283,7 +289,7 @@ Return JSON:
 
         return "\n".join(lines)
 
-    def format_gathering_message(self, questions: List[Question]) -> str:
+    def format_gathering_message(self, questions: list[Question]) -> str:
         """Format the initial message when starting context gathering.
 
         Args:
@@ -297,7 +303,9 @@ Return JSON:
         if len(questions) == 0:
             return intro + " Actually, I think I have enough context to proceed!"
 
-        question_preview = "\n".join([f"{i+1}. {q.purpose}" for i, q in enumerate(questions)])
+        question_preview = "\n".join(
+            [f"{i+1}. {q.purpose}" for i, q in enumerate(questions)]
+        )
 
         return f"""{intro}
 
@@ -319,7 +327,9 @@ This will help me create a custom directive that handles queries like this in th
             Formatted question string
         """
         progress = f"Question {index + 1} of {total}"
-        required = " (required)" if question.required else " (optional - press Enter to skip)"
+        required = (
+            " (required)" if question.required else " (optional - press Enter to skip)"
+        )
 
         return f"""**{progress}** — {question.purpose}{required}
 

@@ -5,15 +5,15 @@ constellation execution. Events are consumed by stream handlers
 (SSE, WebSocket, logging, etc.) for real-time UI updates.
 """
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Literal, Optional, Union
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 
 def utc_now() -> datetime:
     """Get current UTC timestamp."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class StreamEvent(BaseModel):
@@ -44,7 +44,7 @@ class RunStartedEvent(StreamEvent):
         ..., description="Human-readable constellation name"
     )
     total_nodes: int = Field(..., description="Total number of nodes to execute")
-    node_names: List[str] = Field(
+    node_names: list[str] = Field(
         default_factory=list, description="Ordered list of node names"
     )
 
@@ -53,8 +53,8 @@ class RunCompletedEvent(StreamEvent):
     """Emitted when a constellation run completes successfully."""
 
     event_type: Literal["run_completed"] = "run_completed"
-    final_output: Optional[str] = Field(None, description="Final output from the run")
-    duration_ms: Optional[int] = Field(
+    final_output: str | None = Field(None, description="Final output from the run")
+    duration_ms: int | None = Field(
         None, description="Total execution time in milliseconds"
     )
 
@@ -64,9 +64,7 @@ class RunFailedEvent(StreamEvent):
 
     event_type: Literal["run_failed"] = "run_failed"
     error: str = Field(..., description="Error message")
-    failed_node_id: Optional[str] = Field(
-        None, description="Node that caused the failure"
-    )
+    failed_node_id: str | None = Field(None, description="Node that caused the failure")
 
 
 class RunPausedEvent(StreamEvent):
@@ -83,7 +81,7 @@ class RunResumedEvent(StreamEvent):
 
     event_type: Literal["run_resumed"] = "run_resumed"
     resumed_from_node: str = Field(..., description="Node that was confirmed")
-    additional_context: Optional[str] = Field(
+    additional_context: str | None = Field(
         None, description="Additional context provided by user on resume"
     )
 
@@ -111,7 +109,7 @@ class NodeCompletedEvent(StreamEvent):
     event_type: Literal["node_completed"] = "node_completed"
     node_id: str = Field(..., description="Node ID")
     node_name: str = Field(..., description="Human-readable node name")
-    output_preview: Optional[str] = Field(None, description="Truncated output preview")
+    output_preview: str | None = Field(None, description="Truncated output preview")
     duration_ms: int = Field(..., description="Execution time in milliseconds")
 
 
@@ -136,7 +134,7 @@ class ToolCallEvent(StreamEvent):
     event_type: Literal["tool_call"] = "tool_call"
     node_id: str = Field(..., description="Node making the tool call")
     tool_name: str = Field(..., description="Name of the tool/probe")
-    tool_input: Dict[str, Any] = Field(
+    tool_input: dict[str, Any] = Field(
         default_factory=dict, description="Tool input parameters"
     )
     call_id: str = Field(..., description="Unique ID for this tool call")
@@ -150,8 +148,8 @@ class ToolResultEvent(StreamEvent):
     tool_name: str = Field(..., description="Name of the tool/probe")
     call_id: str = Field(..., description="Matching call_id from ToolCallEvent")
     success: bool = Field(..., description="Whether the tool call succeeded")
-    result_preview: Optional[str] = Field(None, description="Truncated result preview")
-    error: Optional[str] = Field(None, description="Error message if failed")
+    result_preview: str | None = Field(None, description="Truncated result preview")
+    error: str | None = Field(None, description="Error message if failed")
     duration_ms: int = Field(..., description="Tool execution time in milliseconds")
 
 
@@ -180,7 +178,7 @@ class TokenEvent(StreamEvent):
     """
 
     event_type: Literal["token"] = "token"
-    node_id: Optional[str] = Field(None, description="Node generating the token")
+    node_id: str | None = Field(None, description="Node generating the token")
     content: str = Field(..., description="Token content")
 
 
@@ -195,7 +193,7 @@ class ProgressEvent(StreamEvent):
     event_type: Literal["progress"] = "progress"
     node_id: str = Field(..., description="Node reporting progress")
     message: str = Field(..., description="Progress message")
-    percent: Optional[int] = Field(None, description="Completion percentage (0-100)")
+    percent: int | None = Field(None, description="Completion percentage (0-100)")
 
 
 class LogEvent(StreamEvent):
@@ -206,32 +204,32 @@ class LogEvent(StreamEvent):
         "info", description="Log level"
     )
     message: str = Field(..., description="Log message")
-    node_id: Optional[str] = Field(None, description="Associated node if any")
+    node_id: str | None = Field(None, description="Associated node if any")
 
 
 # =============================================================================
 # Type Union for All Events
 # =============================================================================
 
-AnyStreamEvent = Union[
-    RunStartedEvent,
-    RunCompletedEvent,
-    RunFailedEvent,
-    RunPausedEvent,
-    RunResumedEvent,
-    NodeStartedEvent,
-    NodeCompletedEvent,
-    NodeFailedEvent,
-    ToolCallEvent,
-    ToolResultEvent,
-    ThoughtEvent,
-    TokenEvent,
-    ProgressEvent,
-    LogEvent,
-]
+AnyStreamEvent = (
+    RunStartedEvent
+    | RunCompletedEvent
+    | RunFailedEvent
+    | RunPausedEvent
+    | RunResumedEvent
+    | NodeStartedEvent
+    | NodeCompletedEvent
+    | NodeFailedEvent
+    | ToolCallEvent
+    | ToolResultEvent
+    | ThoughtEvent
+    | TokenEvent
+    | ProgressEvent
+    | LogEvent
+)
 
 
-def truncate_output(text: Optional[str], max_length: int = 200) -> Optional[str]:
+def truncate_output(text: str | None, max_length: int = 200) -> str | None:
     """Truncate text for preview fields."""
     if text is None:
         return None

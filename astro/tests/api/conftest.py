@@ -1,14 +1,14 @@
 """Pytest fixtures for API tests."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi.testclient import TestClient
 
+import pytest
 from astro_backend_service.api.main import create_app
+from astro_backend_service.executor import ConstellationRunner
 from astro_backend_service.foundry import Foundry
 from astro_backend_service.foundry.indexes import FoundryIndexes
-from astro_backend_service.executor import ConstellationRunner
 from astro_backend_service.launchpad import TriggeringAgent
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

@@ -7,13 +7,12 @@ separate from the Python code.
 
 import re
 from pathlib import Path
-from typing import Dict
 
 # Cache for loaded prompts
-_prompt_cache: Dict[str, Dict[str, str]] = {}
+_prompt_cache: dict[str, dict[str, str]] = {}
 
 
-def _parse_prompt_file(content: str) -> Dict[str, str]:
+def _parse_prompt_file(content: str) -> dict[str, str]:
     """Parse a markdown prompt file into a dictionary.
 
     Format expected:
@@ -27,7 +26,7 @@ def _parse_prompt_file(content: str) -> Dict[str, str]:
     Returns:
         Dict mapping prompt names to their content.
     """
-    prompts: Dict[str, str] = {}
+    prompts: dict[str, str] = {}
 
     # Split by --- separator
     sections = re.split(r"\n---\n", content)
@@ -47,7 +46,7 @@ def _parse_prompt_file(content: str) -> Dict[str, str]:
     return prompts
 
 
-def load_prompts(filename: str) -> Dict[str, str]:
+def load_prompts(filename: str) -> dict[str, str]:
     """Load prompts from a markdown file.
 
     Args:

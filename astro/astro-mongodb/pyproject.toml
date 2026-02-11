@@ -78,8 +78,10 @@ target-version = ["py310", "py311", "py312"]
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["E501"]
+ignore = ["E501", "F821"]  # E501: line too long, F821: forward refs
 
 [tool.mypy]
 python_version = "3.10"

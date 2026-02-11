@@ -16,6 +16,8 @@ Layer 2 CANNOT import from:
 """
 
 # Models
+# Context
+from astro.orchestration.context import ConstellationContext
 from astro.orchestration.models import (
     Constellation,
     Edge,
@@ -23,9 +25,12 @@ from astro.orchestration.models import (
     NodeType,
     Position,
     StarNode,
-    StarType,
     StartNode,
+    StarType,
 )
+
+# Runner
+from astro.orchestration.runner import ConstellationRunner, NodeOutput, Run
 
 # Stars
 from astro.orchestration.stars import (
@@ -39,12 +44,6 @@ from astro.orchestration.stars import (
     SynthesisStar,
     WorkerStar,
 )
-
-# Runner
-from astro.orchestration.runner import ConstellationRunner, NodeOutput, Run
-
-# Context
-from astro.orchestration.context import ConstellationContext
 
 # Validation
 from astro.orchestration.validation import ValidationError, ValidationWarning

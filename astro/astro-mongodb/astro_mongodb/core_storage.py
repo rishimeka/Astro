@@ -1,11 +1,11 @@
 """MongoDB implementation of CoreStorageBackend for Layer 1 primitives."""
 
-from typing import Optional, List, Dict, Any
 import logging
+from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo import ASCENDING
-from pymongo.errors import DuplicateKeyError, ConnectionFailure
+from pymongo.errors import ConnectionFailure
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +68,8 @@ class MongoDBCoreStorage:
         self.uri = uri
         self.database_name = database
         self.collection_name = collection
-        self._client: Optional[AsyncIOMotorClient] = None
-        self._db: Optional[AsyncIOMotorDatabase] = None
+        self._client: AsyncIOMotorClient | None = None
+        self._db: AsyncIOMotorDatabase | None = None
 
     async def startup(self) -> None:
         """Initialize storage backend.
@@ -174,7 +174,7 @@ class MongoDBCoreStorage:
             logger.error(f"Failed to save directive {directive.id}: {e}")
             raise RuntimeError(f"Failed to save directive: {e}") from e
 
-    async def get_directive(self, directive_id: str) -> Optional[Any]:
+    async def get_directive(self, directive_id: str) -> Any | None:
         """Retrieve directive by ID.
 
         Args:
@@ -217,8 +217,8 @@ class MongoDBCoreStorage:
 
     async def list_directives(
         self,
-        filter_metadata: Optional[Dict[str, Any]] = None,
-    ) -> List[Any]:
+        filter_metadata: dict[str, Any] | None = None,
+    ) -> list[Any]:
         """List all directives, optionally filtered by metadata.
 
         Args:
@@ -251,7 +251,7 @@ class MongoDBCoreStorage:
             collection = self._db[self.collection_name]
 
             # Build query
-            query: Dict[str, Any] = {}
+            query: dict[str, Any] = {}
             if filter_metadata:
                 # Add metadata filters with dot notation
                 for key, value in filter_metadata.items():

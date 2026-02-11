@@ -1,7 +1,7 @@
 """In-memory indexes for fast lookups of Layer 1 primitives."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any
 
 from astro.core.models.directive import Directive
 
@@ -12,8 +12,8 @@ class Probe:
 
     name: str
     description: str
-    parameters: Dict[str, Any] = field(default_factory=dict)
-    handler: Optional[Any] = None  # Callable, but typed as Any to avoid import cycles
+    parameters: dict[str, Any] = field(default_factory=dict)
+    handler: Any | None = None  # Callable, but typed as Any to avoid import cycles
 
 
 @dataclass
@@ -24,19 +24,19 @@ class RegistryIndexes:
     Stars, Constellations are Layer 2 concepts managed by orchestration.
     """
 
-    directives: Dict[str, Directive] = field(default_factory=dict)
-    probes: Dict[str, Probe] = field(default_factory=dict)
+    directives: dict[str, Directive] = field(default_factory=dict)
+    probes: dict[str, Probe] = field(default_factory=dict)
 
     def clear(self) -> None:
         """Clear all indexes (except probes which are code-defined)."""
         self.directives.clear()
         # Note: probes are not cleared as they are code-defined
 
-    def get_directive(self, id: str) -> Optional[Directive]:
+    def get_directive(self, id: str) -> Directive | None:
         """Get directive by ID."""
         return self.directives.get(id)
 
-    def get_probe(self, name: str) -> Optional[Probe]:
+    def get_probe(self, name: str) -> Probe | None:
         """Get probe by name."""
         return self.probes.get(name)
 

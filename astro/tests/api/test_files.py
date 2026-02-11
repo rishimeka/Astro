@@ -1,14 +1,11 @@
 """Tests for file upload routes."""
 
-import os
-import tempfile
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-
 from astro_backend_service.api.main import create_app
 from astro_backend_service.api.routes import files
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

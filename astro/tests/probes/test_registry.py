@@ -1,9 +1,8 @@
 """Tests for the ProbeRegistry."""
 
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
-
 from astro_backend_service.probes.exceptions import DuplicateProbeError
 from astro_backend_service.probes.probe import Probe
 from astro_backend_service.probes.registry import ProbeRegistry

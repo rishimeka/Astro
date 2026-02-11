@@ -1,8 +1,9 @@
 """The @probe decorator for registering tools."""
 
 import inspect
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Type, get_type_hints
+from typing import Any, get_type_hints
 
 from langchain_core.tools import BaseTool
 
@@ -10,7 +11,7 @@ from astro.core.probes.probe import Probe
 from astro.core.probes.registry import ProbeRegistry
 
 
-def _python_type_to_json_type(python_type: Type[Any]) -> str:
+def _python_type_to_json_type(python_type: type[Any]) -> str:
     """Convert Python type to JSON Schema type.
 
     Args:
@@ -19,7 +20,7 @@ def _python_type_to_json_type(python_type: Type[Any]) -> str:
     Returns:
         The corresponding JSON Schema type string.
     """
-    type_map: Dict[Type[Any], str] = {
+    type_map: dict[type[Any], str] = {
         str: "string",
         int: "integer",
         float: "number",
@@ -94,7 +95,7 @@ def probe(func: Callable[..., Any]) -> BaseTool:
 
     return_type = hints.pop("return", None)
 
-    input_schema: Optional[Dict[str, Any]] = None
+    input_schema: dict[str, Any] | None = None
     if hints:
         input_schema = {"type": "object", "properties": {}, "required": []}
         sig = inspect.signature(func)
@@ -106,7 +107,7 @@ def probe(func: Callable[..., Any]) -> BaseTool:
                 if param.default is inspect.Parameter.empty:
                     input_schema["required"].append(param_name)
 
-    output_schema: Optional[Dict[str, Any]] = None
+    output_schema: dict[str, Any] | None = None
     if return_type:
         output_schema = {"type": _python_type_to_json_type(return_type)}
 

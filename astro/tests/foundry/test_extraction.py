@@ -2,9 +2,9 @@
 
 from astro_backend_service.foundry import extract_references
 from astro_backend_service.foundry.extractor import (
-    validate_at_syntax,
-    render_content_with_variables,
     create_template_variables,
+    render_content_with_variables,
+    validate_at_syntax,
 )
 from astro_backend_service.models import TemplateVariable
 

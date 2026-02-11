@@ -7,7 +7,7 @@ ConstellationContext in orchestration/context.py.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Any
 
 
 @dataclass
@@ -40,7 +40,7 @@ class ExecutionContext:
     """
 
     # Core context
-    variables: Dict[str, Any]
+    variables: dict[str, Any]
     original_query: str
 
     def substitute_variables(self, content: str) -> str:

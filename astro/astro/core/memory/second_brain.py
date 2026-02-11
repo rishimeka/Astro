@@ -5,7 +5,7 @@ and long-term memory. It provides a unified interface for storing and retrieving
 memories across both partitions.
 """
 
-from typing import List, Dict, Any
+from typing import Any
 
 from astro.core.memory.context_window import ContextWindow
 from astro.core.memory.long_term import LongTermMemory
@@ -69,13 +69,13 @@ class SecondBrain:
             long_term: Partition 2 (long-term memory)
         """
         self.context_window = context_window  # Partition 1
-        self.long_term = long_term            # Partition 2
+        self.long_term = long_term  # Partition 2
 
     async def retrieve(
         self,
-        queries: List[str],
+        queries: list[str],
         conversation: Any = None,  # type: ignore
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """READ: Retrieve context from both partitions.
 
         This method is used in Step 2 of the zero-shot pipeline to gather
@@ -122,7 +122,7 @@ class SecondBrain:
     async def store(
         self,
         content: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
     ) -> None:
         """WRITE: Store result in both partitions.
 
@@ -161,7 +161,7 @@ class SecondBrain:
         self,
         user_message: str,
         assistant_message: str,
-        metadata: Dict[str, Any] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Add a user-assistant exchange to context window.
 
@@ -189,7 +189,7 @@ class SecondBrain:
             metadata=metadata,
         )
 
-    def get_recent_context(self, limit: int = 10) -> List[Any]:
+    def get_recent_context(self, limit: int = 10) -> list[Any]:
         """Get recent messages from context window.
 
         Args:

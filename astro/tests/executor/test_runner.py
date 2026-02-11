@@ -1,11 +1,10 @@
 """Tests for ConstellationRunner."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-
 from astro_backend_service.executor import ConstellationRunner, ExecutionContext, Run
 from astro_backend_service.executor.exceptions import ExecutionPausedException
 from astro_backend_service.executor.runner import generate_run_id
@@ -101,7 +100,7 @@ class TestConstellationRunner:
         )
 
         assert run.started_at is not None
-        assert run.started_at <= datetime.now(timezone.utc)
+        assert run.started_at <= datetime.now(UTC)
 
     @pytest.mark.asyncio
     async def test_run_handles_error(self, mock_foundry: Any) -> None:
@@ -219,7 +218,7 @@ class TestConstellationRunner:
         runner = ConstellationRunner(mock_foundry)
 
         # Mock the _get_run method
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         mock_run = Run(
             id="run_123",
             constellation_id="test",
@@ -241,7 +240,7 @@ class TestConstellationRunner:
         """Test that cancelling completed run does nothing."""
         runner = ConstellationRunner(mock_foundry)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         mock_run = Run(
             id="run_123",
             constellation_id="test",
@@ -277,7 +276,7 @@ class TestEvalRouting:
             foundry=mock_foundry,
         )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_123",
             constellation_id="eval_loop_constellation",
@@ -335,7 +334,7 @@ class TestEvalRouting:
             foundry=mock_foundry,
         )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_123",
             constellation_id="eval_loop_constellation",
@@ -372,7 +371,7 @@ class TestEvalRouting:
             loop_count=2,  # Already at 2, max is 3
         )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_123",
             constellation_id="eval_loop_constellation",
@@ -415,7 +414,7 @@ class TestHumanInTheLoop:
         runner = ConstellationRunner(mock_foundry)
         runner._save_run = AsyncMock()  # type: ignore[method-assign]
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_123",
             constellation_id="hitl_constellation",
@@ -460,7 +459,7 @@ class TestHumanInTheLoop:
         """Test that resuming non-paused run raises error."""
         runner = ConstellationRunner(mock_foundry)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         mock_run = Run(
             id="run_123",
             constellation_id="test",
@@ -659,7 +658,7 @@ class TestParallelExecution:
             foundry=mock_foundry,
         )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_123",
             constellation_id="parallel_constellation",
@@ -759,7 +758,7 @@ class TestRetryLogic:
             foundry=mock_foundry,
         )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_123",
             constellation_id="retry_test",

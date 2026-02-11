@@ -1,9 +1,8 @@
 """User preferences for synthesis and formatting."""
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
-
 
 ToneType = Literal["formal", "casual", "technical"]
 FormatType = Literal["markdown", "bullet_points", "prose"]
@@ -17,18 +16,18 @@ class UserSynthesisPreferences(BaseModel):
     to user preferences.
     """
 
-    tone: Optional[ToneType] = Field(
+    tone: ToneType | None = Field(
         default=None, description="Tone of the response: formal, casual, or technical"
     )
-    format: Optional[FormatType] = Field(
+    format: FormatType | None = Field(
         default=None,
         description="Output format: markdown, bullet_points, or prose",
     )
-    length: Optional[LengthType] = Field(
+    length: LengthType | None = Field(
         default=None,
         description="Response length: concise, detailed, or comprehensive",
     )
-    custom_instructions: Optional[str] = Field(
+    custom_instructions: str | None = Field(
         default=None, description="Free-form custom formatting instructions"
     )
 

@@ -1,7 +1,8 @@
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 from anthropic import Anthropic
 from dotenv import find_dotenv, load_dotenv
@@ -111,13 +112,13 @@ class AnthropicClient(LLMClient):
         default_headers["X-Unmask-PII"] = "true"
 
         # Build client kwargs
-        client_kwargs = {"api_key": api_key}
+        client_kwargs: dict[str, Any] = {"api_key": api_key}
         if base_url:
             client_kwargs["base_url"] = base_url
         if default_headers:
             client_kwargs["default_headers"] = default_headers
 
-        self.client = Anthropic(**client_kwargs)
+        self.client = Anthropic(**client_kwargs)  # type: ignore[arg-type]
 
     def generate(
         self,
@@ -130,12 +131,12 @@ class AnthropicClient(LLMClient):
         temp = temperature if temperature is not None else self.temperature
         response = self.client.messages.create(
             model=self.model,
-            messages=messages,
+            messages=messages,  # type: ignore[arg-type]
             temperature=temp,
             max_tokens=max_tokens,
             **kwargs,
         )
-        return response.content[0].text
+        return response.content[0].text  # type: ignore[union-attr]
 
     def stream(
         self,
@@ -148,13 +149,12 @@ class AnthropicClient(LLMClient):
         temp = temperature if temperature is not None else self.temperature
         with self.client.messages.stream(
             model=self.model,
-            messages=messages,
+            messages=messages,  # type: ignore[arg-type]
             temperature=temp,
             max_tokens=max_tokens,
             **kwargs,
         ) as stream:
-            for text in stream.text_stream:
-                yield text
+            yield from stream.text_stream
 
 
 class OpenAIClient(LLMClient):
@@ -181,12 +181,12 @@ class OpenAIClient(LLMClient):
         temp = temperature if temperature is not None else self.temperature
         response = self.client.chat.completions.create(
             model=self.model,
-            messages=messages,
+            messages=messages,  # type: ignore[arg-type]
             temperature=temp,
             max_tokens=max_tokens,
             **kwargs,
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content or ""  # type: ignore[return-value]
 
     def stream(
         self,
@@ -199,15 +199,15 @@ class OpenAIClient(LLMClient):
         temp = temperature if temperature is not None else self.temperature
         stream = self.client.chat.completions.create(
             model=self.model,
-            messages=messages,
+            messages=messages,  # type: ignore[arg-type]
             temperature=temp,
             max_tokens=max_tokens,
             stream=True,
             **kwargs,
         )
-        for chunk in stream:
-            if chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
+        for chunk in stream:  # type: ignore[union-attr]
+            if chunk.choices[0].delta.content:  # type: ignore[union-attr]
+                yield chunk.choices[0].delta.content  # type: ignore[union-attr]
 
 
 class GoogleClient(LLMClient):
@@ -253,7 +253,8 @@ class GoogleClient(LLMClient):
                 "max_output_tokens": max_tokens,
             },
         )
-        return response.text
+        result: str = response.text
+        return result
 
     def stream(
         self,
@@ -325,7 +326,7 @@ def get_llm(
     """
     # Determine provider and model
     provider = provider or os.getenv("LLM_PROVIDER", DEFAULT_PROVIDER)
-    provider = provider.lower()
+    provider = provider.lower()  # type: ignore[union-attr]
 
     if provider not in DEFAULT_MODELS:
         raise ValueError(
@@ -349,11 +350,11 @@ def get_llm(
     )
 
     if provider == "anthropic":
-        llm = AnthropicClient(model=model, temperature=temperature)
+        llm: LLMClient = AnthropicClient(model=model, temperature=temperature)
     elif provider == "openai":
-        llm = OpenAIClient(model=model, temperature=temperature)
+        llm = OpenAIClient(model=model, temperature=temperature)  # type: ignore[assignment]
     elif provider == "google":
-        llm = GoogleClient(model=model, temperature=temperature)
+        llm = GoogleClient(model=model, temperature=temperature)  # type: ignore[assignment]
     else:
         raise ValueError(f"Unsupported provider: {provider}")
 
@@ -399,7 +400,7 @@ def get_langchain_llm(
 
     # Determine provider and model
     provider = provider or os.getenv("LLM_PROVIDER", DEFAULT_PROVIDER)
-    provider = provider.lower()
+    provider = provider.lower()  # type: ignore[union-attr]
 
     if provider not in DEFAULT_MODELS:
         raise ValueError(
@@ -414,7 +415,7 @@ def get_langchain_llm(
     )
 
     # Build provider-specific kwargs
-    model_kwargs = {"temperature": temperature}
+    model_kwargs: dict[str, Any] = {"temperature": temperature}
 
     if provider == "anthropic":
         api_key = get_required_env("ANTHROPIC_API_KEY")
@@ -426,7 +427,7 @@ def get_langchain_llm(
             default_headers["Authorization"] = f"Bearer {api_key}"
             default_headers["anthropic-version"] = "2024-05-01"
             api_key = "dummy"  # Use Bearer token instead
-            logger.debug(f"Using custom Anthropic gateway with Bearer auth")
+            logger.debug("Using custom Anthropic gateway with Bearer auth")
 
         # Add custom headers if configured
         if app_id := os.getenv("ANTHROPIC_APPLICATION_ID"):
@@ -457,8 +458,4 @@ def get_langchain_llm(
 
     # Use universal factory to create the chat model
     logger.debug(f"Creating {provider} chat model with init_chat_model()")
-    return init_chat_model(
-        model=model,
-        model_provider=provider,
-        **model_kwargs
-    )
+    return init_chat_model(model=model, model_provider=provider, **model_kwargs)  # type: ignore[call-overload]

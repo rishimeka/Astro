@@ -1,13 +1,13 @@
 """Tests for concrete Star types."""
 
 from astro_backend_service.models import (
-    StarType,
-    WorkerStar,
-    PlanningStar,
-    EvalStar,
-    SynthesisStar,
-    ExecutionStar,
     DocExStar,
+    EvalStar,
+    ExecutionStar,
+    PlanningStar,
+    StarType,
+    SynthesisStar,
+    WorkerStar,
 )
 
 

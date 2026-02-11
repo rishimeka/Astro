@@ -1,9 +1,8 @@
 """Tests for Directive model."""
 
 import pytest
-from pydantic import ValidationError
-
 from astro_backend_service.models import Directive, TemplateVariable
+from pydantic import ValidationError
 
 
 class TestDirective:

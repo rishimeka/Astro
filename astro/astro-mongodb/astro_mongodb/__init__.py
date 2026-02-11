@@ -43,8 +43,8 @@ Example usage:
 """
 
 from astro_mongodb.core_storage import MongoDBCoreStorage
-from astro_mongodb.orchestration_storage import MongoDBOrchestrationStorage
 from astro_mongodb.memory import MongoDBMemory
+from astro_mongodb.orchestration_storage import MongoDBOrchestrationStorage
 
 __version__ = "2.0.0"
 

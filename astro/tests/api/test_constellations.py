@@ -1,17 +1,16 @@
 """Tests for constellations endpoints."""
 
 import pytest
-
+from astro_backend_service.foundry import ValidationError
 from astro_backend_service.models import (
     Constellation,
-    Position,
-    StartNode,
-    EndNode,
-    StarNode,
     Edge,
+    EndNode,
+    Position,
+    StarNode,
+    StartNode,
     TemplateVariable,
 )
-from astro_backend_service.foundry import ValidationError
 
 
 class TestConstellationsEndpoints:

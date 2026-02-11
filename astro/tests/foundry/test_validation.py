@@ -1,27 +1,26 @@
 """Tests for validation logic."""
 
 import pytest
-
 from astro_backend_service.foundry import ValidationError
+from astro_backend_service.foundry.indexes import FoundryIndexes, Probe
 from astro_backend_service.foundry.validation import (
+    validate_constellation,
     validate_directive,
     validate_star,
-    validate_constellation,
 )
-from astro_backend_service.foundry.indexes import FoundryIndexes, Probe
 from astro_backend_service.models import (
-    Directive,
     Constellation,
-    Position,
-    StartNode,
-    EndNode,
-    StarNode,
+    Directive,
     Edge,
-    WorkerStar,
-    PlanningStar,
-    ExecutionStar,
+    EndNode,
     EvalStar,
+    ExecutionStar,
+    PlanningStar,
+    Position,
+    StarNode,
+    StartNode,
     SynthesisStar,
+    WorkerStar,
 )
 
 

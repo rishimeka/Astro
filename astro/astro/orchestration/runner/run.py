@@ -1,7 +1,7 @@
 """Run and NodeOutput models for execution tracking."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -10,9 +10,9 @@ class ToolCallRecord(BaseModel):
     """Record of a tool call during execution."""
 
     tool_name: str
-    arguments: Dict[str, Any]
-    result: Optional[str] = None
-    error: Optional[str] = None
+    arguments: dict[str, Any]
+    result: str | None = None
+    error: str | None = None
 
 
 class NodeOutput(BaseModel):
@@ -23,11 +23,11 @@ class NodeOutput(BaseModel):
     status: Literal["pending", "running", "completed", "failed"] = Field(
         default="pending"
     )
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    output: Optional[str] = None
-    error: Optional[str] = None
-    tool_calls: List[ToolCallRecord] = Field(default_factory=list)
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    output: str | None = None
+    error: str | None = None
+    tool_calls: list[ToolCallRecord] = Field(default_factory=list)
 
 
 RunStatus = Literal[
@@ -42,24 +42,24 @@ class Run(BaseModel):
     constellation_id: str
     constellation_name: str
     status: RunStatus = Field(default="running")
-    variables: Dict[str, Any] = Field(default_factory=dict)
+    variables: dict[str, Any] = Field(default_factory=dict)
     started_at: datetime
-    completed_at: Optional[datetime] = None
-    node_outputs: Dict[str, NodeOutput] = Field(default_factory=dict)
-    final_output: Optional[str] = None
-    error: Optional[str] = None
+    completed_at: datetime | None = None
+    node_outputs: dict[str, NodeOutput] = Field(default_factory=dict)
+    final_output: str | None = None
+    error: str | None = None
 
     # Human-in-the-loop state
-    awaiting_node_id: Optional[str] = Field(
+    awaiting_node_id: str | None = Field(
         default=None,
         description="Node ID where execution is paused awaiting confirmation",
     )
-    awaiting_prompt: Optional[str] = Field(
+    awaiting_prompt: str | None = Field(
         default=None, description="Confirmation prompt shown to user"
     )
 
     # Additional context that may be injected during resume
-    additional_context: Optional[str] = Field(
+    additional_context: str | None = Field(
         default=None, description="Context added by user on resume"
     )
 

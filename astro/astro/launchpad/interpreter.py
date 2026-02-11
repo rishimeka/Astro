@@ -7,7 +7,7 @@ and matching it against available directive descriptions.
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -22,17 +22,15 @@ class DirectiveSummary(BaseModel):
     id: str = Field(..., description="Directive ID")
     name: str = Field(..., description="Directive name")
     description: str = Field(..., description="What this directive does")
-    probe_ids: List[str] = Field(
-        default_factory=list, description="Required probe IDs"
-    )
-    tags: List[str] = Field(default_factory=list, description="Directive tags")
+    probe_ids: list[str] = Field(default_factory=list, description="Required probe IDs")
+    tags: list[str] = Field(default_factory=list, description="Directive tags")
 
 
 class InterpretationResult(BaseModel):
     """Result of directive selection."""
 
-    directive_ids: List[str] = Field(..., description="Selected directive IDs")
-    context_queries: List[str] = Field(
+    directive_ids: list[str] = Field(..., description="Selected directive IDs")
+    context_queries: list[str] = Field(
         ..., description="Queries for Second Brain retrieval"
     )
     reasoning: str = Field(..., description="Why these directives were selected")
@@ -181,7 +179,7 @@ class Interpreter:
     async def select_directives(
         self,
         conversation: Conversation,
-        available_directives: Optional[List[DirectiveSummary]] = None,
+        available_directives: list[DirectiveSummary] | None = None,
     ) -> InterpretationResult:
         """Select which directives are needed for this query.
 
@@ -209,11 +207,15 @@ class Interpreter:
         if available_directives is None:
             available_directives = await self._get_available_directives()
 
-        logger.info(f"Interpreter: Retrieved {len(available_directives)} available directives")
+        logger.info(
+            f"Interpreter: Retrieved {len(available_directives)} available directives"
+        )
 
         # Build the user prompt with directive list
         directives_text = self._format_directives(available_directives)
-        logger.info(f"Interpreter: Formatted directives text length: {len(directives_text)} chars")
+        logger.info(
+            f"Interpreter: Formatted directives text length: {len(directives_text)} chars"
+        )
 
         # Build conversation context (last 5 messages)
         context_text = self._build_context(conversation)
@@ -235,15 +237,23 @@ Select the most relevant directives for this query."""
         ]
 
         try:
-            response = await self.llm.ainvoke(messages, temperature=0.3, max_tokens=1000)
-            content = response.content if hasattr(response, "content") else str(response).strip()
+            response = await self.llm.ainvoke(
+                messages, temperature=0.3, max_tokens=1000
+            )
+            content = (
+                response.content
+                if hasattr(response, "content")
+                else str(response).strip()
+            )
 
             logger.info(f"Interpreter: LLM response length: {len(content)} chars")
             logger.info(f"Interpreter: LLM response preview: {content[:200]}...")
 
             # Parse JSON response
             result = self._parse_response(content)
-            logger.info(f"Interpreter: Selected {len(result.directive_ids)} directives: {result.directive_ids}")
+            logger.info(
+                f"Interpreter: Selected {len(result.directive_ids)} directives: {result.directive_ids}"
+            )
             logger.info(f"Interpreter: Reasoning: {result.reasoning}")
             return result
 
@@ -256,9 +266,7 @@ Select the most relevant directives for this query."""
                 confidence=0.0,
             )
 
-    def should_offer_directive_generation(
-        self, result: InterpretationResult
-    ) -> bool:
+    def should_offer_directive_generation(self, result: InterpretationResult) -> bool:
         """Determine if we should offer to generate a new directive.
 
         Offers generation when:
@@ -282,7 +290,9 @@ Select the most relevant directives for this query."""
             "goodbye",
             "bye",
         ]
-        query_lower = result.context_queries[0].lower() if result.context_queries else ""
+        query_lower = (
+            result.context_queries[0].lower() if result.context_queries else ""
+        )
         if any(kw in query_lower for kw in conversational_keywords):
             return False
 
@@ -300,7 +310,7 @@ Select the most relevant directives for this query."""
 
         return False
 
-    async def _get_available_directives(self) -> List[DirectiveSummary]:
+    async def _get_available_directives(self) -> list[DirectiveSummary]:
         """Retrieve all available directives from registry.
 
         Returns:
@@ -323,19 +333,24 @@ Select the most relevant directives for this query."""
                         name=directive.name,
                         description=directive.description,
                         probe_ids=directive.probe_ids or [],
-                        tags=directive.metadata.get("tags", [])
-                        if directive.metadata
-                        else [],
+                        tags=(
+                            directive.metadata.get("tags", [])
+                            if directive.metadata
+                            else []
+                        ),
                     )
                 )
 
             return summaries
 
         except Exception as e:
-            logger.error(f"Interpreter: Error retrieving available directives: {str(e)}", exc_info=True)
+            logger.error(
+                f"Interpreter: Error retrieving available directives: {str(e)}",
+                exc_info=True,
+            )
             return []
 
-    def _format_directives(self, directives: List[DirectiveSummary]) -> str:
+    def _format_directives(self, directives: list[DirectiveSummary]) -> str:
         """Format directives for prompt.
 
         Args:

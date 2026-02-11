@@ -1,7 +1,7 @@
 """Tests for directives endpoints."""
 
-from astro_backend_service.models import Directive
 from astro_backend_service.foundry import ValidationError, ValidationWarning
+from astro_backend_service.models import Directive
 
 
 class TestDirectivesEndpoints:

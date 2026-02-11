@@ -1,8 +1,8 @@
 """MongoDB implementation of MemoryBackend with vector search support."""
 
-from typing import Optional, List, Dict, Any
 import logging
 import time
+from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo import ASCENDING
@@ -118,8 +118,8 @@ class MongoDBMemory:
         self.collection_name = collection
         self.use_atlas_search = use_atlas_search
         self.atlas_index_name = atlas_index_name
-        self._client: Optional[AsyncIOMotorClient] = None
-        self._db: Optional[AsyncIOMotorDatabase] = None
+        self._client: AsyncIOMotorClient | None = None
+        self._db: AsyncIOMotorDatabase | None = None
 
     async def startup(self) -> None:
         """Initialize storage backend.
@@ -181,8 +181,8 @@ class MongoDBMemory:
         self,
         id: str,
         content: str,
-        embedding: List[float],
-        metadata: Dict[str, Any],
+        embedding: list[float],
+        metadata: dict[str, Any],
     ) -> None:
         """Store a memory entry with its vector embedding.
 
@@ -223,7 +223,7 @@ class MongoDBMemory:
             logger.error(f"Failed to store memory {id}: {e}")
             raise RuntimeError(f"Failed to store memory: {e}") from e
 
-    async def retrieve(self, id: str) -> Optional[Any]:
+    async def retrieve(self, id: str) -> Any | None:
         """Retrieve a specific memory by ID.
 
         Args:
@@ -258,10 +258,10 @@ class MongoDBMemory:
 
     async def search(
         self,
-        query_embedding: List[float],
+        query_embedding: list[float],
         limit: int = 5,
-        filter_metadata: Optional[Dict[str, Any]] = None,
-    ) -> List[Any]:
+        filter_metadata: dict[str, Any] | None = None,
+    ) -> list[Any]:
         """Vector similarity search for relevant memories.
 
         Uses either Atlas vector search or aggregation pipeline based on
@@ -292,10 +292,10 @@ class MongoDBMemory:
 
     async def _search_atlas(
         self,
-        query_embedding: List[float],
+        query_embedding: list[float],
         limit: int,
-        filter_metadata: Optional[Dict[str, Any]],
-    ) -> List[Any]:
+        filter_metadata: dict[str, Any] | None,
+    ) -> list[Any]:
         """Search using Atlas vector search ($vectorSearch).
 
         Requires MongoDB Atlas with vector search index created.
@@ -361,10 +361,10 @@ class MongoDBMemory:
 
     async def _search_aggregation(
         self,
-        query_embedding: List[float],
+        query_embedding: list[float],
         limit: int,
-        filter_metadata: Optional[Dict[str, Any]],
-    ) -> List[Any]:
+        filter_metadata: dict[str, Any] | None,
+    ) -> list[Any]:
         """Search using Python-based cosine similarity.
 
         Fallback for local MongoDB without Atlas vector search.
@@ -384,7 +384,7 @@ class MongoDBMemory:
         collection = self._db[self.collection_name]
 
         # Build query for metadata filters
-        query: Dict[str, Any] = {}
+        query: dict[str, Any] = {}
         if filter_metadata:
             for key, value in filter_metadata.items():
                 query[f"metadata.{key}"] = value

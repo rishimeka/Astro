@@ -3,8 +3,6 @@
 from datetime import datetime
 
 import pytest
-from pydantic import ValidationError
-
 from astro_backend_service.models.fund_model import (
     CellRelationship,
     CellType,

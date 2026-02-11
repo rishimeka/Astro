@@ -3,23 +3,24 @@
 import asyncio
 import json
 import logging
-from typing import Any, AsyncGenerator, List
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from astro_api.dependencies import get_registry, get_runner, get_orchestration_storage
+from astro_api.dependencies import get_orchestration_storage, get_runner
 
 logger = logging.getLogger(__name__)
+from astro.orchestration.runner import ConstellationRunner
+
 from astro_api.schemas import (
-    RunSummary,
-    RunResponse,
-    NodeOutputResponse,
     ConfirmRequest,
     ConfirmResponse,
+    NodeOutputResponse,
+    RunResponse,
+    RunSummary,
 )
-from astro.core.registry import Registry
-from astro.orchestration.runner import ConstellationRunner
 
 router = APIRouter()
 
@@ -29,11 +30,11 @@ def sse_event(event_type: str, data: dict) -> str:
     return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
 
 
-@router.get("", response_model=List[RunSummary])
+@router.get("", response_model=list[RunSummary])
 async def list_runs(
     constellation_id: str | None = None,
     storage = Depends(get_orchestration_storage),
-) -> List[RunSummary]:
+) -> list[RunSummary]:
     """List past runs, optionally filtered by constellation."""
     logger.debug(f"Listing runs: constellation_id={constellation_id}")
     runs = await storage.list_runs(constellation_id)

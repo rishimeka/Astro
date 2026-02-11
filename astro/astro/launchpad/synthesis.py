@@ -1,6 +1,6 @@
 """Synthesis agent for formatting final outputs."""
 
-from typing import Any, List, Optional
+from typing import Any
 
 from astro.launchpad.preferences import UserSynthesisPreferences
 
@@ -14,7 +14,7 @@ class SynthesisAgent:
 
     def __init__(
         self,
-        preferences: Optional[UserSynthesisPreferences] = None,
+        preferences: UserSynthesisPreferences | None = None,
         llm_client: Any = None,
     ) -> None:
         """Initialize the synthesis agent.
@@ -29,7 +29,7 @@ class SynthesisAgent:
     @classmethod
     def should_run(
         cls,
-        preferences: Optional[UserSynthesisPreferences],
+        preferences: UserSynthesisPreferences | None,
         constellation: Any,
     ) -> bool:
         """Determine if synthesis should run.
@@ -64,7 +64,7 @@ class SynthesisAgent:
     def format_output(
         self,
         raw_output: str,
-        context: Optional[str] = None,
+        context: str | None = None,
     ) -> str:
         """Format the raw output according to preferences.
 
@@ -109,15 +109,17 @@ Do not add any meta-commentary about the formatting. Just output the reformatted
                     HumanMessage(content=user_prompt),
                 ]
             )
-            return response.content.strip() if hasattr(response, "content") else raw_output
+            return (
+                response.content.strip() if hasattr(response, "content") else raw_output
+            )
         except Exception:
             # On any error, return the raw output
             return raw_output
 
     def synthesize_multiple_outputs(
         self,
-        outputs: List[str],
-        source_labels: Optional[List[str]] = None,
+        outputs: list[str],
+        source_labels: list[str] | None = None,
     ) -> str:
         """Synthesize multiple outputs into a single coherent response.
 

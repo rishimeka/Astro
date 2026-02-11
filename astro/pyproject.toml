@@ -29,3 +29,27 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["astro_backend_service*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = [
+    "E501",  # Line too long (handled by black)
+    "E402",  # Module level import not at top of file (logger pattern)
+    "F821",  # Undefined name (forward references in protocols)
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+exclude = [
+    "^astro-api/",
+    "^astro-mongodb/",
+    "^astro-ui/",
+]

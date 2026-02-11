@@ -1,7 +1,7 @@
 """EvalStar - evaluates results and routes execution."""
 
 import json
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from pydantic import Field
 
@@ -9,8 +9,8 @@ from astro.orchestration.models.star_types import StarType
 from astro.orchestration.stars.base import AtomicStar
 
 if TYPE_CHECKING:
+    from astro.core.models.outputs import EvalDecision  # type: ignore[attr-defined]
     from astro.orchestration.context import ConstellationContext
-    from astro.core.models.outputs import EvalDecision
 
 
 class EvalStar(AtomicStar):
@@ -30,7 +30,7 @@ class EvalStar(AtomicStar):
         description="Maximum iterations for tool calling during evaluation",
     )
 
-    def validate_star(self) -> List[str]:
+    def validate_star(self) -> list[str]:
         """Validate EvalStar configuration."""
         errors = super().validate_star()
         # Must have PlanningStar in Constellation for loop-back
@@ -49,7 +49,10 @@ class EvalStar(AtomicStar):
         from langchain_core.messages import HumanMessage, SystemMessage
 
         from astro.core.llm.utils import get_llm
-        from astro.core.models.outputs import EvalDecision, Plan
+        from astro.core.models.outputs import (  # type: ignore[attr-defined]
+            EvalDecision,
+            Plan,
+        )
         from astro.orchestration.stars.tool_support import execute_with_tools
 
         # Get directive
@@ -66,7 +69,7 @@ class EvalStar(AtomicStar):
 
         # Collect execution results from direct upstream only
         direct_upstream = context.get_direct_upstream_outputs()
-        results_parts: List[str] = []
+        results_parts: list[str] = []
         for node_id, output in direct_upstream.items():
             if hasattr(output, "result"):
                 results_parts.append(f"- {node_id}: {output.result[:500]}")
@@ -125,7 +128,7 @@ Evaluate these results. Should we continue to finalization or loop back for impr
         try:
             # Execute with tool support
             content, tool_calls, iterations = await execute_with_tools(
-                llm=llm,
+                llm=llm,  # type: ignore[arg-type]
                 messages=messages,
                 probe_ids=resolved_probes,
                 max_iterations=self.max_tool_iterations,

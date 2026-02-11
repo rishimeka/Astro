@@ -2,11 +2,9 @@
 
 import os
 import tempfile
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
-from openpyxl import Workbook
-
 from astro_backend_service.probes.excel import (
     analyze_sheet_structure,
     compile_excel_from_blueprint,
@@ -15,6 +13,7 @@ from astro_backend_service.probes.excel import (
     parse_excel_structure,
     verify_reconstruction,
 )
+from openpyxl import Workbook
 
 
 @pytest.fixture

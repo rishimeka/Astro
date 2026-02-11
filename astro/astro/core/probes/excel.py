@@ -8,7 +8,7 @@ Provides probes for:
 """
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.cell.cell import MergedCell
@@ -18,7 +18,7 @@ from astro.core.probes.decorator import probe
 
 
 @probe
-def parse_excel_structure(file_path: str) -> Dict[str, Any]:
+def parse_excel_structure(file_path: str) -> dict[str, Any]:
     """Parse an Excel file and extract its complete structure.
 
     Reads an Excel file and extracts sheet names, cell values, data types,
@@ -40,7 +40,7 @@ def parse_excel_structure(file_path: str) -> Dict[str, Any]:
     # Load with data_only=True to get computed values (not formulas)
     wb = load_workbook(file_path, data_only=True)
 
-    result = {
+    result: dict[str, Any] = {
         "file_name": os.path.basename(file_path),
         "sheet_count": len(wb.sheetnames),
         "sheets": [],
@@ -71,16 +71,16 @@ def parse_excel_structure(file_path: str) -> Dict[str, Any]:
                     "is_merged": isinstance(cell, MergedCell),
                 }
                 row_data.append(cell_info)
-            sheet_data["rows"].append(row_data)
+            sheet_data["rows"].append(row_data)  # type: ignore[attr-defined]
 
-        result["sheets"].append(sheet_data)
+        result["sheets"].append(sheet_data)  # type: ignore[attr-defined]
 
     wb.close()
     return result
 
 
 @probe
-def analyze_sheet_structure(sheet_data: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_sheet_structure(sheet_data: dict[str, Any]) -> dict[str, Any]:
     """Analyze a single sheet's structure to identify patterns.
 
     Examines a sheet's data to identify headers, labels, data regions,
@@ -122,15 +122,18 @@ def analyze_sheet_structure(sheet_data: Dict[str, Any]) -> Dict[str, Any]:
             break
 
     # Identify label column (first column that's mostly strings)
-    col_0_values = [row[0]["value"] for row in rows if row and row[0]["value"] is not None]
-    if col_0_values and sum(isinstance(v, str) for v in col_0_values) > len(col_0_values) * 0.7:
+    col_0_values = [
+        row[0]["value"] for row in rows if row and row[0]["value"] is not None
+    ]
+    if (
+        col_0_values
+        and sum(isinstance(v, str) for v in col_0_values) > len(col_0_values) * 0.7
+    ):
         analysis["label_column"] = 1
 
     # Summarize each row
     for i, row in enumerate(rows):
-        numeric_vals = [
-            c["value"] for c in row if isinstance(c["value"], (int, float))
-        ]
+        numeric_vals = [c["value"] for c in row if isinstance(c["value"], (int, float))]
         label = row[0]["value"] if row and row[0]["value"] else f"Row {i + 1}"
 
         row_summary = {
@@ -146,22 +149,26 @@ def analyze_sheet_structure(sheet_data: Dict[str, Any]) -> Dict[str, Any]:
 
     # Detect column-wise patterns (time series)
     for i, row in enumerate(rows):
-        numeric_vals = [
-            c["value"] for c in row if isinstance(c["value"], (int, float))
-        ]
+        numeric_vals = [c["value"] for c in row if isinstance(c["value"], (int, float))]
         if len(numeric_vals) >= 3:
             pattern = _detect_numeric_pattern(numeric_vals)
             if pattern:
-                analysis["potential_patterns"].append({
-                    "row_num": i + 1,
-                    "label": str(row[0]["value"]) if row and row[0]["value"] else f"Row {i + 1}",
-                    "pattern": pattern,
-                })
+                analysis["potential_patterns"].append(
+                    {
+                        "row_num": i + 1,
+                        "label": (
+                            str(row[0]["value"])
+                            if row and row[0]["value"]
+                            else f"Row {i + 1}"
+                        ),
+                        "pattern": pattern,
+                    }
+                )
 
     return analysis
 
 
-def _detect_numeric_pattern(values: List[float]) -> Optional[Dict[str, Any]]:
+def _detect_numeric_pattern(values: list[float]) -> dict[str, Any] | None:
     """Detect if values follow a recognizable pattern."""
     if len(values) < 3:
         return None
@@ -190,7 +197,7 @@ def _detect_numeric_pattern(values: List[float]) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _is_likely_total(label: Any, values: List[float]) -> bool:
+def _is_likely_total(label: Any, values: list[float]) -> bool:
     """Heuristic: is this row a subtotal or total line?"""
     label_str = str(label).lower() if label else ""
     total_keywords = ["total", "subtotal", "sum", "net", "gross"]
@@ -199,9 +206,9 @@ def _is_likely_total(label: Any, values: List[float]) -> bool:
 
 @probe
 def detect_row_patterns(
-    sheet_data: Dict[str, Any],
-    analyzed_rows: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    sheet_data: dict[str, Any],
+    analyzed_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Analyze numeric data to detect repeating patterns across rows.
 
     Identifies rows that likely share the same formula logic, reducing
@@ -246,20 +253,22 @@ def detect_row_patterns(
 
         if ratios and len(set(round(r, 4) for r in ratios)) == 1:
             growth_rate = round(ratios[0] - 1, 6)
-            patterns.append({
-                "row_num": row_info["row_num"],
-                "label": row_info["label"],
-                "pattern": "constant_growth",
-                "growth_rate": growth_rate,
-                "confidence": 0.8,
-                "suggested_formula": "={prior_col}{row}*(1+GROWTH_RATE)",
-                "needs_confirmation": True,
-                "question": (
-                    f"Row '{row_info['label']}' shows a constant "
-                    f"{round(growth_rate * 100, 2)}% growth rate each period. "
-                    f"Is this correct? What drives this growth rate?"
-                ),
-            })
+            patterns.append(
+                {
+                    "row_num": row_info["row_num"],
+                    "label": row_info["label"],
+                    "pattern": "constant_growth",
+                    "growth_rate": growth_rate,
+                    "confidence": 0.8,
+                    "suggested_formula": "={prior_col}{row}*(1+GROWTH_RATE)",
+                    "needs_confirmation": True,
+                    "question": (
+                        f"Row '{row_info['label']}' shows a constant "
+                        f"{round(growth_rate * 100, 2)}% growth rate each period. "
+                        f"Is this correct? What drives this growth rate?"
+                    ),
+                }
+            )
             continue
 
         # Test: ratio to another row (e.g., margin calculation)
@@ -275,9 +284,7 @@ def detect_row_patterns(
 
             other_row = rows[other_idx]
             other_vals = [
-                c["value"]
-                for c in other_row
-                if isinstance(c["value"], (int, float))
+                c["value"] for c in other_row if isinstance(c["value"], (int, float))
             ]
 
             if len(other_vals) != len(vals):
@@ -290,23 +297,25 @@ def detect_row_patterns(
 
             if cross_ratios and len(set(round(r, 4) for r in cross_ratios)) == 1:
                 ratio = round(cross_ratios[0], 6)
-                patterns.append({
-                    "row_num": row_info["row_num"],
-                    "label": row_info["label"],
-                    "pattern": "ratio_of_other_row",
-                    "other_row": other_info["row_num"],
-                    "other_label": other_info["label"],
-                    "ratio": ratio,
-                    "confidence": 0.7,
-                    "suggested_formula": f"={other_info['label'].replace(' ', '_')}*{round(ratio, 4)}",
-                    "needs_confirmation": True,
-                    "question": (
-                        f"Row '{row_info['label']}' appears to be "
-                        f"{round(ratio * 100, 2)}% of '{other_info['label']}' "
-                        f"in every period. Is this a fixed ratio? "
-                        f"Where does the {round(ratio * 100, 2)}% come from?"
-                    ),
-                })
+                patterns.append(
+                    {
+                        "row_num": row_info["row_num"],
+                        "label": row_info["label"],
+                        "pattern": "ratio_of_other_row",
+                        "other_row": other_info["row_num"],
+                        "other_label": other_info["label"],
+                        "ratio": ratio,
+                        "confidence": 0.7,
+                        "suggested_formula": f"={other_info['label'].replace(' ', '_')}*{round(ratio, 4)}",
+                        "needs_confirmation": True,
+                        "question": (
+                            f"Row '{row_info['label']}' appears to be "
+                            f"{round(ratio * 100, 2)}% of '{other_info['label']}' "
+                            f"in every period. Is this a fixed ratio? "
+                            f"Where does the {round(ratio * 100, 2)}% come from?"
+                        ),
+                    }
+                )
                 break
 
     return patterns
@@ -314,10 +323,10 @@ def detect_row_patterns(
 
 @probe
 def compile_excel_from_blueprint(
-    blueprint: Dict[str, Any],
-    input_data: Dict[str, Any],
+    blueprint: dict[str, Any],
+    input_data: dict[str, Any],
     output_path: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Compile a ModelBlueprint and input data into a working .xlsx file.
 
     Takes a blueprint (with formula templates) and input data, produces
@@ -352,11 +361,9 @@ def compile_excel_from_blueprint(
 
     # Create sheets in calculation order
     for sheet_name in calculation_order:
-        sheet_spec = next(
-            (s for s in sheets if s["name"] == sheet_name), None
-        )
+        sheet_spec = next((s for s in sheets if s["name"] == sheet_name), None)
         if not sheet_spec:
-            report["errors"].append(f"Sheet spec not found: {sheet_name}")
+            report["errors"].append(f"Sheet spec not found: {sheet_name}")  # type: ignore[attr-defined]
             continue
 
         ws = wb.create_sheet(title=sheet_name)
@@ -382,7 +389,7 @@ def compile_excel_from_blueprint(
                 seed_val = input_data.get(seed_key)
                 if seed_val is not None:
                     ws.cell(row=row, column=pattern["seed_col"], value=seed_val)
-                    report["values_written"] += 1
+                    report["values_written"] += 1  # type: ignore[operator]
 
             # Write formula for each data column
             first_col = pattern.get("first_data_col", 2)
@@ -394,12 +401,14 @@ def compile_excel_from_blueprint(
                 if col in exceptions:
                     formula = _resolve_formula(exceptions[col], row, col, sheet_name)
                 elif str(col) in exceptions:  # Handle string keys from JSON
-                    formula = _resolve_formula(exceptions[str(col)], row, col, sheet_name)
+                    formula = _resolve_formula(
+                        exceptions[str(col)], row, col, sheet_name
+                    )
                 else:
                     formula = _resolve_formula(template, row, col, sheet_name)
 
                 ws.cell(row=row, column=col, value=formula)
-                report["formulas_written"] += 1
+                report["formulas_written"] += 1  # type: ignore[operator]
 
         # Apply cell overrides
         for cell_rel in sheet_spec.get("cell_overrides", []):
@@ -411,7 +420,7 @@ def compile_excel_from_blueprint(
                     sheet_name,
                 )
                 ws.cell(row=cell_rel["row"], column=cell_rel["col"], value=formula)
-                report["formulas_written"] += 1
+                report["formulas_written"] += 1  # type: ignore[operator]
 
         # Write input values
         for input_row in sheet_spec.get("input_rows", []):
@@ -421,9 +430,9 @@ def compile_excel_from_blueprint(
                 val = input_data.get(key)
                 if val is not None:
                     ws.cell(row=input_row, column=col, value=val)
-                    report["values_written"] += 1
+                    report["values_written"] += 1  # type: ignore[operator]
 
-        report["sheets_created"].append(sheet_name)
+        report["sheets_created"].append(sheet_name)  # type: ignore[attr-defined]
 
     # Save
     wb.save(output_path)
@@ -458,8 +467,8 @@ def _resolve_formula(template: str, row: int, col: int, sheet: str) -> str:
 def verify_reconstruction(
     original_path: str,
     reconstructed_path: str,
-    blueprint: Dict[str, Any],
-) -> Dict[str, Any]:
+    blueprint: dict[str, Any],
+) -> dict[str, Any]:
     """Compare a reconstructed model against the original output.
 
     Diffs every calculated cell, reports discrepancies with context.
@@ -501,16 +510,18 @@ def verify_reconstruction(
         sheet_name = sheet_spec["name"]
 
         if sheet_name not in original.sheetnames:
-            report["cells_missing"] += 1
+            report["cells_missing"] += 1  # type: ignore[operator]
             continue
 
         orig_ws = original[sheet_name]
 
         if sheet_name not in reconstructed.sheetnames:
-            report["discrepancies"].append({
-                "sheet": sheet_name,
-                "issue": "Sheet missing from reconstruction",
-            })
+            report["discrepancies"].append(  # type: ignore[attr-defined]
+                {
+                    "sheet": sheet_name,
+                    "issue": "Sheet missing from reconstruction",
+                }
+            )
             continue
 
         recon_ws = reconstructed[sheet_name]
@@ -525,23 +536,25 @@ def verify_reconstruction(
                 orig_val = orig_ws.cell(row=row_num, column=col).value
                 recon_val = recon_ws.cell(row=row_num, column=col).value
 
-                report["total_cells_checked"] += 1
+                report["total_cells_checked"] += 1  # type: ignore[operator]
 
                 if orig_val is None and recon_val is None:
-                    report["cells_matching"] += 1
+                    report["cells_matching"] += 1  # type: ignore[operator]
                     continue
 
                 if orig_val is None or recon_val is None:
-                    report["cells_mismatched"] += 1
-                    report["discrepancies"].append({
-                        "sheet": sheet_name,
-                        "row": row_num,
-                        "col": col,
-                        "row_label": row_labels.get(str(row_num), f"Row {row_num}"),
-                        "expected": orig_val,
-                        "actual": recon_val,
-                        "issue": "Value present in one but not other",
-                    })
+                    report["cells_mismatched"] += 1  # type: ignore[operator]
+                    report["discrepancies"].append(  # type: ignore[attr-defined]
+                        {
+                            "sheet": sheet_name,
+                            "row": row_num,
+                            "col": col,
+                            "row_label": row_labels.get(str(row_num), f"Row {row_num}"),
+                            "expected": orig_val,
+                            "actual": recon_val,
+                            "issue": "Value present in one but not other",
+                        }
+                    )
                     continue
 
                 # Numeric comparison with tolerance
@@ -554,27 +567,31 @@ def verify_reconstruction(
                         match = abs((recon_val - orig_val) / orig_val) < 0.01
 
                     if match:
-                        report["cells_matching"] += 1
+                        report["cells_matching"] += 1  # type: ignore[operator]
                     else:
-                        report["cells_mismatched"] += 1
+                        report["cells_mismatched"] += 1  # type: ignore[operator]
                         deviation = None
                         if orig_val != 0:
                             deviation = abs((recon_val - orig_val) / orig_val) * 100
-                        report["discrepancies"].append({
-                            "sheet": sheet_name,
-                            "row": row_num,
-                            "col": col,
-                            "row_label": row_labels.get(str(row_num), f"Row {row_num}"),
-                            "expected": orig_val,
-                            "actual": recon_val,
-                            "deviation_pct": deviation,
-                            "issue": "Value mismatch",
-                        })
+                        report["discrepancies"].append(  # type: ignore[attr-defined]
+                            {
+                                "sheet": sheet_name,
+                                "row": row_num,
+                                "col": col,
+                                "row_label": row_labels.get(
+                                    str(row_num), f"Row {row_num}"
+                                ),
+                                "expected": orig_val,
+                                "actual": recon_val,
+                                "deviation_pct": deviation,
+                                "issue": "Value mismatch",
+                            }
+                        )
                 else:
-                    report["cells_matching"] += 1  # Non-numeric, assume match
+                    report["cells_matching"] += 1  # type: ignore[operator]  # Non-numeric, assume match
 
-    if report["total_cells_checked"] > 0:
-        report["pass_rate"] = report["cells_matching"] / report["total_cells_checked"]
+    if report["total_cells_checked"] > 0:  # type: ignore[operator]
+        report["pass_rate"] = report["cells_matching"] / report["total_cells_checked"]  # type: ignore[operator]
 
     original.close()
     reconstructed.close()
@@ -583,7 +600,9 @@ def verify_reconstruction(
 
 
 @probe
-def get_excel_cell_value(file_path: str, sheet_name: str, row: int, col: int) -> Dict[str, Any]:
+def get_excel_cell_value(
+    file_path: str, sheet_name: str, row: int, col: int
+) -> dict[str, Any]:
     """Get a specific cell's value from an Excel file.
 
     Useful for debugging and verifying specific cells.

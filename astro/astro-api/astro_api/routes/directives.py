@@ -1,29 +1,28 @@
 """Directives router - CRUD for directives."""
 
 import logging
-from typing import List
 
+from astro.core.models import Directive
+from astro.core.registry import Registry, ValidationError
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from astro_api.dependencies import get_registry
 from astro_api.schemas import (
     DirectiveCreate,
-    DirectiveUpdate,
-    DirectiveSummary,
     DirectiveResponse,
+    DirectiveSummary,
+    DirectiveUpdate,
 )
-from astro.core.registry import Registry, ValidationError
-from astro.core.models import Directive
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-@router.get("", response_model=List[DirectiveSummary])
+@router.get("", response_model=list[DirectiveSummary])
 async def list_directives(
     foundry: Registry = Depends(get_registry),
-) -> List[DirectiveSummary]:
+) -> list[DirectiveSummary]:
     """List all directives."""
     logger.debug("Listing all directives")
     directives = foundry.list_directives()

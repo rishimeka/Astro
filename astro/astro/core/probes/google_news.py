@@ -17,14 +17,13 @@ IMPORTANT LIMITATIONS:
 """
 
 import asyncio
-from typing import Any, Dict, List, Optional
-from urllib.parse import quote_plus, urlencode
+from typing import Any
+from urllib.parse import quote_plus
 
 import httpx
 from bs4 import BeautifulSoup
 
 from astro.core.probes.decorator import probe
-
 
 # Google News RSS base URL
 BASE_URL = "https://news.google.com/rss"
@@ -77,7 +76,7 @@ def _build_locale_params(language: str = "en", country: str = "US") -> str:
     return f"hl={hl}&gl={country}&ceid={country}:{language}"
 
 
-def _parse_rss_items(xml_content: str) -> List[Dict[str, Any]]:
+def _parse_rss_items(xml_content: str) -> list[dict[str, Any]]:
     """Parse RSS XML content and extract article items.
 
     Args:
@@ -172,7 +171,7 @@ def fetch_google_news_headlines(
     language: str = "en",
     country: str = "US",
     max_results: int = 100,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Fetch top news headlines from Google News RSS feed.
 
     Retrieves the latest trending news headlines for a specified country
@@ -221,7 +220,7 @@ def fetch_google_news_by_topic(
     language: str = "en",
     country: str = "US",
     max_results: int = 100,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Fetch news headlines for a specific topic from Google News.
 
     Retrieves topic-oriented news headlines. Valid topics are:
@@ -284,7 +283,7 @@ def fetch_google_news_by_location(
     language: str = "en",
     country: str = "US",
     max_results: int = 100,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Fetch news headlines for a specific geographic location.
 
     Retrieves location-oriented news headlines. Accepts city names,
@@ -338,17 +337,17 @@ def search_google_news(
     query: str,
     language: str = "en",
     country: str = "US",
-    when: Optional[str] = None,
-    after: Optional[str] = None,
-    before: Optional[str] = None,
-    site: Optional[str] = None,
-    intitle: Optional[str] = None,
-    allintitle: Optional[str] = None,
-    allintext: Optional[str] = None,
-    inurl: Optional[str] = None,
-    allinurl: Optional[str] = None,
+    when: str | None = None,
+    after: str | None = None,
+    before: str | None = None,
+    site: str | None = None,
+    intitle: str | None = None,
+    allintitle: str | None = None,
+    allintext: str | None = None,
+    inurl: str | None = None,
+    allinurl: str | None = None,
     max_results: int = 100,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Search Google News with advanced query options and operators.
 
     Performs a search query on Google News using the full Google search engine syntax
@@ -496,12 +495,12 @@ def search_google_news(
 @probe
 def search_google_news_by_company(
     company_name: str,
-    ticker: Optional[str] = None,
+    ticker: str | None = None,
     language: str = "en",
     country: str = "US",
-    when: Optional[str] = None,
+    when: str | None = None,
     max_results: int = 100,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Search Google News for company-specific news.
 
     Specialized search for company news, combining company name and optional
@@ -574,7 +573,7 @@ def fetch_google_news_by_topic_hash(
     language: str = "en",
     country: str = "US",
     max_results: int = 100,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Fetch news headlines using a custom Google News topic hash.
 
     Google internally represents topics as Base64-encoded hash strings. These can be
@@ -643,12 +642,12 @@ def fetch_google_news_by_topic_hash(
 @probe
 def search_google_news_multi_source(
     query: str,
-    sources: List[str],
+    sources: list[str],
     language: str = "en",
     country: str = "US",
-    when: Optional[str] = None,
+    when: str | None = None,
     max_results: int = 100,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Search Google News across multiple specific news sources.
 
     Convenience probe for searching across multiple trusted sources simultaneously.

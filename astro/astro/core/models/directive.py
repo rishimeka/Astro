@@ -1,6 +1,6 @@
 """Directive model - the core unit of agent behavior."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -23,9 +23,7 @@ class Directive(BaseModel):
 
     # Identity
     id: str = Field(..., description="Unique identifier, e.g. 'financial_analysis'")
-    name: str = Field(
-        ..., description="Human-readable name, e.g. 'Financial Analysis'"
-    )
+    name: str = Field(..., description="Human-readable name, e.g. 'Financial Analysis'")
 
     # Progressive disclosure
     description: str = Field(
@@ -41,18 +39,18 @@ class Directive(BaseModel):
     )
 
     # Relationships (extracted from content @ references)
-    probe_ids: List[str] = Field(
+    probe_ids: list[str] = Field(
         default_factory=list,
         description="List of probe names this directive can use. "
         "Agent only gets these tools, nothing else. "
         "Extracted from @probe:name references in content.",
     )
-    reference_ids: List[str] = Field(
+    reference_ids: list[str] = Field(
         default_factory=list,
         description="IDs of sub-directives available for delegation. "
         "Extracted from @directive:id references in content.",
     )
-    template_variables: List[TemplateVariable] = Field(
+    template_variables: list[TemplateVariable] = Field(
         default_factory=list,
         description="Variables that must be filled at runtime. "
         "Extracted from @variable:name references in content. "
@@ -60,7 +58,7 @@ class Directive(BaseModel):
     )
 
     # Extensibility
-    metadata: Dict[str, Any] = Field(
+    metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Tags, author, created_at, domain, etc. "
         "Useful for filtering/search in Launchpad UI.",

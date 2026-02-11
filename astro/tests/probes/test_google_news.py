@@ -1,20 +1,20 @@
 """Tests for Google News RSS feed probes."""
 
 import importlib
-import pytest
 from unittest.mock import patch
 
+import pytest
+from astro_backend_service.probes import ProbeRegistry
 from astro_backend_service.probes.google_news import (
-    fetch_google_news_headlines,
-    fetch_google_news_by_topic,
+    VALID_TOPICS,
+    _build_locale_params,
+    _parse_rss_items,
     fetch_google_news_by_location,
+    fetch_google_news_by_topic,
+    fetch_google_news_headlines,
     search_google_news,
     search_google_news_by_company,
-    _parse_rss_items,
-    _build_locale_params,
-    VALID_TOPICS,
 )
-from astro_backend_service.probes import ProbeRegistry
 
 
 @pytest.fixture

@@ -1,7 +1,6 @@
 """Tests for the Probe model."""
 
 import pytest
-
 from astro_backend_service.probes.probe import Probe
 
 

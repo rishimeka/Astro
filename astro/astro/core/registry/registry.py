@@ -10,22 +10,22 @@ Layer 1 (core) only manages Directives and Probes.
 Stars, Constellations, and Runs are Layer 2 concepts and are NOT managed here.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from astro.interfaces.storage import CoreStorageBackend
 from astro.core.models.directive import Directive
 from astro.core.models.template_variable import TemplateVariable
 from astro.core.probes.registry import ProbeRegistry
-from astro.core.registry.indexes import RegistryIndexes, Probe
 from astro.core.registry.extractor import (
-    extract_references,
     create_template_variables,
+    extract_references,
 )
+from astro.core.registry.indexes import Probe, RegistryIndexes
 from astro.core.registry.validation import (
     ValidationError,
     ValidationWarning,
     validate_directive,
 )
+from astro.interfaces.storage import CoreStorageBackend
 
 
 class Registry:
@@ -137,7 +137,7 @@ class Registry:
         """
         return self._indexes.probe_exists(name)
 
-    def get_probe(self, name: str) -> Optional[Probe]:
+    def get_probe(self, name: str) -> Probe | None:
         """Get probe by name.
 
         Args:
@@ -148,7 +148,7 @@ class Registry:
         """
         return self._indexes.get_probe(name)
 
-    def register_probes(self, probes: List[Probe]) -> None:
+    def register_probes(self, probes: list[Probe]) -> None:
         """
         Register multiple probes.
 
@@ -162,8 +162,8 @@ class Registry:
         self,
         name: str,
         description: str,
-        parameters: Optional[Dict[str, Any]] = None,
-        handler: Optional[Any] = None,
+        parameters: dict[str, Any] | None = None,
+        handler: Any | None = None,
     ) -> Probe:
         """
         Register a single probe.
@@ -186,7 +186,7 @@ class Registry:
         self._indexes.probes[name] = probe
         return probe
 
-    def list_probes(self) -> List[Probe]:
+    def list_probes(self) -> list[Probe]:
         """List all registered probes.
 
         Returns:
@@ -200,7 +200,7 @@ class Registry:
 
     async def create_directive(
         self, directive: Directive
-    ) -> Tuple[Directive, List[ValidationWarning]]:
+    ) -> tuple[Directive, list[ValidationWarning]]:
         """
         Create a new directive.
 
@@ -252,7 +252,7 @@ class Registry:
 
         return directive, warnings
 
-    def get_directive(self, id: str) -> Optional[Directive]:
+    def get_directive(self, id: str) -> Directive | None:
         """Get directive by ID from in-memory index.
 
         Args:
@@ -265,8 +265,8 @@ class Registry:
 
     def list_directives(
         self,
-        filter_metadata: Optional[Dict[str, Any]] = None,
-    ) -> List[Directive]:
+        filter_metadata: dict[str, Any] | None = None,
+    ) -> list[Directive]:
         """List all directives, optionally filtered by metadata.
 
         Note: This returns directives from the in-memory index.
@@ -284,8 +284,8 @@ class Registry:
         return list(self._indexes.directives.values())
 
     async def update_directive(
-        self, id: str, updates: Dict[str, Any]
-    ) -> Tuple[Directive, List[ValidationWarning]]:
+        self, id: str, updates: dict[str, Any]
+    ) -> tuple[Directive, list[ValidationWarning]]:
         """
         Update directive.
 
@@ -361,9 +361,7 @@ class Registry:
 
         # Check if any other directives reference this one
         referencing_directives = [
-            d.id
-            for d in self._indexes.directives.values()
-            if id in d.reference_ids
+            d.id for d in self._indexes.directives.values() if id in d.reference_ids
         ]
 
         if referencing_directives:

@@ -1,7 +1,7 @@
 """DocExStar - document extraction orchestrator."""
 
 import asyncio
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
 
@@ -9,8 +9,8 @@ from astro.orchestration.models.star_types import StarType
 from astro.orchestration.stars.base import OrchestratorStar
 
 if TYPE_CHECKING:
+    from astro.core.models.outputs import DocExResult  # type: ignore[attr-defined]
     from astro.orchestration.context import ConstellationContext
-    from astro.core.models.outputs import DocExResult
 
 
 class DocExStar(OrchestratorStar):
@@ -21,7 +21,7 @@ class DocExStar(OrchestratorStar):
 
     type: StarType = Field(default=StarType.DOCEX, frozen=True)
 
-    def validate_star(self) -> List[str]:
+    def validate_star(self) -> list[str]:
         """Validate DocExStar configuration."""
         errors = super().validate_star()
         return errors
@@ -38,7 +38,10 @@ class DocExStar(OrchestratorStar):
         from langchain_core.messages import HumanMessage, SystemMessage
 
         from astro.core.llm.utils import get_llm
-        from astro.core.models.outputs import DocExResult, DocumentExtraction
+        from astro.core.models.outputs import (  # type: ignore[attr-defined]
+            DocExResult,
+            DocumentExtraction,
+        )
 
         # Get documents from context
         documents = context.get_documents()
@@ -77,7 +80,7 @@ Extract the relevant information from this document."""
             llm = get_llm(temperature=0.2)
 
             try:
-                response = llm.invoke(
+                response = llm.invoke(  # type: ignore[attr-defined]
                     [
                         SystemMessage(content=system_prompt),
                         HumanMessage(content=user_message),
@@ -109,7 +112,7 @@ Extract the relevant information from this document."""
             *[extract_from_document(doc) for doc in documents], return_exceptions=True
         )
 
-        extractions: List[DocumentExtraction] = []
+        extractions: list[DocumentExtraction] = []
         for i, result in enumerate(results):
             if isinstance(result, BaseException):
                 extractions.append(

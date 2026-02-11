@@ -1,9 +1,8 @@
 """Test fixtures for executor tests."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
-
 from astro_backend_service.models import (
     Constellation,
     Directive,
@@ -11,8 +10,8 @@ from astro_backend_service.models import (
     EndNode,
     Position,
     StarNode,
-    StarType,
     StartNode,
+    StarType,
     TemplateVariable,
     WorkerStar,
 )
@@ -23,10 +22,10 @@ class MockFoundry:
     """Mock Foundry for testing without actual registry."""
 
     def __init__(self) -> None:
-        self._constellations: Dict[str, Constellation] = {}
-        self._stars: Dict[str, Any] = {}
-        self._directives: Dict[str, Directive] = {}
-        self._runs: Dict[str, Dict[str, Any]] = {}
+        self._constellations: dict[str, Constellation] = {}
+        self._stars: dict[str, Any] = {}
+        self._directives: dict[str, Directive] = {}
+        self._runs: dict[str, dict[str, Any]] = {}
 
     def add_constellation(self, constellation: Constellation) -> None:
         self._constellations[constellation.id] = constellation
@@ -37,37 +36,37 @@ class MockFoundry:
     def add_directive(self, directive: Directive) -> None:
         self._directives[directive.id] = directive
 
-    def get_constellation(self, constellation_id: str) -> Optional[Constellation]:
+    def get_constellation(self, constellation_id: str) -> Constellation | None:
         return self._constellations.get(constellation_id)
 
-    def get_star(self, star_id: str) -> Optional[Any]:
+    def get_star(self, star_id: str) -> Any | None:
         return self._stars.get(star_id)
 
-    def get_directive(self, directive_id: str) -> Optional[Directive]:
+    def get_directive(self, directive_id: str) -> Directive | None:
         return self._directives.get(directive_id)
 
-    def list_stars(self) -> List[Any]:
+    def list_stars(self) -> list[Any]:
         return list(self._stars.values())
 
-    def list_constellations(self) -> List[Constellation]:
+    def list_constellations(self) -> list[Constellation]:
         return list(self._constellations.values())
 
     # Run persistence methods (async to match Foundry interface)
-    async def create_run(self, run_data: Dict[str, Any]) -> None:
+    async def create_run(self, run_data: dict[str, Any]) -> None:
         self._runs[run_data["id"]] = run_data
 
-    async def get_run(self, run_id: str) -> Optional[Dict[str, Any]]:
+    async def get_run(self, run_id: str) -> dict[str, Any] | None:
         return self._runs.get(run_id)
 
-    async def update_run(self, run_id: str, updates: Dict[str, Any]) -> bool:
+    async def update_run(self, run_id: str, updates: dict[str, Any]) -> bool:
         if run_id in self._runs:
             self._runs[run_id].update(updates)
             return True
         return False
 
     async def list_runs(
-        self, constellation_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, constellation_id: str | None = None
+    ) -> list[dict[str, Any]]:
         if constellation_id:
             return [
                 r
@@ -79,11 +78,11 @@ class MockFoundry:
     # Directive/star creation methods (async to match Foundry interface)
     async def create_directive(
         self, directive: Directive
-    ) -> tuple[Directive, List[Any]]:
+    ) -> tuple[Directive, list[Any]]:
         self._directives[directive.id] = directive
         return directive, []
 
-    async def create_star(self, star: Any) -> tuple[Any, List[Any]]:
+    async def create_star(self, star: Any) -> tuple[Any, list[Any]]:
         self._stars[star.id] = star
         return star, []
 

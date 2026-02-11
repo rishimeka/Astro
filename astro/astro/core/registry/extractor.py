@@ -1,10 +1,8 @@
 """@ syntax extraction from Directive content."""
 
 import re
-from typing import Dict, List, Tuple
 
 from astro.core.models.template_variable import TemplateVariable
-
 
 # Regex patterns for @ syntax
 PROBE_PATTERN = re.compile(r"@probe:(\w+)")
@@ -12,7 +10,7 @@ DIRECTIVE_PATTERN = re.compile(r"@directive:(\w+)")
 VARIABLE_PATTERN = re.compile(r"@variable:(\w+)")
 
 
-def extract_references(content: str) -> Tuple[List[str], List[str], List[str]]:
+def extract_references(content: str) -> tuple[list[str], list[str], list[str]]:
     """
     Extract @probe:, @directive:, and @variable: references from content.
 
@@ -30,7 +28,7 @@ def extract_references(content: str) -> Tuple[List[str], List[str], List[str]]:
     return probe_ids, reference_ids, variable_names
 
 
-def validate_at_syntax(content: str) -> List[str]:
+def validate_at_syntax(content: str) -> list[str]:
     """
     Validate @ syntax in content and return list of errors.
 
@@ -44,7 +42,7 @@ def validate_at_syntax(content: str) -> List[str]:
     Returns:
         List of error messages. Empty list means valid.
     """
-    errors: List[str] = []
+    errors: list[str] = []
 
     # Check for malformed references (@ followed by known type but no name)
     malformed_patterns = [
@@ -72,7 +70,7 @@ def validate_at_syntax(content: str) -> List[str]:
     return errors
 
 
-def render_content_with_variables(content: str, variables: Dict[str, str]) -> str:
+def render_content_with_variables(content: str, variables: dict[str, str]) -> str:
     """
     Replace @variable:name references with actual values.
 
@@ -95,8 +93,8 @@ def render_content_with_variables(content: str, variables: Dict[str, str]) -> st
 
 
 def create_template_variables(
-    variable_names: List[str], existing_vars: List[TemplateVariable]
-) -> List[TemplateVariable]:
+    variable_names: list[str], existing_vars: list[TemplateVariable]
+) -> list[TemplateVariable]:
     """
     Create TemplateVariable objects for extracted variable names.
 

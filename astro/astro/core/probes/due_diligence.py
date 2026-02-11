@@ -17,10 +17,9 @@ different Stars have access to different subsets of probes.
 
 import random
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from astro.core.probes.decorator import probe
-
 
 # =============================================================================
 # Realistic Company Data for Benchmark
@@ -172,7 +171,13 @@ COMPANY_ANALYST_DATA = {
         "price_target_low": 120.00,
         "price_target_high": 200.00,
         "analyst_count": 42,
-        "ratings": {"strong_buy": 8, "buy": 18, "hold": 14, "sell": 2, "strong_sell": 0},
+        "ratings": {
+            "strong_buy": 8,
+            "buy": 18,
+            "hold": 14,
+            "sell": 2,
+            "strong_sell": 0,
+        },
         "eps_current_year": 4.55,
         "eps_next_year": 5.20,
     },
@@ -182,7 +187,13 @@ COMPANY_ANALYST_DATA = {
         "price_target_low": 85.00,
         "price_target_high": 400.00,
         "analyst_count": 52,
-        "ratings": {"strong_buy": 6, "buy": 12, "hold": 22, "sell": 8, "strong_sell": 4},
+        "ratings": {
+            "strong_buy": 6,
+            "buy": 12,
+            "hold": 22,
+            "sell": 8,
+            "strong_sell": 4,
+        },
         "eps_current_year": 2.45,
         "eps_next_year": 3.10,
     },
@@ -192,7 +203,13 @@ COMPANY_ANALYST_DATA = {
         "price_target_low": 180.00,
         "price_target_high": 300.00,
         "analyst_count": 48,
-        "ratings": {"strong_buy": 12, "buy": 22, "hold": 12, "sell": 2, "strong_sell": 0},
+        "ratings": {
+            "strong_buy": 12,
+            "buy": 22,
+            "hold": 12,
+            "sell": 2,
+            "strong_sell": 0,
+        },
         "eps_current_year": 6.75,
         "eps_next_year": 7.35,
     },
@@ -202,7 +219,13 @@ COMPANY_ANALYST_DATA = {
         "price_target_low": 480.00,
         "price_target_high": 750.00,
         "analyst_count": 58,
-        "ratings": {"strong_buy": 18, "buy": 28, "hold": 10, "sell": 2, "strong_sell": 0},
+        "ratings": {
+            "strong_buy": 18,
+            "buy": 28,
+            "hold": 10,
+            "sell": 2,
+            "strong_sell": 0,
+        },
         "eps_current_year": 21.50,
         "eps_next_year": 25.80,
     },
@@ -426,7 +449,7 @@ def _get_company_data(company: str, data_dict: dict, default_generator=None):
     return None, False
 
 
-def _generate_fallback_financial_data(company: str) -> Dict[str, Any]:
+def _generate_fallback_financial_data(company: str) -> dict[str, Any]:
     """Generate plausible financial data for unknown companies."""
     # Use more reasonable ranges for unknown companies
     base_revenue = random.randint(1, 20) * 1_000_000_000  # $1B-$20B
@@ -468,8 +491,8 @@ def _generate_fallback_financial_data(company: str) -> Dict[str, Any]:
 
 
 def _generate_sec_filing(
-    company: str, filing_type: str, days_ago: int = None
-) -> Dict[str, Any]:
+    company: str, filing_type: str, days_ago: int | None = None
+) -> dict[str, Any]:
     """Generate SEC filing data."""
     if days_ago is None:
         days_ago = random.randint(1, 90)
@@ -506,7 +529,7 @@ def search_sec_filings(
     company: str,
     filing_type: str = "10-K",
     date_range: str = "1y",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Search and retrieve SEC filings (10-K, 10-Q, 8-K, proxy statements) for a company.
 
     Accesses the SEC EDGAR database to retrieve regulatory filings including
@@ -535,7 +558,9 @@ def search_sec_filings(
     filings = []
     for i in range(num_filings):
         days_ago = i * (365 // type_multiplier // max(1, range_multiplier // 4))
-        filings.append(_generate_sec_filing(company, filing_type, days_ago + random.randint(0, 30)))
+        filings.append(
+            _generate_sec_filing(company, filing_type, days_ago + random.randint(0, 30))
+        )
 
     return {
         "filings": filings,
@@ -549,9 +574,9 @@ def search_sec_filings(
 @probe
 def get_financial_data(
     company: str,
-    metrics: Optional[List[str]] = None,
+    metrics: list[str] | None = None,
     period: str = "annual",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Retrieve quantitative financial data: revenue, earnings, balance sheet, ratios.
 
     Fetches structured financial metrics from financial data APIs including
@@ -611,7 +636,9 @@ def get_financial_data(
     }
 
     if not is_known:
-        result["_note"] = "Data generated for unknown company - verify with primary sources"
+        result["_note"] = (
+            "Data generated for unknown company - verify with primary sources"
+        )
 
     return result
 
@@ -620,8 +647,8 @@ def get_financial_data(
 def search_earnings_transcripts(
     company: str,
     quarter: str = "latest",
-    keywords: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    keywords: list[str] | None = None,
+) -> dict[str, Any]:
     """Search and retrieve earnings call transcripts with keyword search.
 
     Accesses earnings call transcript database to retrieve management
@@ -645,18 +672,26 @@ def search_earnings_transcripts(
 
     # Generate mock transcript excerpts
     topics = [
-        "revenue growth", "margin expansion", "market share", "new products",
-        "competitive dynamics", "guidance", "capital allocation", "M&A"
+        "revenue growth",
+        "margin expansion",
+        "market share",
+        "new products",
+        "competitive dynamics",
+        "guidance",
+        "capital allocation",
+        "M&A",
     ]
 
     key_quotes = []
     if keywords:
         for kw in keywords[:3]:
-            key_quotes.append({
-                "keyword": kw,
-                "quote": f"Regarding {kw}, we've seen positive momentum in Q4 with strong execution across all segments.",
-                "speaker": random.choice(["CEO", "CFO", "COO"]),
-            })
+            key_quotes.append(
+                {
+                    "keyword": kw,
+                    "quote": f"Regarding {kw}, we've seen positive momentum in Q4 with strong execution across all segments.",
+                    "speaker": random.choice(["CEO", "CFO", "COO"]),
+                }
+            )
 
     return {
         "transcript": f"[Earnings Call Transcript for {company}]\n\nOperator: Good afternoon and welcome to {company}'s earnings call...\n\n[Management prepared remarks discussing {', '.join(random.sample(topics, 3))}]\n\n[Q&A session with analysts covering {', '.join(random.sample(topics, 2))}]",
@@ -665,7 +700,12 @@ def search_earnings_transcripts(
         "date": call_date.strftime("%Y-%m-%d"),
         "participants": {
             "executives": ["CEO John Smith", "CFO Jane Doe", "COO Mike Johnson"],
-            "analysts": ["Goldman Sachs", "Morgan Stanley", "JP Morgan", "Bank of America"],
+            "analysts": [
+                "Goldman Sachs",
+                "Morgan Stanley",
+                "JP Morgan",
+                "Bank of America",
+            ],
         },
         "key_quotes": key_quotes,
     }
@@ -680,8 +720,8 @@ def search_earnings_transcripts(
 def search_news(
     query: str,
     date_range: str = "7d",
-    sources: Optional[List[str]] = None,
-) -> List[Dict[str, Any]]:
+    sources: list[str] | None = None,
+) -> list[dict[str, Any]]:
     """Search recent news articles about a company or topic.
 
     Searches news aggregators for recent coverage, returning headlines,
@@ -701,7 +741,14 @@ def search_news(
         - url: Source URL
         - sentiment: positive/negative/neutral
     """
-    all_sources = sources or ["Reuters", "Bloomberg", "Wall Street Journal", "Financial Times", "CNBC", "The Verge"]
+    all_sources = sources or [
+        "Reuters",
+        "Bloomberg",
+        "Wall Street Journal",
+        "Financial Times",
+        "CNBC",
+        "The Verge",
+    ]
 
     # Try to find company-specific news themes
     normalized = _normalize_company_name(query)
@@ -722,17 +769,21 @@ def search_news(
             headline = random.choice(headlines)
 
             # Vary the date based on article index
-            days_ago = int(i * ({"1d": 0.3, "7d": 0.8, "30d": 3, "90d": 8}.get(date_range, 1)))
+            days_ago = int(
+                i * ({"1d": 0.3, "7d": 0.8, "30d": 3, "90d": 8}.get(date_range, 1))
+            )
             pub_date = datetime.now() - timedelta(days=days_ago + random.randint(0, 2))
 
-            articles.append({
-                "title": headline,
-                "source": random.choice(all_sources),
-                "published": pub_date.strftime("%Y-%m-%d"),
-                "summary": f"Coverage of {query}'s recent developments and market dynamics.",
-                "url": f"https://news.example.com/{normalized}/{pub_date.strftime('%Y%m%d')}-{i}",
-                "sentiment": sentiment,
-            })
+            articles.append(
+                {
+                    "title": headline,
+                    "source": random.choice(all_sources),
+                    "published": pub_date.strftime("%Y-%m-%d"),
+                    "summary": f"Coverage of {query}'s recent developments and market dynamics.",
+                    "url": f"https://news.example.com/{normalized}/{pub_date.strftime('%Y%m%d')}-{i}",
+                    "sentiment": sentiment,
+                }
+            )
     else:
         # Generic headlines for unknown companies
         sentiments = ["positive", "negative", "neutral"]
@@ -742,20 +793,31 @@ def search_news(
             sentiment = random.choice(sentiments)
 
             generic_headlines = {
-                "positive": [f"{query} Reports Quarterly Results", f"Analysts Review {query} Outlook"],
-                "negative": [f"{query} Faces Market Challenges", f"Industry Headwinds Impact {query}"],
-                "neutral": [f"{query} Market Update", f"Sector Analysis: {query} Position"],
+                "positive": [
+                    f"{query} Reports Quarterly Results",
+                    f"Analysts Review {query} Outlook",
+                ],
+                "negative": [
+                    f"{query} Faces Market Challenges",
+                    f"Industry Headwinds Impact {query}",
+                ],
+                "neutral": [
+                    f"{query} Market Update",
+                    f"Sector Analysis: {query} Position",
+                ],
             }
 
-            articles.append({
-                "title": random.choice(generic_headlines[sentiment]),
-                "source": random.choice(all_sources),
-                "published": pub_date.strftime("%Y-%m-%d"),
-                "summary": f"Coverage of {query}'s market position.",
-                "url": f"https://news.example.com/{query.lower().replace(' ', '-')}-{i}",
-                "sentiment": sentiment,
-                "_note": "Generic coverage - verify with primary sources",
-            })
+            articles.append(
+                {
+                    "title": random.choice(generic_headlines[sentiment]),
+                    "source": random.choice(all_sources),
+                    "published": pub_date.strftime("%Y-%m-%d"),
+                    "summary": f"Coverage of {query}'s market position.",
+                    "url": f"https://news.example.com/{query.lower().replace(' ', '-')}-{i}",
+                    "sentiment": sentiment,
+                    "_note": "Generic coverage - verify with primary sources",
+                }
+            )
 
     return articles
 
@@ -765,7 +827,13 @@ COMPANY_SENTIMENT_PROFILES = {
     "airbnb": {
         "base_sentiment": 0.15,  # Slightly positive
         "volatility": 0.1,
-        "topics": ["travel recovery", "host experience", "regulations", "competition", "pricing"],
+        "topics": [
+            "travel recovery",
+            "host experience",
+            "regulations",
+            "competition",
+            "pricing",
+        ],
         "reddit_bias": -0.1,  # Reddit slightly more skeptical
     },
     "tesla": {
@@ -777,7 +845,13 @@ COMPANY_SENTIMENT_PROFILES = {
     "apple": {
         "base_sentiment": 0.20,  # Steadily positive
         "volatility": 0.05,  # Low volatility
-        "topics": ["iPhone", "Apple Intelligence", "Services", "Vision Pro", "China sales"],
+        "topics": [
+            "iPhone",
+            "Apple Intelligence",
+            "Services",
+            "Vision Pro",
+            "China sales",
+        ],
         "reddit_bias": 0.0,
     },
     "meta": {
@@ -792,9 +866,9 @@ COMPANY_SENTIMENT_PROFILES = {
 @probe
 def get_social_sentiment(
     company: str,
-    platforms: Optional[List[str]] = None,
+    platforms: list[str] | None = None,
     date_range: str = "7d",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Analyze social media sentiment from Twitter/X, Reddit, StockTwits.
 
     Aggregates social media discussions and sentiment indicators from
@@ -825,7 +899,7 @@ def get_social_sentiment(
         reddit_bias = profile.get("reddit_bias", 0)
 
         # Add some randomness within the company's typical range
-        sentiment_score = base_sentiment + random.uniform(-volatility, volatility)
+        sentiment_score = base_sentiment + random.uniform(-volatility, volatility)  # type: ignore[operator,arg-type]
     else:
         sentiment_score = random.uniform(-0.3, 0.4)
         topics = ["earnings", "competition", "valuation", "growth", "management"]
@@ -834,17 +908,28 @@ def get_social_sentiment(
     platform_data = {}
     for platform in platforms:
         # Each platform has slightly different sentiment
-        platform_adjustment = reddit_bias if platform == "reddit" else random.uniform(-0.1, 0.1)
-        platform_sentiment = sentiment_score + platform_adjustment
+        platform_adjustment = (
+            reddit_bias if platform == "reddit" else random.uniform(-0.1, 0.1)
+        )
+        platform_sentiment = sentiment_score + platform_adjustment  # type: ignore[operator]
 
         # Scale mention counts by company size/popularity
-        base_mentions = {"tesla": 15000, "apple": 12000, "meta": 8000, "airbnb": 4000}.get(normalized, 2000)
+        base_mentions = {
+            "tesla": 15000,
+            "apple": 12000,
+            "meta": 8000,
+            "airbnb": 4000,
+        }.get(normalized, 2000)
         mention_multiplier = {"1d": 0.15, "7d": 1, "30d": 4}.get(date_range, 1)
 
         platform_data[platform] = {
             "sentiment_score": round(max(-1, min(1, platform_sentiment)), 2),
-            "mention_count": int(base_mentions * mention_multiplier * random.uniform(0.8, 1.2)),
-            "engagement": int(base_mentions * 20 * mention_multiplier * random.uniform(0.7, 1.3)),
+            "mention_count": int(
+                base_mentions * mention_multiplier * random.uniform(0.8, 1.2)
+            ),
+            "engagement": int(
+                base_mentions * 20 * mention_multiplier * random.uniform(0.7, 1.3)
+            ),
         }
 
     sentiment_label = "neutral"
@@ -859,10 +944,18 @@ def get_social_sentiment(
         "sentiment_label": sentiment_label,
         "mention_count": sum(p["mention_count"] for p in platform_data.values()),
         "platform_breakdown": platform_data,
-        "trending_topics": topics[:4] if profile else random.sample(topics, 4),
+        "trending_topics": topics[:4] if profile else random.sample(topics, 4),  # type: ignore[index,arg-type]
         "notable_posts": [
-            {"platform": "reddit", "summary": f"DD post analyzing {company}'s competitive moat", "engagement": random.randint(1000, 5000)},
-            {"platform": "twitter", "summary": f"Analyst thread on {company}'s outlook", "engagement": random.randint(500, 3000)},
+            {
+                "platform": "reddit",
+                "summary": f"DD post analyzing {company}'s competitive moat",
+                "engagement": random.randint(1000, 5000),
+            },
+            {
+                "platform": "twitter",
+                "summary": f"Analyst thread on {company}'s outlook",
+                "engagement": random.randint(500, 3000),
+            },
         ],
         "date_range": date_range,
     }
@@ -871,7 +964,7 @@ def get_social_sentiment(
 @probe
 def get_analyst_ratings(
     company: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Retrieve sell-side analyst ratings, price targets, and consensus estimates.
 
     Aggregates analyst recommendations, price targets, and earnings
@@ -895,10 +988,12 @@ def get_analyst_ratings(
     financials = COMPANY_FINANCIALS.get(normalized)
 
     if analyst_data and financials:
-        current_price = financials["stock"]["price"]
+        current_price = financials["stock"]["price"]  # type: ignore[index]
         eps_current = analyst_data["eps_current_year"]
         eps_next = analyst_data["eps_next_year"]
-        growth_rate = ((eps_next - eps_current) / eps_current * 100) if eps_current else 15.0
+        growth_rate = (
+            ((eps_next - eps_current) / eps_current * 100) if eps_current else 15.0  # type: ignore[operator]
+        )
 
         return {
             "company": company,
@@ -912,9 +1007,25 @@ def get_analyst_ratings(
             "analyst_count": analyst_data["analyst_count"],
             "ratings_breakdown": analyst_data["ratings"],
             "recent_changes": [
-                {"firm": "Goldman Sachs", "action": "upgraded", "from": "hold", "to": "buy", "date": (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")},
-                {"firm": "Morgan Stanley", "action": "maintained", "rating": analyst_data["consensus_rating"], "date": (datetime.now() - timedelta(days=12)).strftime("%Y-%m-%d")},
-                {"firm": "JP Morgan", "action": "initiated", "rating": "overweight", "date": (datetime.now() - timedelta(days=21)).strftime("%Y-%m-%d")},
+                {
+                    "firm": "Goldman Sachs",
+                    "action": "upgraded",
+                    "from": "hold",
+                    "to": "buy",
+                    "date": (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d"),
+                },
+                {
+                    "firm": "Morgan Stanley",
+                    "action": "maintained",
+                    "rating": analyst_data["consensus_rating"],
+                    "date": (datetime.now() - timedelta(days=12)).strftime("%Y-%m-%d"),
+                },
+                {
+                    "firm": "JP Morgan",
+                    "action": "initiated",
+                    "rating": "overweight",
+                    "date": (datetime.now() - timedelta(days=21)).strftime("%Y-%m-%d"),
+                },
             ],
             "eps_estimates": {
                 "current_year": eps_current,
@@ -966,7 +1077,7 @@ def search_legal_cases(
     company: str,
     case_type: str = "all",
     status: str = "all",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Search for active litigation, settlements, class actions, and regulatory actions.
 
     Queries legal databases for lawsuits, regulatory enforcement actions,
@@ -995,15 +1106,17 @@ def search_legal_cases(
         # Filter known cases by type and status
         cases = []
         for i, case in enumerate(known_cases):
-            if case_type != "all" and case["case_type"] != case_type:
+            if case_type != "all" and case["case_type"] != case_type:  # type: ignore[index]
                 continue
-            if status != "all" and case["status"] != status:
+            if status != "all" and case["status"] != status:  # type: ignore[index]
                 continue
-            cases.append({
-                "case_id": f"CASE-{normalized.upper()[:3]}-{i+1:04d}",
-                **case,
-            })
-        return cases if cases else known_cases[:2]  # Return at least some data
+            cases.append(
+                {
+                    "case_id": f"CASE-{normalized.upper()[:3]}-{i+1:04d}",
+                    **case,  # type: ignore[dict-item]
+                }
+            )
+        return cases if cases else known_cases[:2]  # type: ignore[return-value]  # Return at least some data
 
     # Fallback for unknown companies
     case_types_list = ["lawsuit", "class_action", "regulatory", "settlement"]
@@ -1029,17 +1142,25 @@ def search_legal_cases(
             "settlement": f"{company} Settlement Agreement",
         }
 
-        cases.append({
-            "case_id": f"CASE-{random.randint(10000, 99999)}",
-            "case_type": ct,
-            "title": case_titles.get(ct, f"Legal Matter - {company}"),
-            "status": st,
-            "filed_date": filed_date.strftime("%Y-%m-%d"),
-            "court": random.choice(["US District Court", "State Court", "SEC", "FTC"]),
-            "amount": f"${random.randint(5, 100)}M" if st in ["settled", "active"] else None,
-            "summary": f"Legal proceeding involving {company}.",
-            "_note": "Generated data - verify with primary sources",
-        })
+        cases.append(
+            {
+                "case_id": f"CASE-{random.randint(10000, 99999)}",
+                "case_type": ct,
+                "title": case_titles.get(ct, f"Legal Matter - {company}"),
+                "status": st,
+                "filed_date": filed_date.strftime("%Y-%m-%d"),
+                "court": random.choice(
+                    ["US District Court", "State Court", "SEC", "FTC"]
+                ),
+                "amount": (  # type: ignore[dict-item]
+                    f"${random.randint(5, 100)}M"
+                    if st in ["settled", "active"]
+                    else None
+                ),
+                "summary": f"Legal proceeding involving {company}.",
+                "_note": "Generated data - verify with primary sources",
+            }
+        )
 
     return cases
 
@@ -1049,7 +1170,7 @@ def search_regulatory_filings(
     company: str,
     regulatory_body: str = "all",
     date_range: str = "1y",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Search filings from regulatory bodies (FDA, FCC, FERC, etc.).
 
     Queries regulatory databases for filings, approvals, denials,
@@ -1078,12 +1199,26 @@ def search_regulatory_filings(
     num_filings = random.randint(3, 8)
 
     filing_types = {
-        "SEC": ["10-K Filing", "8-K Disclosure", "Proxy Statement", "Registration Statement"],
-        "FDA": ["Drug Approval Application", "510(k) Clearance", "Clinical Trial Authorization", "Warning Letter"],
+        "SEC": [
+            "10-K Filing",
+            "8-K Disclosure",
+            "Proxy Statement",
+            "Registration Statement",
+        ],
+        "FDA": [
+            "Drug Approval Application",
+            "510(k) Clearance",
+            "Clinical Trial Authorization",
+            "Warning Letter",
+        ],
         "FCC": ["Spectrum License", "Equipment Authorization", "Merger Review"],
         "FERC": ["Rate Filing", "Pipeline Certificate", "Market Authorization"],
         "EPA": ["Environmental Permit", "Compliance Report", "Emissions Data"],
-        "FTC": ["Merger Notification", "Consumer Protection Filing", "Antitrust Review"],
+        "FTC": [
+            "Merger Notification",
+            "Consumer Protection Filing",
+            "Antitrust Review",
+        ],
         "DOJ": ["Antitrust Filing", "FCPA Disclosure", "Settlement Agreement"],
     }
 
@@ -1092,15 +1227,17 @@ def search_regulatory_filings(
         filing_date = datetime.now() - timedelta(days=random.randint(1, 365))
         status = random.choice(["approved", "pending", "under_review", "denied"])
 
-        filings.append({
-            "filing_id": f"REG-{reg}-{random.randint(10000, 99999)}",
-            "regulatory_body": reg,
-            "filing_type": random.choice(filing_types.get(reg, ["General Filing"])),
-            "date": filing_date.strftime("%Y-%m-%d"),
-            "status": status,
-            "summary": f"Regulatory filing with {reg} regarding {company}'s operations and compliance.",
-            "impact": random.choice(["material", "moderate", "minimal"]),
-        })
+        filings.append(
+            {
+                "filing_id": f"REG-{reg}-{random.randint(10000, 99999)}",
+                "regulatory_body": reg,
+                "filing_type": random.choice(filing_types.get(reg, ["General Filing"])),
+                "date": filing_date.strftime("%Y-%m-%d"),
+                "status": status,
+                "summary": f"Regulatory filing with {reg} regarding {company}'s operations and compliance.",
+                "impact": random.choice(["material", "moderate", "minimal"]),
+            }
+        )
 
     return filings
 
@@ -1226,11 +1363,24 @@ def _match_industry(query: str) -> tuple:
     # Direct matches
     if "rental" in query_lower or "airbnb" in query_lower or "vacation" in query_lower:
         return "short-term rental", INDUSTRY_DATA["short-term rental"]
-    if "ev" in query_lower or "electric vehicle" in query_lower or "tesla" in query_lower:
+    if (
+        "ev" in query_lower
+        or "electric vehicle" in query_lower
+        or "tesla" in query_lower
+    ):
         return "electric vehicles", INDUSTRY_DATA["electric vehicles"]
-    if "smartphone" in query_lower or "consumer electronics" in query_lower or "apple" in query_lower:
+    if (
+        "smartphone" in query_lower
+        or "consumer electronics" in query_lower
+        or "apple" in query_lower
+    ):
         return "consumer electronics", INDUSTRY_DATA["consumer electronics"]
-    if "advertising" in query_lower or "ad" in query_lower or "meta" in query_lower or "facebook" in query_lower:
+    if (
+        "advertising" in query_lower
+        or "ad" in query_lower
+        or "meta" in query_lower
+        or "facebook" in query_lower
+    ):
         return "digital advertising", INDUSTRY_DATA["digital advertising"]
 
     return None, None
@@ -1239,8 +1389,8 @@ def _match_industry(query: str) -> tuple:
 @probe
 def get_market_research(
     industry: str,
-    metrics: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    metrics: list[str] | None = None,
+) -> dict[str, Any]:
     """Access market size, growth rates, market share data, and industry reports.
 
     Retrieves industry-level data including total addressable market,

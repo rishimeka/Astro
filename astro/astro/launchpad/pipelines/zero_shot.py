@@ -15,10 +15,10 @@ This pipeline was 16-19x faster than multi-agent approaches in benchmarks
 while maintaining comparable accuracy for most queries.
 """
 
-import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Dict, Optional
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
+from typing import Any
 
 from astro.launchpad.conversation import Conversation
 from astro.launchpad.interpreter import Interpreter
@@ -62,7 +62,7 @@ class ZeroShotPipeline:
         self,
         message: str,
         conversation: Conversation,
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Execute 4-step zero-shot pipeline with progress events.
 
         Yields SSE events at each step for UI display.
@@ -78,7 +78,10 @@ class ZeroShotPipeline:
         conversation.add_message(role="user", content=message)
 
         # Step 1: Interpret (select directives)
-        yield {"type": "thinking", "message": "Analyzing query and selecting directives..."}
+        yield {
+            "type": "thinking",
+            "message": "Analyzing query and selecting directives...",
+        }
 
         interpretation = await self._interpret(message, conversation)
 
@@ -94,7 +97,9 @@ class ZeroShotPipeline:
         else:
             # No directives found - try to generate one if possible
             generated_id = None
-            async for event in self._try_generate_directive(message, conversation, interpretation):
+            async for event in self._try_generate_directive(
+                message, conversation, interpretation
+            ):
                 if event.get("type") == "directive_id":
                     generated_id = event.get("id")
                 else:
@@ -103,7 +108,10 @@ class ZeroShotPipeline:
             if generated_id:
                 interpretation.directive_ids = [generated_id]
             else:
-                yield {"type": "thinking", "message": "No specialized directives needed - responding directly"}
+                yield {
+                    "type": "thinking",
+                    "message": "No specialized directives needed - responding directly",
+                }
 
         # Step 2: Retrieve context from Second Brain
         yield {"type": "thinking", "message": "Retrieving relevant context..."}
@@ -160,10 +168,10 @@ class ZeroShotPipeline:
     async def _execute_agent_with_events(
         self,
         directive_ids: list[str],
-        context: Dict[str, Any],
+        context: dict[str, Any],
         conversation: Conversation,
         message: str = "",
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Execute agent and yield progress events.
 
         Args:
@@ -180,7 +188,9 @@ class ZeroShotPipeline:
 
             if not directives:
                 yield {"type": "thinking", "message": "Generating direct response..."}
-                output = await self.running_agent._direct_response(conversation, context)
+                output = await self.running_agent._direct_response(
+                    conversation, context
+                )
                 yield {"type": "output", "output": output}
                 await self._persist_to_memory(message, output, conversation)
                 return
@@ -224,9 +234,7 @@ class ZeroShotPipeline:
             )
             yield {"type": "output", "output": output}
 
-    async def _interpret(
-        self, message: str, conversation: Conversation
-    ) -> Any:
+    async def _interpret(self, message: str, conversation: Conversation) -> Any:
         """Step 1: Interpret query and select relevant directives.
 
         Uses lightweight LLM (e.g., Haiku) to:
@@ -244,11 +252,15 @@ class ZeroShotPipeline:
         logger.info("ZeroShotPipeline: Starting interpretation step")
         try:
             result = await self.interpreter.select_directives(conversation)
-            logger.info(f"ZeroShotPipeline: Interpretation complete - selected {len(result.directive_ids)} directives")
+            logger.info(
+                f"ZeroShotPipeline: Interpretation complete - selected {len(result.directive_ids)} directives"
+            )
             return result
         except Exception as e:
             # Fallback: empty interpretation
-            logger.error(f"ZeroShotPipeline: Interpretation failed with error: {str(e)}")
+            logger.error(
+                f"ZeroShotPipeline: Interpretation failed with error: {str(e)}"
+            )
             from astro.launchpad.interpreter import InterpretationResult
 
             return InterpretationResult(
@@ -260,7 +272,7 @@ class ZeroShotPipeline:
 
     async def _retrieve_context(
         self, context_queries: list[str], conversation: Conversation
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Step 2: Retrieve context from Second Brain.
 
         The Second Brain has two partitions:
@@ -276,7 +288,7 @@ class ZeroShotPipeline:
         """
         try:
             # Retrieve from Second Brain
-            context = await self.second_brain.retrieve(
+            context: dict[str, Any] = await self.second_brain.retrieve(
                 queries=context_queries, conversation=conversation
             )
             return context
@@ -292,7 +304,7 @@ class ZeroShotPipeline:
     async def _execute_agent(
         self,
         directive_ids: list[str],
-        context: Dict[str, Any],
+        context: dict[str, Any],
         conversation: Conversation,
     ) -> AgentOutput:
         """Step 3: Execute with running agent.
@@ -358,7 +370,7 @@ class ZeroShotPipeline:
                 metadata={
                     "type": "user_query",
                     "conversation_id": conversation.id,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -368,7 +380,7 @@ class ZeroShotPipeline:
                 metadata={
                     "type": "assistant_response",
                     "conversation_id": conversation.id,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "tool_calls": len(output.tool_calls),
                     "iterations": output.iterations,
                 },
@@ -384,7 +396,7 @@ class ZeroShotPipeline:
         message: str,
         conversation: Conversation,
         interpretation: Any,
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Attempt to generate a new directive for queries with no matches.
 
         This method handles the complete generation flow including:
@@ -407,7 +419,9 @@ class ZeroShotPipeline:
             return
 
         # Check if we should offer generation
-        should_generate = self.interpreter.should_offer_directive_generation(interpretation)
+        should_generate = self.interpreter.should_offer_directive_generation(
+            interpretation
+        )
         if not should_generate:
             return
 
@@ -436,7 +450,7 @@ class ZeroShotPipeline:
                     "type": "directive_similar_found",
                     "directive_id": generated.similar_directive_id,
                     "similarity_score": generated.similarity_score,
-                    "message": f"Found similar directive - using existing one",
+                    "message": "Found similar directive - using existing one",
                 }
                 yield {"type": "directive_id", "id": generated.similar_directive_id}
                 return
@@ -445,7 +459,9 @@ class ZeroShotPipeline:
             # For now, auto-approve (interactive approval will be added with UI)
             directive_id = await self.directive_generator.save_directive(generated)
 
-            logger.info(f"ZeroShotPipeline: Saved generated directive with ID {directive_id}")
+            logger.info(
+                f"ZeroShotPipeline: Saved generated directive with ID {directive_id}"
+            )
 
             yield {
                 "type": "directive_generated",

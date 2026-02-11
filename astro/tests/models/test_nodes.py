@@ -1,11 +1,11 @@
 """Tests for Node models."""
 
 from astro_backend_service.models import (
+    EndNode,
     NodeType,
     Position,
-    StartNode,
-    EndNode,
     StarNode,
+    StartNode,
 )
 
 

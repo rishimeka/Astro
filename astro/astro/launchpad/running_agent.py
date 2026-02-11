@@ -6,7 +6,7 @@ tools. Only the tools needed by the selected directives are bound to the LLM.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -19,12 +19,10 @@ class AgentOutput(BaseModel):
     """Output from running agent execution."""
 
     content: str = Field(..., description="Final response content")
-    tool_calls: List[Dict[str, Any]] = Field(
+    tool_calls: list[dict[str, Any]] = Field(
         default_factory=list, description="Tool calls made during execution"
     )
-    reasoning: str = Field(
-        default="", description="Agent reasoning during execution"
-    )
+    reasoning: str = Field(default="", description="Agent reasoning during execution")
     iterations: int = Field(default=0, description="Number of ReAct iterations")
 
 
@@ -82,9 +80,9 @@ class RunningAgent:
 
     async def execute(
         self,
-        directive_ids: List[str],
+        directive_ids: list[str],
         conversation: Conversation,
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> AgentOutput:
         """Execute with scoped tools via ReAct loop.
 
@@ -96,7 +94,9 @@ class RunningAgent:
         Returns:
             AgentOutput with response and execution metadata.
         """
-        logger.info(f"RunningAgent: Executing with {len(directive_ids)} directive IDs: {directive_ids}")
+        logger.info(
+            f"RunningAgent: Executing with {len(directive_ids)} directive IDs: {directive_ids}"
+        )
 
         # Get directives
         directives = await self._get_directives(directive_ids)
@@ -123,7 +123,7 @@ class RunningAgent:
             system_prompt=system_prompt,
         )
 
-    async def _get_directives(self, directive_ids: List[str]) -> List[Any]:
+    async def _get_directives(self, directive_ids: list[str]) -> list[Any]:
         """Retrieve directive objects from registry.
 
         Args:
@@ -139,16 +139,22 @@ class RunningAgent:
                 directive = self.registry.get_directive(directive_id)
                 if directive:
                     directives.append(directive)
-                    logger.info(f"RunningAgent: Loaded directive '{directive.name}' (id: {directive_id})")
+                    logger.info(
+                        f"RunningAgent: Loaded directive '{directive.name}' (id: {directive_id})"
+                    )
                 else:
-                    logger.warning(f"RunningAgent: Directive {directive_id} returned None")
+                    logger.warning(
+                        f"RunningAgent: Directive {directive_id} returned None"
+                    )
             except Exception as e:
-                logger.error(f"RunningAgent: Error loading directive {directive_id}: {str(e)}")
+                logger.error(
+                    f"RunningAgent: Error loading directive {directive_id}: {str(e)}"
+                )
                 continue
 
         return directives
 
-    async def _get_scoped_tools(self, directives: List[Any]) -> List[Any]:
+    async def _get_scoped_tools(self, directives: list[Any]) -> list[Any]:
         """Get only the tools (probes) that these directives need.
 
         This is critical for tool scoping - we only bind tools that are
@@ -180,9 +186,13 @@ class RunningAgent:
                     tool = self._probe_to_langchain_tool(probe)
                     if tool:
                         tools.append(tool)
-                        logger.info(f"RunningAgent: Bound tool '{probe.name}' for execution")
+                        logger.info(
+                            f"RunningAgent: Bound tool '{probe.name}' for execution"
+                        )
                     else:
-                        logger.warning(f"RunningAgent: Could not convert probe {probe_id} to LangChain tool")
+                        logger.warning(
+                            f"RunningAgent: Could not convert probe {probe_id} to LangChain tool"
+                        )
                 else:
                     logger.warning(f"RunningAgent: Probe {probe_id} returned None")
             except Exception as e:
@@ -191,7 +201,7 @@ class RunningAgent:
 
         return tools
 
-    def _probe_to_langchain_tool(self, probe: Any) -> Optional[Any]:
+    def _probe_to_langchain_tool(self, probe: Any) -> Any | None:
         """Convert a Probe to a LangChain tool.
 
         Args:
@@ -208,7 +218,9 @@ class RunningAgent:
             # Core probes use '_callable' attribute (Pydantic model)
             func = getattr(probe, "handler", None) or getattr(probe, "_callable", None)
             if not func:
-                logger.warning(f"RunningAgent: Probe {probe.name} has neither handler nor _callable attribute")
+                logger.warning(
+                    f"RunningAgent: Probe {probe.name} has neither handler nor _callable attribute"
+                )
                 return None
 
             # Create LangChain tool
@@ -222,10 +234,13 @@ class RunningAgent:
             return tool
 
         except Exception as e:
-            logger.error(f"RunningAgent: Error converting probe to LangChain tool: {str(e)}", exc_info=True)
+            logger.error(
+                f"RunningAgent: Error converting probe to LangChain tool: {str(e)}",
+                exc_info=True,
+            )
             return None
 
-    def _build_system_prompt(self, directives: List[Any]) -> str:
+    def _build_system_prompt(self, directives: list[Any]) -> str:
         """Build system prompt with directive instructions.
 
         Args:
@@ -243,10 +258,10 @@ class RunningAgent:
 
     async def _react_loop(
         self,
-        directives: List[Any],
+        directives: list[Any],
         conversation: Conversation,
-        context: Dict[str, Any],
-        tools: List[Any],
+        context: dict[str, Any],
+        tools: list[Any],
         system_prompt: str,
         max_iterations: int = 5,
     ) -> AgentOutput:
@@ -267,7 +282,7 @@ class RunningAgent:
         messages = self._build_messages(conversation, context, system_prompt)
 
         # Track execution
-        tool_calls = []
+        tool_calls: list[dict[str, Any]] = []
         iteration = 0
 
         try:
@@ -276,16 +291,19 @@ class RunningAgent:
             if tools:
                 logger.info(f"RunningAgent: Binding {len(tools)} tools to LLM")
                 llm_with_tools = self.llm.bind_tools(tools)
-                logger.info(f"RunningAgent: Invoking LLM with tools bound")
+                logger.info("RunningAgent: Invoking LLM with tools bound")
                 response = await llm_with_tools.ainvoke(messages)
             else:
-                logger.info(f"RunningAgent: Invoking LLM without tools")
+                logger.info("RunningAgent: Invoking LLM without tools")
                 response = await self.llm.ainvoke(messages)
 
             # LangChain returns AIMessage object, not dict
-            content = response.content if hasattr(response, 'content') else str(response)
-            response_tool_calls = response.tool_calls if hasattr(response, 'tool_calls') else []
-            stop_reason = response.response_metadata.get("stop_reason", "end_turn") if hasattr(response, 'response_metadata') else "end_turn"
+            content = (
+                response.content if hasattr(response, "content") else str(response)
+            )
+            response_tool_calls = (
+                response.tool_calls if hasattr(response, "tool_calls") else []
+            )
 
             # Track tool calls
             tool_calls.extend(response_tool_calls)
@@ -314,9 +332,12 @@ class RunningAgent:
                     response = await self.llm.ainvoke(messages)
 
                 # LangChain returns AIMessage object, not dict
-                content = response.content if hasattr(response, 'content') else str(response)
-                response_tool_calls = response.tool_calls if hasattr(response, 'tool_calls') else []
-                stop_reason = response.response_metadata.get("stop_reason", "end_turn") if hasattr(response, 'response_metadata') else "end_turn"
+                content = (
+                    response.content if hasattr(response, "content") else str(response)
+                )
+                response_tool_calls = (
+                    response.tool_calls if hasattr(response, "tool_calls") else []
+                )
 
                 tool_calls.extend(response_tool_calls)
                 iteration += 1
@@ -338,8 +359,8 @@ class RunningAgent:
             )
 
     async def _execute_tools(
-        self, tool_calls: List[Dict[str, Any]], tools: List[Any]
-    ) -> List[Dict[str, Any]]:
+        self, tool_calls: list[dict[str, Any]], tools: list[Any]
+    ) -> list[dict[str, Any]]:
         """Execute tool calls and return results.
 
         Args:
@@ -381,8 +402,8 @@ class RunningAgent:
         return results
 
     def _build_messages(
-        self, conversation: Conversation, context: Dict[str, Any], system_prompt: str
-    ) -> List[Dict[str, str]]:
+        self, conversation: Conversation, context: dict[str, Any], system_prompt: str
+    ) -> list[dict[str, str]]:
         """Build messages from conversation and context.
 
         Args:
@@ -412,7 +433,7 @@ class RunningAgent:
 
         return messages
 
-    def _format_context(self, context: Dict[str, Any]) -> str:
+    def _format_context(self, context: dict[str, Any]) -> str:
         """Format context for prompt.
 
         Args:
@@ -438,7 +459,7 @@ class RunningAgent:
         return "\n".join(parts) if parts else ""
 
     async def _direct_response(
-        self, conversation: Conversation, context: Dict[str, Any]
+        self, conversation: Conversation, context: dict[str, Any]
     ) -> AgentOutput:
         """Generate direct response without directives (conversational).
 
@@ -489,11 +510,18 @@ When asked about my capabilities, I can reference these specific directives. I'm
             messages.append({"role": msg.role, "content": msg.content})
 
         try:
-            response = await self.llm.ainvoke(messages, temperature=0.7, max_tokens=1000)
-            content = response.content if hasattr(response, "content") else str(response)
+            response = await self.llm.ainvoke(
+                messages, temperature=0.7, max_tokens=1000
+            )
+            content = (
+                response.content if hasattr(response, "content") else str(response)
+            )
 
             return AgentOutput(
-                content=content, tool_calls=[], reasoning="Direct response", iterations=1
+                content=content,
+                tool_calls=[],
+                reasoning="Direct response",
+                iterations=1,
             )
 
         except Exception as e:

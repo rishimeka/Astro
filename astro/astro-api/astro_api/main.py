@@ -3,8 +3,8 @@
 import logging
 import os
 import sys
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -61,16 +61,17 @@ def configure_logging() -> None:
 configure_logging()
 
 logger = logging.getLogger(__name__)
-from astro_api.routes import (
-    probes_router,
-    directives_router,
-    stars_router,
-    constellations_router,
-    runs_router,
-    chat_router,
-    files_router,
-)
 from astro.core.registry import ValidationError
+
+from astro_api.routes import (
+    chat_router,
+    constellations_router,
+    directives_router,
+    files_router,
+    probes_router,
+    runs_router,
+    stars_router,
+)
 
 
 @asynccontextmanager

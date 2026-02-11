@@ -1,14 +1,13 @@
 """Tests for Constellation model."""
 
 import pytest
-
 from astro_backend_service.models import (
     Constellation,
     Edge,
-    Position,
-    StartNode,
     EndNode,
+    Position,
     StarNode,
+    StartNode,
 )
 
 

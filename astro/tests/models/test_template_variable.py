@@ -1,9 +1,8 @@
 """Tests for TemplateVariable model."""
 
 import pytest
-from pydantic import ValidationError
-
 from astro_backend_service.models import TemplateVariable
+from pydantic import ValidationError
 
 
 class TestTemplateVariable:

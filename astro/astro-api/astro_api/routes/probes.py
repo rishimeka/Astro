@@ -1,23 +1,22 @@
 """Probes router - read-only access to registered probes."""
 
 import logging
-from typing import List
 
+from astro.core.registry import Registry
 from fastapi import APIRouter, Depends, HTTPException
 
 from astro_api.dependencies import get_registry
 from astro_api.schemas import ProbeResponse
-from astro.core.registry import Registry
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-@router.get("", response_model=List[ProbeResponse])
+@router.get("", response_model=list[ProbeResponse])
 async def list_probes(
     foundry: Registry = Depends(get_registry),
-) -> List[ProbeResponse]:
+) -> list[ProbeResponse]:
     """List all registered probes."""
     logger.debug("Listing all probes")
     probes = foundry.list_probes()

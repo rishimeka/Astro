@@ -1,7 +1,7 @@
 """Shared tool/probe support for AtomicStar types."""
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from astro.core.probes.probe import Probe
 
 
-def get_available_probes(probe_ids: List[str]) -> List["Probe"]:
+def get_available_probes(probe_ids: list[str]) -> list["Probe"]:
     """Get probes from registry filtered by allowed probe IDs.
 
     Args:
@@ -30,8 +30,8 @@ def get_available_probes(probe_ids: List[str]) -> List["Probe"]:
 
 
 def create_langchain_tools(
-    probes: List["Probe"],
-) -> Tuple[List[Any], Dict[str, "Probe"]]:
+    probes: list["Probe"],
+) -> tuple[list[Any], dict[str, "Probe"]]:
     """Convert probes to LangChain tools.
 
     Args:
@@ -43,7 +43,7 @@ def create_langchain_tools(
     from langchain_core.tools import StructuredTool
 
     langchain_tools = []
-    probe_map: Dict[str, "Probe"] = {}
+    probe_map: dict[str, Probe] = {}
 
     for probe in probes:
         tool = StructuredTool.from_function(
@@ -60,10 +60,10 @@ def create_langchain_tools(
 
 def execute_tool_call(
     tool_name: str,
-    tool_args: Dict[str, Any],
-    probe_map: Dict[str, "Probe"],
-    context: Optional[Any] = None,
-) -> Tuple[Optional[str], Optional[str]]:
+    tool_args: dict[str, Any],
+    probe_map: dict[str, "Probe"],
+    context: Any | None = None,
+) -> tuple[str | None, str | None]:
     """Execute a single tool call, with optional result caching.
 
     Args:
@@ -96,12 +96,12 @@ def execute_tool_call(
 
 async def execute_with_tools(
     llm: "BaseChatModel",
-    messages: List["BaseMessage"],
-    probe_ids: List[str],
+    messages: list["BaseMessage"],
+    probe_ids: list[str],
     max_iterations: int = 5,
-    context: Optional[Any] = None,
-    max_tokens: Optional[int] = None,
-) -> Tuple[str, List["ToolCall"], int]:
+    context: Any | None = None,
+    max_tokens: int | None = None,
+) -> tuple[str, list["ToolCall"], int]:
     """Execute LLM with optional tool calling support.
 
     This is a shared helper that handles the tool calling loop for all AtomicStar types.
@@ -120,7 +120,7 @@ async def execute_with_tools(
 
     from astro.core.models.outputs import ToolCall
 
-    tool_calls: List[ToolCall] = []
+    tool_calls: list[ToolCall] = []
     iterations = 0
 
     # Get available probes based on allowed IDs
@@ -182,15 +182,23 @@ async def execute_with_tools(
                 continue
 
             # No tool calls - extract final response
-            content = response.content if hasattr(response, "content") else str(response)
+            content = (
+                response.content if hasattr(response, "content") else str(response)
+            )
             result = content if isinstance(content, str) else str(content)
 
             # Debug: Log response metadata to understand truncation
             if hasattr(response, "response_metadata"):
-                finish_reason = response.response_metadata.get("finish_reason", "unknown")
-                logger.info(f"LLM finish_reason: {finish_reason}, output_length: {len(result)} chars")
+                finish_reason = response.response_metadata.get(
+                    "finish_reason", "unknown"
+                )
+                logger.info(
+                    f"LLM finish_reason: {finish_reason}, output_length: {len(result)} chars"
+                )
                 if finish_reason == "length":
-                    logger.warning(f"LLM hit max_tokens limit! Output truncated at {len(result)} chars")
+                    logger.warning(
+                        f"LLM hit max_tokens limit! Output truncated at {len(result)} chars"
+                    )
 
             return result, tool_calls, iterations
 
@@ -211,8 +219,12 @@ async def execute_with_tools(
         # Debug: Log response metadata to understand truncation
         if hasattr(response, "response_metadata"):
             finish_reason = response.response_metadata.get("finish_reason", "unknown")
-            logger.info(f"LLM finish_reason (no tools): {finish_reason}, output_length: {len(result)} chars")
+            logger.info(
+                f"LLM finish_reason (no tools): {finish_reason}, output_length: {len(result)} chars"
+            )
             if finish_reason == "length":
-                logger.warning(f"LLM hit max_tokens limit! Output truncated at {len(result)} chars")
+                logger.warning(
+                    f"LLM hit max_tokens limit! Output truncated at {len(result)} chars"
+                )
 
         return result, tool_calls, iterations

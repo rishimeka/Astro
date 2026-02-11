@@ -9,9 +9,13 @@ astro.core.runtime.context. For now, it includes all necessary fields.
 """
 
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel, Field
+
+# Model imports for dynamic directive creation
+from astro.core.models.directive import Directive
+from astro.core.models.template_variable import TemplateVariable
 
 # Runtime event imports
 from astro.core.runtime.events import (
@@ -22,10 +26,6 @@ from astro.core.runtime.events import (
     ToolResultEvent,
     truncate_output,
 )
-
-# Model imports for dynamic directive creation
-from astro.core.models.directive import Directive
-from astro.core.models.template_variable import TemplateVariable
 from astro.orchestration.models.star_types import StarType
 from astro.orchestration.stars.worker import WorkerStar
 
@@ -59,29 +59,29 @@ class ConstellationContext(BaseModel):
     # Original input
     original_query: str = ""
     constellation_purpose: str = ""
-    variables: Dict[str, Any] = Field(default_factory=dict)
+    variables: dict[str, Any] = Field(default_factory=dict)
 
     # Constellation-specific state
-    node_outputs: Dict[str, StarOutput] = Field(default_factory=dict)
+    node_outputs: dict[str, StarOutput] = Field(default_factory=dict)
     loop_count: int = Field(default=0)
 
     # Current node context (set by runner during execution)
-    current_node_id: Optional[str] = Field(
+    current_node_id: str | None = Field(
         default=None, description="ID of the currently executing node"
     )
-    current_node_name: Optional[str] = Field(
+    current_node_name: str | None = Field(
         default=None, description="Display name of the currently executing node"
     )
 
     # Cache for tool/probe results across stars (keyed on tool_name + sorted args JSON)
-    tool_result_cache: Dict[str, str] = Field(default_factory=dict)
+    tool_result_cache: dict[str, str] = Field(default_factory=dict)
 
     # Registry/Foundry reference for lookups (Any to avoid circular import)
     # In V2, this will be a Registry instance
     foundry: Any = Field(default=None)
 
     # Stream for real-time events (None = no streaming)
-    stream: Optional[Any] = Field(default=None)  # ExecutionStream type
+    stream: Any | None = Field(default=None)  # ExecutionStream type
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -112,8 +112,8 @@ class ConstellationContext(BaseModel):
     async def emit_tool_call(
         self,
         tool_name: str,
-        tool_input: Dict[str, Any],
-        call_id: Optional[str] = None,
+        tool_input: dict[str, Any],
+        call_id: str | None = None,
     ) -> str:
         """Emit a tool/probe call event.
 
@@ -146,8 +146,8 @@ class ConstellationContext(BaseModel):
         tool_name: str,
         call_id: str,
         success: bool,
-        result_preview: Optional[str] = None,
-        error: Optional[str] = None,
+        result_preview: str | None = None,
+        error: str | None = None,
         duration_ms: int = 0,
     ) -> None:
         """Emit a tool/probe result event.
@@ -178,7 +178,7 @@ class ConstellationContext(BaseModel):
     async def emit_progress(
         self,
         message: str,
-        percent: Optional[int] = None,
+        percent: int | None = None,
     ) -> None:
         """Emit a progress update event.
 
@@ -255,7 +255,9 @@ class ConstellationContext(BaseModel):
         if self.foundry is None:
             raise ValueError("Foundry/Registry not set in execution context")
 
-        constellation = self.foundry.get_constellation(self.constellation_id)
+        constellation: Constellation = self.foundry.get_constellation(
+            self.constellation_id
+        )
         if not constellation:
             raise ValueError(f"Constellation '{self.constellation_id}' not found")
         return constellation
@@ -264,7 +266,7 @@ class ConstellationContext(BaseModel):
     # Upstream Output Access
     # =========================================================================
 
-    def get_upstream_outputs(self, node_id: str) -> List[StarOutput]:
+    def get_upstream_outputs(self, node_id: str) -> list[StarOutput]:
         """Get outputs from all upstream nodes.
 
         Args:
@@ -279,7 +281,7 @@ class ConstellationContext(BaseModel):
             self.node_outputs[n.id] for n in upstream_nodes if n.id in self.node_outputs
         ]
 
-    def get_direct_upstream_outputs(self) -> Dict[str, StarOutput]:
+    def get_direct_upstream_outputs(self) -> dict[str, StarOutput]:
         """Get outputs from only direct upstream nodes of the current node.
 
         Uses the constellation graph to find direct predecessors.
@@ -304,7 +306,7 @@ class ConstellationContext(BaseModel):
             # Fallback to all outputs if graph lookup fails
             return dict(self.node_outputs)
 
-    def get_upstream_output(self, output_type: Type[Any]) -> Optional[Any]:
+    def get_upstream_output(self, output_type: type[Any]) -> Any | None:
         """Get first upstream output of given type (e.g., Plan).
 
         Args:
@@ -339,7 +341,7 @@ class ConstellationContext(BaseModel):
         # Search through all stars for one matching the task description
         task_keywords = set(task.description.lower().split())
 
-        best_match: Optional["BaseStar"] = None
+        best_match: BaseStar | None = None
         best_score = 0
 
         for star in self.foundry.list_stars():
@@ -438,7 +440,7 @@ Constraints:
     # Document Access (for DocExStar)
     # =========================================================================
 
-    def get_documents(self) -> List[Any]:
+    def get_documents(self) -> list[Any]:
         """Get documents for DocExStar processing.
 
         Returns:
@@ -446,13 +448,13 @@ Constraints:
         """
         # Check variables for documents
         if "documents" in self.variables:
-            docs: List[Any] = self.variables["documents"]
+            docs: list[Any] = self.variables["documents"]
             return docs
 
         # Check upstream outputs for documents
         for output in self.node_outputs.values():
             if hasattr(output, "documents"):
-                output_docs: List[Any] = output.documents
+                output_docs: list[Any] = output.documents
                 return output_docs
 
         return []
@@ -462,8 +464,8 @@ Constraints:
     # =========================================================================
 
     def get_cached_tool_result(
-        self, tool_name: str, tool_args: Dict[str, Any]
-    ) -> Optional[str]:
+        self, tool_name: str, tool_args: dict[str, Any]
+    ) -> str | None:
         """Check if a tool call result is cached.
 
         Args:
@@ -479,7 +481,7 @@ Constraints:
         return self.tool_result_cache.get(cache_key)
 
     def cache_tool_result(
-        self, tool_name: str, tool_args: Dict[str, Any], result: str
+        self, tool_name: str, tool_args: dict[str, Any], result: str
     ) -> None:
         """Cache a tool call result.
 

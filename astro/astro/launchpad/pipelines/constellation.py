@@ -15,8 +15,8 @@ This pipeline is slower but provides more comprehensive analysis through
 coordinated multi-agent workflows.
 """
 
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -112,7 +112,7 @@ class ConstellationPipeline:
 
     async def _match_and_prepare(
         self, message: str, conversation: Conversation
-    ) -> tuple[Optional[Any], Dict[str, Any], str]:
+    ) -> tuple[Any | None, dict[str, Any], str]:
         """Step 1: Match constellation and prepare variables.
 
         Uses constellation matcher to:
@@ -169,7 +169,7 @@ class ConstellationPipeline:
 
     async def _retrieve_context(
         self, message: str, conversation: Conversation
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Step 2: Retrieve context from Second Brain.
 
         The Second Brain has two partitions:
@@ -185,7 +185,7 @@ class ConstellationPipeline:
         """
         try:
             # Retrieve from Second Brain
-            context = await self.second_brain.retrieve(
+            context: dict[str, Any] = await self.second_brain.retrieve(
                 queries=[message], conversation=conversation
             )
             return context
@@ -201,9 +201,9 @@ class ConstellationPipeline:
     async def _execute_constellation(
         self,
         constellation: Any,
-        variables: Dict[str, Any],
-        context: Dict[str, Any],
-    ) -> Optional[Any]:
+        variables: dict[str, Any],
+        context: dict[str, Any],
+    ) -> Any | None:
         """Step 3: Execute constellation workflow.
 
         Uses ConstellationRunner to execute the multi-agent workflow:
@@ -266,7 +266,10 @@ class ConstellationPipeline:
 
             # Add messages to conversation (in-memory)
             conversation.add_message(
-                role="user", content=message, run_id=run.id, constellation_id=run.constellation_id
+                role="user",
+                content=message,
+                run_id=run.id,
+                constellation_id=run.constellation_id,
             )
             conversation.add_message(
                 role="assistant", content=final_output, run_id=run.id
@@ -281,7 +284,7 @@ class ConstellationPipeline:
                     "conversation_id": conversation.id,
                     "run_id": run.id,
                     "constellation_id": run.constellation_id,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -293,7 +296,7 @@ class ConstellationPipeline:
                     "conversation_id": conversation.id,
                     "run_id": run.id,
                     "constellation_id": run.constellation_id,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "status": run.status if hasattr(run, "status") else "completed",
                 },
             )

@@ -1,23 +1,23 @@
 """Tests for Foundry class."""
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from astro_backend_service.foundry import Foundry, ValidationError
 from astro_backend_service.foundry.indexes import Probe
 from astro_backend_service.models import (
-    Directive,
     Constellation,
-    Position,
-    StartNode,
-    EndNode,
-    StarNode,
+    Directive,
     Edge,
-    WorkerStar,
-    PlanningStar,
+    EndNode,
     ExecutionStar,
+    PlanningStar,
+    Position,
+    StarNode,
+    StartNode,
     SynthesisStar,
+    WorkerStar,
 )
 
 

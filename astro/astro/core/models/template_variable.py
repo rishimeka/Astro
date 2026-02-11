@@ -1,6 +1,6 @@
 """TemplateVariable model for runtime variable placeholders."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -25,17 +25,17 @@ class TemplateVariable(BaseModel):
         "E.g., 'Company ticker symbol (e.g., AAPL)' or 'Target date in YYYY-MM-DD format'",
     )
     required: bool = Field(default=True)
-    default: Optional[str] = Field(
+    default: str | None = Field(
         default=None, description="Default value if user doesn't provide one."
     )
 
     # Optional UI hints — no runtime enforcement, values always passed as strings
-    ui_hint: Optional[str] = Field(
+    ui_hint: str | None = Field(
         default=None,
         description="Optional hint for UI rendering. No runtime validation. "
         "Values: 'text' (default), 'textarea', 'number', 'date', 'select', 'file'",
     )
-    ui_options: Optional[Dict[str, Any]] = Field(
+    ui_options: dict[str, Any] | None = Field(
         default=None,
         description="Additional UI configuration. Examples: "
         "{'options': ['opt1', 'opt2']} for select, "
@@ -45,13 +45,13 @@ class TemplateVariable(BaseModel):
     )
 
     # Populated at Constellation level (Layer 2 concept)
-    used_by: List[str] = Field(
+    used_by: list[str] = Field(
         default_factory=list, description="Node IDs using this variable"
     )
 
     @field_validator("ui_hint")
     @classmethod
-    def validate_ui_hint(cls, v: Optional[str]) -> Optional[str]:
+    def validate_ui_hint(cls, v: str | None) -> str | None:
         """Validate ui_hint is one of the allowed values."""
         if v is not None:
             allowed = {"text", "textarea", "number", "date", "select", "file"}

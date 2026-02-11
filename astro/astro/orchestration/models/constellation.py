@@ -1,6 +1,6 @@
 """Constellation model - a workflow graph of Stars."""
 
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
@@ -26,8 +26,8 @@ class Constellation(BaseModel):
     # Graph structure
     start: StartNode
     end: EndNode
-    nodes: List[StarNode] = Field(default_factory=list)
-    edges: List[Edge] = Field(default_factory=list)
+    nodes: list[StarNode] = Field(default_factory=list)
+    edges: list[Edge] = Field(default_factory=list)
 
     # Execution constraints
     max_loop_iterations: int = Field(
@@ -52,32 +52,32 @@ class Constellation(BaseModel):
     )
 
     # Extensibility
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
-    def get_entry_nodes(self) -> List[StarNode]:
+    def get_entry_nodes(self) -> list[StarNode]:
         """Nodes connected directly from Start."""
         start_edges = [e for e in self.edges if e.source == self.start.id]
         entry_ids = {e.target for e in start_edges}
         return [n for n in self.nodes if n.id in entry_ids]
 
-    def get_upstream_nodes(self, node_id: str) -> List[StarNode]:
+    def get_upstream_nodes(self, node_id: str) -> list[StarNode]:
         """Get all nodes that feed into this node."""
         incoming_edges = [e for e in self.edges if e.target == node_id]
         upstream_ids = {e.source for e in incoming_edges}
         return [n for n in self.nodes if n.id in upstream_ids]
 
-    def get_downstream_nodes(self, node_id: str) -> List[StarNode]:
+    def get_downstream_nodes(self, node_id: str) -> list[StarNode]:
         """Get all nodes this node feeds into."""
         outgoing_edges = [e for e in self.edges if e.source == node_id]
         downstream_ids = {e.target for e in outgoing_edges}
         return [n for n in self.nodes if n.id in downstream_ids]
 
-    def topological_order(self) -> List[str]:
+    def topological_order(self) -> list[str]:
         """Return node IDs in execution order."""
         # Build adjacency list (excluding start/end for cleaner sorting)
         all_node_ids = [self.start.id] + [n.id for n in self.nodes] + [self.end.id]
-        in_degree: Dict[str, int] = {node_id: 0 for node_id in all_node_ids}
-        adjacency: Dict[str, List[str]] = {node_id: [] for node_id in all_node_ids}
+        in_degree: dict[str, int] = {node_id: 0 for node_id in all_node_ids}
+        adjacency: dict[str, list[str]] = {node_id: [] for node_id in all_node_ids}
 
         for edge in self.edges:
             # Skip loop edges (from EvalStar with conditions containing 'loop')
@@ -91,7 +91,7 @@ class Constellation(BaseModel):
 
         # Kahn's algorithm
         queue = [node_id for node_id, deg in in_degree.items() if deg == 0]
-        result: List[str] = []
+        result: list[str] = []
 
         while queue:
             node = queue.pop(0)
@@ -103,7 +103,7 @@ class Constellation(BaseModel):
 
         return result
 
-    def compute_required_variables(self, foundry: Any) -> List["TemplateVariable"]:
+    def compute_required_variables(self, foundry: Any) -> list["TemplateVariable"]:
         """Walk all nodes, resolve Stars → Directives, aggregate template_variables.
 
         Called at runtime before execution to show user what needs filling.
@@ -116,7 +116,7 @@ class Constellation(BaseModel):
         """
         from astro.core.models.template_variable import TemplateVariable
 
-        all_variables: Dict[str, TemplateVariable] = {}
+        all_variables: dict[str, TemplateVariable] = {}
 
         for node in self.nodes:
             star = foundry.get_star(node.star_id)

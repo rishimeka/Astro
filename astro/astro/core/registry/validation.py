@@ -5,7 +5,7 @@ Stars and Constellations are Layer 2 concepts - their validation
 belongs in astro.orchestration.validation.
 """
 
-from typing import TYPE_CHECKING, Dict, List, Optional, Set
+from typing import TYPE_CHECKING
 
 from astro.core.models.directive import Directive
 
@@ -35,8 +35,8 @@ class ValidationWarning:
 def validate_directive(
     directive: Directive,
     indexes: "RegistryIndexes",
-    existing_id: Optional[str] = None,
-) -> List[ValidationWarning]:
+    existing_id: str | None = None,
+) -> list[ValidationWarning]:
     """
     Validate a directive.
 
@@ -51,7 +51,7 @@ def validate_directive(
     Raises:
         ValidationError: For fatal validation errors.
     """
-    warnings: List[ValidationWarning] = []
+    warnings: list[ValidationWarning] = []
 
     # Check for empty description
     if not directive.description or not directive.description.strip():
@@ -97,7 +97,7 @@ def validate_directive(
 def _has_directive_cycle(
     directive: Directive,
     indexes: "RegistryIndexes",
-    existing_id: Optional[str] = None,
+    existing_id: str | None = None,
 ) -> bool:
     """
     Check if adding/updating this directive would create a cycle.
@@ -113,7 +113,7 @@ def _has_directive_cycle(
         True if a cycle would be created, False otherwise
     """
     # Build a temporary graph including the new directive
-    graph: Dict[str, List[str]] = {}
+    graph: dict[str, list[str]] = {}
 
     # Add existing directives
     for d_id, d in indexes.directives.items():
@@ -126,8 +126,8 @@ def _has_directive_cycle(
     graph[directive.id] = list(directive.reference_ids)
 
     # DFS for cycle detection
-    visited: Set[str] = set()
-    rec_stack: Set[str] = set()
+    visited: set[str] = set()
+    rec_stack: set[str] = set()
 
     def has_cycle(node: str) -> bool:
         visited.add(node)

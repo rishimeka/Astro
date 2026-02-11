@@ -1,28 +1,26 @@
 """Stars router - CRUD for stars."""
 
 import logging
-from typing import List
 
+from astro.orchestration.models.star_types import StarType
+from astro.orchestration.stars import (
+    DocExStar,
+    EvalStar,
+    ExecutionStar,
+    PlanningStar,
+    SynthesisStar,
+    WorkerStar,
+)
+from astro.orchestration.stars.base import BaseStar
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from astro_api.dependencies import get_registry, get_orchestration_storage
+from astro_api.dependencies import get_orchestration_storage
 from astro_api.schemas import (
     StarCreate,
-    StarUpdate,
-    StarSummary,
     StarResponse,
+    StarSummary,
+    StarUpdate,
 )
-from astro.core.registry import Registry, ValidationError
-from astro.orchestration.stars import (
-    WorkerStar,
-    PlanningStar,
-    EvalStar,
-    SynthesisStar,
-    ExecutionStar,
-    DocExStar,
-)
-from astro.orchestration.models.star_types import StarType
-from astro.orchestration.stars.base import BaseStar
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +38,10 @@ STAR_TYPE_CLASSES = {
 }
 
 
-@router.get("", response_model=List[StarSummary])
+@router.get("", response_model=list[StarSummary])
 async def list_stars(
     storage = Depends(get_orchestration_storage),
-) -> List[StarSummary]:
+) -> list[StarSummary]:
     """List all stars."""
     logger.debug("Listing all stars")
     stars = await storage.list_stars()

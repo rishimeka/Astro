@@ -82,26 +82,29 @@ class SummarizationCompression:
 
         if self.llm is None:
             # Fallback to truncation if no LLM provided
-            return content[:self.max_chars] + "..."
+            return content[: self.max_chars] + "..."
 
         try:
-            response = await self.llm.invoke([
-                {
-                    "role": "user",
-                    "content": f"Summarize the following in approximately {self.max_chars} characters, "
-                    f"retaining key information:\n\n{content}"
-                }
-            ])
-            return response["content"]
+            response = await self.llm.invoke(
+                [
+                    {
+                        "role": "user",
+                        "content": f"Summarize the following in approximately {self.max_chars} characters, "
+                        f"retaining key information:\n\n{content}",
+                    }
+                ]
+            )
+            result: str = response["content"]
+            return result
         except Exception:
             # Fallback to truncation on error
-            return content[:self.max_chars] + "..."
+            return content[: self.max_chars] + "..."
 
     def compress_sync(self, content: str) -> str:
         """Synchronous fallback - truncates to max_chars."""
         if len(content) <= self.max_chars:
             return content
-        return content[:self.max_chars] + "..."
+        return content[: self.max_chars] + "..."
 
 
 class TokenLimitCompression:

@@ -5,7 +5,7 @@ and Layer 2 (orchestration). Layer 2-specific outputs (Plan, EvalDecision, etc.)
 will be in orchestration/models/outputs.py.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -18,9 +18,9 @@ class ToolCall(BaseModel):
     """
 
     tool_name: str
-    arguments: Dict[str, Any]
-    result: Optional[str] = None
-    error: Optional[str] = None
+    arguments: dict[str, Any]
+    result: str | None = None
+    error: str | None = None
 
 
 class WorkerOutput(BaseModel):
@@ -32,6 +32,6 @@ class WorkerOutput(BaseModel):
     """
 
     result: str
-    tool_calls: List[ToolCall] = Field(default_factory=list)
+    tool_calls: list[ToolCall] = Field(default_factory=list)
     iterations: int = Field(default=1, ge=1)
     status: str = Field(default="completed")  # "completed", "failed", "max_iterations"

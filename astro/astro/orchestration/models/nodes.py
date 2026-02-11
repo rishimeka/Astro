@@ -1,7 +1,7 @@
 """Node models for Constellation graph structure."""
 
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -35,8 +35,8 @@ class StartNode(BaseNode):
     type: NodeType = Field(default=NodeType.START, frozen=True)
 
     # Filled at runtime
-    original_query: Optional[str] = None
-    constellation_purpose: Optional[str] = Field(
+    original_query: str | None = None
+    constellation_purpose: str | None = Field(
         default=None, description="From constellation.description"
     )
 
@@ -56,14 +56,14 @@ class StarNode(BaseNode):
     star_id: str = Field(..., description="Reference to Star definition")
 
     # Optional display override
-    display_name: Optional[str] = Field(
+    display_name: str | None = Field(
         None,
         description="Override name shown in UI. "
         "Useful when same Star appears multiple times.",
     )
 
     # Empty at creation, filled at runtime
-    variable_bindings: Dict[str, Any] = Field(default_factory=dict)
+    variable_bindings: dict[str, Any] = Field(default_factory=dict)
 
     # Human-in-the-loop support
     requires_confirmation: bool = Field(
@@ -71,7 +71,7 @@ class StarNode(BaseNode):
         description="If true, executor pauses after this node completes "
         "and waits for user confirmation before continuing.",
     )
-    confirmation_prompt: Optional[str] = Field(
+    confirmation_prompt: str | None = Field(
         default=None,
         description="Message shown to user when awaiting confirmation. "
         "E.g., 'Review the analysis above. Proceed with synthesis?'",

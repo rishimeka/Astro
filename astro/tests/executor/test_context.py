@@ -1,7 +1,6 @@
 """Tests for ExecutionContext and WorkerContext."""
 
 import pytest
-
 from astro_backend_service.executor.context import ExecutionContext, WorkerContext
 from astro_backend_service.models import Plan, Task
 

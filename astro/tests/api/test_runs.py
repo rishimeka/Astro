@@ -1,7 +1,8 @@
 """Tests for runs endpoints."""
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
 
 
 class TestRunsEndpoints:
@@ -16,8 +17,8 @@ class TestRunsEndpoints:
             "constellation_name": "Test Constellation",
             "status": "completed",
             "variables": {"company_name": "Acme"},
-            "started_at": datetime.now(timezone.utc),
-            "completed_at": datetime.now(timezone.utc),
+            "started_at": datetime.now(UTC),
+            "completed_at": datetime.now(UTC),
             "node_outputs": {
                 "n1": {
                     "node_id": "n1",
@@ -103,7 +104,7 @@ class TestRunsEndpoints:
             "constellation_id": "c1",
             "constellation_name": "Test",
             "status": "awaiting_confirmation",
-            "started_at": datetime.now(timezone.utc),
+            "started_at": datetime.now(UTC),
             "variables": {},
             "node_outputs": {},
         }
@@ -126,7 +127,7 @@ class TestRunsEndpoints:
             "constellation_id": "c1",
             "constellation_name": "Test",
             "status": "awaiting_confirmation",
-            "started_at": datetime.now(timezone.utc),
+            "started_at": datetime.now(UTC),
             "variables": {},
             "node_outputs": {},
         }
@@ -148,7 +149,7 @@ class TestRunsEndpoints:
             "constellation_id": "c1",
             "constellation_name": "Test",
             "status": "running",
-            "started_at": datetime.now(timezone.utc),
+            "started_at": datetime.now(UTC),
             "variables": {},
             "node_outputs": {},
         }

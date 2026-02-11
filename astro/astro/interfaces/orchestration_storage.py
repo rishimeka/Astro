@@ -5,7 +5,12 @@ Layer 2 needs storage for Stars, Constellations, and Runs. This keeps Layer 0
 interfaces clean - no awareness of Layer 2 in the core storage interface.
 """
 
-from typing import Protocol, Optional, List
+from typing import TYPE_CHECKING, Optional, Protocol
+
+if TYPE_CHECKING:
+    from astro.orchestration.models import Constellation
+    from astro.orchestration.runner import Run
+    from astro.orchestration.stars import BaseStar
 
 
 class OrchestrationStorageBackend(Protocol):
@@ -113,8 +118,8 @@ class OrchestrationStorageBackend(Protocol):
 
     async def list_stars(
         self,
-        filter_type: Optional[str] = None,
-    ) -> List["BaseStar"]:
+        filter_type: str | None = None,
+    ) -> list["BaseStar"]:
         """List all stars, optionally filtered by type.
 
         Args:
@@ -205,7 +210,7 @@ class OrchestrationStorageBackend(Protocol):
         """
         ...
 
-    async def list_constellations(self) -> List["Constellation"]:
+    async def list_constellations(self) -> list["Constellation"]:
         """List all constellations.
 
         Returns:
@@ -285,9 +290,9 @@ class OrchestrationStorageBackend(Protocol):
 
     async def list_runs(
         self,
-        constellation_id: Optional[str] = None,
+        constellation_id: str | None = None,
         limit: int = 100,
-    ) -> List["Run"]:
+    ) -> list["Run"]:
         """List runs, optionally filtered by constellation.
 
         Args:

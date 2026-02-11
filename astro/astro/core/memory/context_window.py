@@ -6,8 +6,8 @@ when the size exceeds a threshold to keep token usage manageable.
 """
 
 import time
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
+from typing import Any
 
 from astro.core.memory.compression import CompressionStrategy, SummarizationCompression
 
@@ -22,7 +22,7 @@ class Message:
 
     role: str  # 'user', 'assistant', or 'system'
     content: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
 
 
@@ -62,7 +62,7 @@ class ContextWindow:
     def __init__(
         self,
         max_chars: int = 50000,
-        compression_strategy: Optional[CompressionStrategy] = None,
+        compression_strategy: CompressionStrategy | None = None,
     ):
         """Initialize context window.
 
@@ -73,9 +73,9 @@ class ContextWindow:
         """
         self.max_chars = max_chars
         self.compression = compression_strategy or SummarizationCompression()
-        self.messages: List[Message] = []
+        self.messages: list[Message] = []
 
-    def add_message(self, content: str, metadata: Dict[str, Any]) -> None:
+    def add_message(self, content: str, metadata: dict[str, Any]) -> None:
         """Add a message to context window.
 
         Compresses if size exceeds threshold after adding the message.
@@ -100,7 +100,7 @@ class ContextWindow:
         self,
         user_message: str,
         assistant_message: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Add a user-assistant exchange (convenience method).
 
@@ -113,7 +113,7 @@ class ContextWindow:
         self.add_message(user_message, {"role": "user", **metadata})
         self.add_message(assistant_message, {"role": "assistant", **metadata})
 
-    def get_recent(self, limit: int = 10) -> List[Message]:
+    def get_recent(self, limit: int = 10) -> list[Message]:
         """Get recent messages.
 
         Args:
@@ -124,7 +124,7 @@ class ContextWindow:
         """
         return self.messages[-limit:]
 
-    def get_all(self) -> List[Message]:
+    def get_all(self) -> list[Message]:
         """Get all messages in context window.
 
         Returns:
@@ -176,7 +176,7 @@ class ContextWindow:
             )
         ] + recent_messages
 
-    def _compress_messages(self, messages: List[Message]) -> str:
+    def _compress_messages(self, messages: list[Message]) -> str:
         """Compress a list of messages into a summary.
 
         Args:
@@ -186,17 +186,14 @@ class ContextWindow:
             Compressed summary of messages
         """
         # Combine all message content
-        combined = "\n".join([
-            f"{msg.role}: {msg.content}"
-            for msg in messages
-        ])
+        combined = "\n".join([f"{msg.role}: {msg.content}" for msg in messages])
 
         # Note: The compression strategy should be async, but for simplicity
         # in this context, we'll make it synchronous. In production, this
         # should be handled with async/await.
         try:
             # If compression strategy has a sync method, use it
-            if hasattr(self.compression, 'compress_sync'):
+            if hasattr(self.compression, "compress_sync"):
                 return self.compression.compress_sync(combined)  # type: ignore
             else:
                 # Fallback: simple truncation
@@ -207,4 +204,6 @@ class ContextWindow:
         except Exception:
             # Fallback on error: simple truncation
             max_chars = 1000
-            return combined[:max_chars] + "..." if len(combined) > max_chars else combined
+            return (
+                combined[:max_chars] + "..." if len(combined) > max_chars else combined
+            )

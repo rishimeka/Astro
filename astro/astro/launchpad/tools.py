@@ -1,6 +1,6 @@
 """Launchpad-specific tools for the triggering agent."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from astro.core.probes import probe
 
@@ -24,7 +24,7 @@ def invoke_constellation(constellation_id: str, variables: str) -> str:
 
     # Parse variables from JSON string (LLM will pass as string)
     try:
-        parsed_vars: Dict[str, Any] = json.loads(variables) if variables else {}
+        parsed_vars: dict[str, Any] = json.loads(variables) if variables else {}
     except json.JSONDecodeError:
         parsed_vars = {}
 
@@ -65,14 +65,14 @@ def invoke_generic_constellation(
     import json
 
     try:
-        parsed_clarifications: List[str] = (
+        parsed_clarifications: list[str] = (
             json.loads(clarifications) if clarifications else []
         )
     except json.JSONDecodeError:
         parsed_clarifications = []
 
     try:
-        parsed_probes: List[str] = (
+        parsed_probes: list[str] = (
             json.loads(suggested_probes) if suggested_probes else []
         )
     except json.JSONDecodeError:
@@ -177,7 +177,7 @@ def _format_edges_as_ascii(constellation: Any) -> str:
 
 def get_constellation_summary(
     constellation_id: str, foundry: Any
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Get a summary of a constellation for matching.
 
     Args:

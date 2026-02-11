@@ -1,7 +1,6 @@
 """Tests for the Run and NodeOutput models."""
 
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime
 
 from astro_backend_service.executor.run import NodeOutput, Run, ToolCallRecord
 
@@ -56,7 +55,7 @@ class TestNodeOutput:
 
     def test_create_completed(self) -> None:
         """Test creating a completed node output."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         output = NodeOutput(
             node_id="node_1",
             star_id="star_1",
@@ -104,7 +103,7 @@ class TestRun:
 
     def test_create_run(self) -> None:
         """Test creating a new run."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_abc123",
             constellation_id="test_constellation",
@@ -128,7 +127,7 @@ class TestRun:
 
     def test_run_completed(self) -> None:
         """Test a completed run."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_abc123",
             constellation_id="test_constellation",
@@ -144,7 +143,7 @@ class TestRun:
 
     def test_run_failed(self) -> None:
         """Test a failed run."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_abc123",
             constellation_id="test_constellation",
@@ -160,7 +159,7 @@ class TestRun:
 
     def test_run_awaiting_confirmation(self) -> None:
         """Test a run waiting for user confirmation."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_abc123",
             constellation_id="test_constellation",
@@ -177,7 +176,7 @@ class TestRun:
 
     def test_run_with_node_outputs(self) -> None:
         """Test run with multiple node outputs."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_abc123",
             constellation_id="test_constellation",
@@ -204,7 +203,7 @@ class TestRun:
 
     def test_run_cancelled(self) -> None:
         """Test a cancelled run."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run = Run(
             id="run_abc123",
             constellation_id="test_constellation",

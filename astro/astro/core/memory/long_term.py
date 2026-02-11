@@ -6,11 +6,11 @@ semantic search for relevant historical context.
 """
 
 import uuid
-from typing import List, Dict, Any, Optional
+from typing import Any
 
-from astro.interfaces.memory import MemoryBackend, Memory
-from astro.interfaces.llm import EmbeddingProvider, LLMProvider
 from astro.core.memory.compression import CompressionStrategy
+from astro.interfaces.llm import EmbeddingProvider, LLMProvider
+from astro.interfaces.memory import Memory, MemoryBackend
 
 
 class LongTermMemory:
@@ -54,8 +54,8 @@ class LongTermMemory:
         self,
         backend: MemoryBackend,
         embedding_provider: EmbeddingProvider,
-        compression_strategy: Optional[CompressionStrategy] = None,
-        llm_provider: Optional[LLMProvider] = None,
+        compression_strategy: CompressionStrategy | None = None,
+        llm_provider: LLMProvider | None = None,
     ):
         """Initialize long-term memory.
 
@@ -73,7 +73,7 @@ class LongTermMemory:
     async def store(
         self,
         content: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
     ) -> str:
         """Store content in long-term memory.
 
@@ -115,8 +115,8 @@ class LongTermMemory:
         self,
         query: str,
         limit: int = 5,
-        filter_metadata: Optional[Dict[str, Any]] = None,
-    ) -> List[Memory]:
+        filter_metadata: dict[str, Any] | None = None,
+    ) -> list[Memory]:
         """Retrieve relevant memories via vector search.
 
         Performs semantic similarity search to find memories most relevant
@@ -152,7 +152,7 @@ class LongTermMemory:
             filter_metadata,
         )
 
-    async def retrieve_by_id(self, memory_id: str) -> Optional[Memory]:
+    async def retrieve_by_id(self, memory_id: str) -> Memory | None:
         """Retrieve a specific memory by ID.
 
         Args:

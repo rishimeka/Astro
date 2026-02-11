@@ -3,7 +3,6 @@
 from typing import Any
 
 import pytest
-
 from astro_backend_service.launchpad.conversation import Conversation
 from astro_backend_service.launchpad.triggering_agent import (
     TriggeringAgent,

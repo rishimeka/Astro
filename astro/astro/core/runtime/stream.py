@@ -7,7 +7,8 @@ delivering execution events to various consumers (SSE, WebSocket, logging, etc.)
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
+from collections.abc import AsyncIterator, Awaitable, Callable
+from typing import Any
 
 from astro.core.runtime.events import StreamEvent
 
@@ -113,7 +114,7 @@ class AsyncQueueStream(ExecutionStream):
         """Check if the stream is closed."""
         return self._closed
 
-    async def get(self, timeout: Optional[float] = None) -> Optional[StreamEvent]:
+    async def get(self, timeout: float | None = None) -> StreamEvent | None:
         """Get the next event from the queue.
 
         Args:
@@ -128,7 +129,7 @@ class AsyncQueueStream(ExecutionStream):
             else:
                 event = await self.queue.get()
             return event
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return None
 
     def __aiter__(self) -> AsyncIterator[StreamEvent]:
@@ -158,7 +159,7 @@ class CallbackStream(ExecutionStream):
     def __init__(
         self,
         callback: Callable[[StreamEvent], Awaitable[None]],
-        on_close: Optional[Callable[[], Awaitable[None]]] = None,
+        on_close: Callable[[], Awaitable[None]] | None = None,
     ) -> None:
         """Initialize with callback function.
 
@@ -206,7 +207,7 @@ class CompositeStream(ExecutionStream):
         stream = CompositeStream([sse_stream, log_stream])
     """
 
-    def __init__(self, streams: List[ExecutionStream]) -> None:
+    def __init__(self, streams: list[ExecutionStream]) -> None:
         """Initialize with list of child streams.
 
         Args:
@@ -322,11 +323,11 @@ class BufferedStream(ExecutionStream):
             flush_interval: Seconds between auto-flushes.
         """
         self._target = target
-        self._buffer: List[StreamEvent] = []
+        self._buffer: list[StreamEvent] = []
         self._buffer_size = buffer_size
         self._flush_interval = flush_interval
         self._closed = False
-        self._flush_task: Optional[asyncio.Task[None]] = None
+        self._flush_task: asyncio.Task[None] | None = None
 
     async def emit(self, event: StreamEvent) -> None:
         """Buffer the event, flushing if buffer is full.
@@ -361,7 +362,7 @@ class BufferedStream(ExecutionStream):
             await self._target.close()
 
 
-def serialize_event_for_sse(event: StreamEvent) -> Dict[str, str]:
+def serialize_event_for_sse(event: StreamEvent) -> dict[str, str]:
     """Serialize a stream event for SSE transmission.
 
     Args:
@@ -376,7 +377,7 @@ def serialize_event_for_sse(event: StreamEvent) -> Dict[str, str]:
     }
 
 
-def serialize_event_dict(event: StreamEvent) -> Dict[str, Any]:
+def serialize_event_dict(event: StreamEvent) -> dict[str, Any]:
     """Serialize a stream event to a dictionary.
 
     Args:

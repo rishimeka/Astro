@@ -1,6 +1,6 @@
 """ProbeRegistry for managing registered probes."""
 
-from typing import ClassVar, Dict, List, Optional
+from typing import ClassVar
 
 from astro.core.probes.exceptions import DuplicateProbeError
 from astro.core.probes.probe import Probe
@@ -27,7 +27,7 @@ class ProbeRegistry:
         all_probes = ProbeRegistry.all()
     """
 
-    _probes: ClassVar[Dict[str, Probe]] = {}
+    _probes: ClassVar[dict[str, Probe]] = {}
 
     @classmethod
     def register(cls, probe: Probe) -> None:
@@ -50,7 +50,7 @@ class ProbeRegistry:
         cls._probes[probe.name] = probe
 
     @classmethod
-    def get(cls, name: str) -> Optional[Probe]:
+    def get(cls, name: str) -> Probe | None:
         """Get a probe by name.
 
         Args:
@@ -62,7 +62,7 @@ class ProbeRegistry:
         return cls._probes.get(name)
 
     @classmethod
-    def get_many(cls, names: List[str]) -> List[Probe]:
+    def get_many(cls, names: list[str]) -> list[Probe]:
         """Get multiple probes by name using direct dict lookup.
 
         Missing names are silently skipped.
@@ -76,7 +76,7 @@ class ProbeRegistry:
         return [cls._probes[n] for n in names if n in cls._probes]
 
     @classmethod
-    def all(cls) -> List[Probe]:
+    def all(cls) -> list[Probe]:
         """Get all registered probes.
 
         Returns:

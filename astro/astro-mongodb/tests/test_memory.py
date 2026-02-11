@@ -1,7 +1,9 @@
 """Tests for MongoDBMemory."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from astro_mongodb.memory import MongoDBMemory
 
 
@@ -221,7 +223,7 @@ async def test_search_with_metadata_filter(memory, sample_embedding):
             mock_np.linalg.norm.return_value = 1.0
             mock_np.dot.return_value = 0.9
 
-            results = await memory.search(
+            _ = await memory.search(
                 query_embedding=sample_embedding,
                 limit=5,
                 filter_metadata={"domain": "finance"},

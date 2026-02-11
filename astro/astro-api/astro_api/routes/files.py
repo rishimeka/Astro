@@ -5,7 +5,6 @@ import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
@@ -37,7 +36,7 @@ class FileMetadata(BaseModel):
     id: str = Field(..., description="Unique file identifier")
     original_name: str = Field(..., description="Original filename")
     stored_path: str = Field(..., description="Path where file is stored")
-    mime_type: Optional[str] = Field(None, description="MIME type of the file")
+    mime_type: str | None = Field(None, description="MIME type of the file")
     size_bytes: int = Field(..., description="File size in bytes")
     uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -45,14 +44,14 @@ class FileMetadata(BaseModel):
 class UploadResponse(BaseModel):
     """Response for file upload."""
 
-    files: List[FileMetadata]
+    files: list[FileMetadata]
     message: str
 
 
 class FileListResponse(BaseModel):
     """Response for listing files."""
 
-    files: List[FileMetadata]
+    files: list[FileMetadata]
     count: int
 
 
@@ -80,7 +79,7 @@ def generate_stored_filename(original_name: str, file_id: str) -> str:
 
 
 @router.post("", response_model=UploadResponse)
-async def upload_files(files: List[UploadFile] = File(...)) -> UploadResponse:
+async def upload_files(files: list[UploadFile] = File(...)) -> UploadResponse:
     """Upload one or more files.
 
     Files are stored locally and their paths can be passed to constellation runs.
@@ -95,7 +94,7 @@ async def upload_files(files: List[UploadFile] = File(...)) -> UploadResponse:
         raise HTTPException(status_code=400, detail="No files provided")
 
     upload_dir = ensure_upload_dir()
-    uploaded: List[FileMetadata] = []
+    uploaded: list[FileMetadata] = []
 
     for file in files:
         if not file.filename:
@@ -196,7 +195,7 @@ async def list_files() -> FileListResponse:
         List of FileMetadata for all uploaded files
     """
     upload_dir = ensure_upload_dir()
-    files: List[FileMetadata] = []
+    files: list[FileMetadata] = []
 
     for path in upload_dir.iterdir():
         if path.is_file() and path.suffix.lower() in ALLOWED_EXTENSIONS:

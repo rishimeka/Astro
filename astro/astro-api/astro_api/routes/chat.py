@@ -3,18 +3,18 @@
 import asyncio
 import json
 import logging
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
 
+from astro.launchpad import LaunchpadController, Response
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from astro_api.dependencies import (
-    get_launchpad_controller,
-    get_conversation,
     create_conversation,
+    get_conversation,
+    get_launchpad_controller,
 )
 from astro_api.schemas import ChatRequest
-from astro.launchpad import LaunchpadController, Response
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 """Tests for stars endpoints."""
 
-from astro_backend_service.models import WorkerStar, PlanningStar
 from astro_backend_service.foundry import ValidationError
+from astro_backend_service.models import PlanningStar, WorkerStar
 
 
 class TestStarsEndpoints:

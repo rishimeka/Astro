@@ -1,15 +1,16 @@
 """Thin memory storage interface - implementation details left to backends."""
 
-from typing import Protocol, List, Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Protocol
 
 
 @dataclass
 class Memory:
     """A single memory entry."""
+
     id: str
     content: str
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     timestamp: float
 
 
@@ -30,8 +31,8 @@ class MemoryBackend(Protocol):
         self,
         id: str,
         content: str,
-        embedding: List[float],
-        metadata: Dict[str, Any],
+        embedding: list[float],
+        metadata: dict[str, Any],
     ) -> None:
         """Store a memory entry with its vector embedding.
 
@@ -43,7 +44,7 @@ class MemoryBackend(Protocol):
         """
         ...
 
-    async def retrieve(self, id: str) -> Optional[Memory]:
+    async def retrieve(self, id: str) -> Memory | None:
         """Retrieve a specific memory by ID.
 
         Args:
@@ -56,10 +57,10 @@ class MemoryBackend(Protocol):
 
     async def search(
         self,
-        query_embedding: List[float],
+        query_embedding: list[float],
         limit: int = 5,
-        filter_metadata: Optional[Dict[str, Any]] = None,
-    ) -> List[Memory]:
+        filter_metadata: dict[str, Any] | None = None,
+    ) -> list[Memory]:
         """Vector similarity search for relevant memories.
 
         Args:

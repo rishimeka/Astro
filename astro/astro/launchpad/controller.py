@@ -10,7 +10,7 @@ The choice is made based on the research_mode flag, allowing users to opt-in to
 deeper analysis when needed.
 """
 
-from typing import Any, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -162,7 +162,7 @@ class LaunchpadController:
 
     async def get_conversation_history(
         self, conversation_id: str
-    ) -> Optional[Conversation]:
+    ) -> Conversation | None:
         """Retrieve conversation history by ID.
 
         This is a convenience method for API routes that need to load
@@ -178,7 +178,7 @@ class LaunchpadController:
         # For now, this is a placeholder
         return None
 
-    async def create_conversation(self, user_id: Optional[str] = None) -> Conversation:
+    async def create_conversation(self, user_id: str | None = None) -> Conversation:
         """Create a new conversation.
 
         Args:

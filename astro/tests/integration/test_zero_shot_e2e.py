@@ -4,12 +4,13 @@ This test proves the V2 architecture holds by executing a complete
 zero-shot flow from query to response.
 """
 
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from astro.core.registry import Registry
+
 from astro.core.models.directive import Directive
-from astro.launchpad import Interpreter, RunningAgent, ZeroShotPipeline, Conversation
-from astro.launchpad.conversation import Message
+from astro.core.registry import Registry
+from astro.launchpad import Conversation, Interpreter, RunningAgent, ZeroShotPipeline
 
 
 class MockCoreStorage:

@@ -1,6 +1,7 @@
 """Probe model for registered tool metadata."""
 
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 from pydantic import BaseModel, Field, PrivateAttr
 
@@ -27,10 +28,10 @@ class Probe(BaseModel):
 
     name: str = Field(..., description="Function name, used as unique identifier")
     description: str = Field(..., description="Docstring, passed to LLM")
-    input_schema: Optional[Dict[str, Any]] = Field(
+    input_schema: dict[str, Any] | None = Field(
         default=None, description="JSON schema for function arguments"
     )
-    output_schema: Optional[Dict[str, Any]] = Field(
+    output_schema: dict[str, Any] | None = Field(
         default=None, description="JSON schema for return type"
     )
 
@@ -39,7 +40,7 @@ class Probe(BaseModel):
     function_name: str = Field(..., description="Original function name")
 
     # The wrapped callable (not serialized)
-    _callable: Optional[Callable[..., Any]] = PrivateAttr(default=None)
+    _callable: Callable[..., Any] | None = PrivateAttr(default=None)
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -64,9 +65,16 @@ class Probe(BaseModel):
 
         Returns:
             LangChain tool that can be bound to LLM.
+
+        Raises:
+            RuntimeError: If the callable is not set.
         """
-        from langchain_core.tools import tool as langgraph_tool
         from functools import wraps
+
+        from langchain_core.tools import tool as langgraph_tool
+
+        if self._callable is None:
+            raise RuntimeError(f"Probe '{self.name}' has no callable set")
 
         @langgraph_tool
         @wraps(self._callable)

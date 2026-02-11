@@ -4,10 +4,10 @@ This module exports all protocol interfaces for Astro V2. These interfaces
 define contracts without implementations, enabling pluggable infrastructure.
 """
 
-from astro.interfaces.storage import CoreStorageBackend
+from astro.interfaces.llm import EmbeddingProvider, LLMProvider
+from astro.interfaces.memory import Memory, MemoryBackend
 from astro.interfaces.orchestration_storage import OrchestrationStorageBackend
-from astro.interfaces.llm import LLMProvider, EmbeddingProvider
-from astro.interfaces.memory import MemoryBackend, Memory
+from astro.interfaces.storage import CoreStorageBackend
 
 __all__ = [
     "CoreStorageBackend",

@@ -20,8 +20,9 @@ capture all relationships, exercising the EvalStar loop.
 
 import os
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
+from typing import Any
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
@@ -122,9 +123,9 @@ def create_synthetic_pe_fund(output_path: str | None = None) -> str:
     investment_period = 5
 
     # Track cumulative values
-    cum_capital_calls = 0
-    cum_distributions = 0
-    nav_values = []
+    cum_capital_calls = 0.0
+    cum_distributions = 0.0
+    nav_values: list[float] = []
 
     for col in range(2, periods + 2):
         quarter = col - 1
@@ -275,7 +276,7 @@ def create_synthetic_pe_fund_fixture() -> Generator[str, None, None]:
 
 
 # Pattern documentation for interview answers
-EXPECTED_PATTERNS = {
+EXPECTED_PATTERNS: dict[str, Any] = {
     "Assumptions": {
         "type": "input_sheet",
         "input_cells": [

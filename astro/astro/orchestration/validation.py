@@ -4,7 +4,7 @@ This module contains validation for Layer 2 (orchestration) primitives only.
 Directive and Probe validation belong in astro.core.registry.validation.
 """
 
-from typing import TYPE_CHECKING, Dict, List, Optional, Set
+from typing import TYPE_CHECKING
 
 from astro.orchestration.models import Constellation, StarType
 from astro.orchestration.stars.base import AtomicStar, BaseStar
@@ -35,7 +35,7 @@ class ValidationWarning:
 def validate_star(
     star: BaseStar,
     indexes: "FoundryIndexes",
-) -> List[ValidationWarning]:
+) -> list[ValidationWarning]:
     """Validate a star.
 
     Args:
@@ -48,7 +48,7 @@ def validate_star(
     Raises:
         ValidationError: For fatal validation errors.
     """
-    warnings: List[ValidationWarning] = []
+    warnings: list[ValidationWarning] = []
 
     # Check directive exists
     if star.directive_id not in indexes.directives:
@@ -74,7 +74,7 @@ def validate_star(
 def validate_constellation(
     constellation: Constellation,
     indexes: "FoundryIndexes",
-) -> List[ValidationWarning]:
+) -> list[ValidationWarning]:
     """Validate constellation graph structure and star relationships.
 
     Args:
@@ -87,7 +87,7 @@ def validate_constellation(
     Raises:
         ValidationError: For fatal validation errors.
     """
-    warnings: List[ValidationWarning] = []
+    warnings: list[ValidationWarning] = []
 
     # Basic structure checks
     if not constellation.start:
@@ -104,14 +104,14 @@ def validate_constellation(
 
     # Check all star_ids exist
     for node in constellation.nodes:
-        if node.star_id not in indexes.stars:
+        if node.star_id not in indexes.stars:  # type: ignore[attr-defined]
             raise ValidationError(
                 f"Node '{node.id}' references Star '{node.star_id}' "
                 "which doesn't exist"
             )
 
     # Check for orphan nodes
-    connected_ids: Set[str] = set()
+    connected_ids: set[str] = set()
     for edge in constellation.edges:
         connected_ids.add(edge.source)
         connected_ids.add(edge.target)
@@ -144,7 +144,7 @@ def validate_constellation(
 def _detect_cycle(
     constellation: Constellation,
     indexes: "FoundryIndexes",
-) -> Optional[str]:
+) -> str | None:
     """Detect cycles in constellation graph.
 
     EvalStar loop edges (condition='loop') are allowed and excluded from check.
@@ -158,7 +158,7 @@ def _detect_cycle(
         + [n.id for n in constellation.nodes]
         + [constellation.end.id]
     )
-    adjacency: Dict[str, List[str]] = {node_id: [] for node_id in all_node_ids}
+    adjacency: dict[str, list[str]] = {node_id: [] for node_id in all_node_ids}
 
     for edge in constellation.edges:
         # Skip loop edges from EvalStar
@@ -168,9 +168,9 @@ def _detect_cycle(
             adjacency[edge.source].append(edge.target)
 
     # DFS for cycle detection
-    visited: Set[str] = set()
-    rec_stack: Set[str] = set()
-    path: List[str] = []
+    visited: set[str] = set()
+    rec_stack: set[str] = set()
+    path: list[str] = []
 
     def has_cycle(node: str) -> bool:
         visited.add(node)
@@ -201,23 +201,23 @@ def _detect_cycle(
 def _validate_star_relationships(
     constellation: Constellation,
     indexes: "FoundryIndexes",
-) -> List[ValidationWarning]:
+) -> list[ValidationWarning]:
     """Validate star type relationships in constellation."""
-    warnings: List[ValidationWarning] = []
+    warnings: list[ValidationWarning] = []
 
     # Build node -> star type mapping
-    node_star_type: Dict[str, StarType] = {}
+    node_star_type: dict[str, StarType] = {}
     for node in constellation.nodes:
-        star = indexes.get_star(node.star_id)
+        star = indexes.get_star(node.star_id)  # type: ignore[attr-defined]
         if star:
             node_star_type[node.id] = star.type
 
     # Build adjacency (forward edges only, no loops)
-    forward_edges: Dict[str, List[str]] = {n.id: [] for n in constellation.nodes}
+    forward_edges: dict[str, list[str]] = {n.id: [] for n in constellation.nodes}
     forward_edges[constellation.start.id] = []
     forward_edges[constellation.end.id] = []
 
-    backward_edges: Dict[str, List[str]] = {n.id: [] for n in constellation.nodes}
+    backward_edges: dict[str, list[str]] = {n.id: [] for n in constellation.nodes}
     backward_edges[constellation.start.id] = []
     backward_edges[constellation.end.id] = []
 
@@ -309,9 +309,9 @@ def _validate_eval_star_edges(
 ) -> None:
     """Validate EvalStar edges have conditions, others don't."""
     # Build node -> star type mapping
-    node_star_type: Dict[str, StarType] = {}
+    node_star_type: dict[str, StarType] = {}
     for node in constellation.nodes:
-        star = indexes.get_star(node.star_id)
+        star = indexes.get_star(node.star_id)  # type: ignore[attr-defined]
         if star:
             node_star_type[node.id] = star.type
 
@@ -345,12 +345,12 @@ def _validate_eval_star_edges(
 def validate_confirmation_nodes(
     constellation: Constellation,
     indexes: "FoundryIndexes",
-) -> List[ValidationWarning]:
+) -> list[ValidationWarning]:
     """Validate confirmation nodes have proper prompts.
 
     Returns warnings for nodes that require confirmation but lack prompts.
     """
-    warnings: List[ValidationWarning] = []
+    warnings: list[ValidationWarning] = []
 
     for node in constellation.nodes:
         if node.requires_confirmation and not node.confirmation_prompt:

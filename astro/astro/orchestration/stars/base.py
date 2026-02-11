@@ -1,7 +1,7 @@
 """Base Star classes - abstract foundations for all Star types."""
 
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
@@ -31,7 +31,7 @@ class BaseStar(ABC, BaseModel):
     )
 
     # Configuration
-    config: Dict[str, Any] = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
 
     # Lineage
     ai_generated: bool = Field(
@@ -39,17 +39,17 @@ class BaseStar(ABC, BaseModel):
     )
 
     # Extensibility
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     model_config = {"arbitrary_types_allowed": True}
 
-    def validate_star(self) -> List[str]:
+    def validate_star(self) -> list[str]:
         """Validate Star configuration. Override to add type-specific rules.
 
         Returns list of error messages. Empty list means valid.
         Full validation logic implemented in Registry/Foundry.
         """
-        errors: List[str] = []
+        errors: list[str] = []
         # Common validation: directive exists, etc. (done by Registry/Foundry)
         return errors
 
@@ -60,13 +60,13 @@ class AtomicStar(BaseStar):
     Can have probes and consume upstream outputs.
     """
 
-    probe_ids: List[str] = Field(
+    probe_ids: list[str] = Field(
         default_factory=list,
         description="Additional probes beyond Directive. "
         "Final set = Directive.probe_ids ∪ Star.probe_ids",
     )
 
-    def resolve_probes(self, directive: "Directive") -> List[str]:
+    def resolve_probes(self, directive: "Directive") -> list[str]:
         """Compute final probe set (deduplicated)."""
         return list(set(directive.probe_ids + self.probe_ids))
 

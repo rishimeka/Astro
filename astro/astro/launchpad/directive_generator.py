@@ -19,11 +19,11 @@ The generated directive follows this structure:
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from astro.core.models.directive import Directive
-from astro.core.registry.registry import Registry
 from astro.core.probes.registry import ProbeRegistry
+from astro.core.registry.registry import Registry
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +33,13 @@ class GatheredContext:
     """Context gathered from user for directive generation."""
 
     query: str
-    conversation_history: List[Dict[str, str]]
-    role_expertise: Optional[str] = None
-    approach_steps: Optional[List[str]] = None
-    output_format: Optional[str] = None
-    constraints: Optional[List[str]] = None
-    tone_style: Optional[str] = None
-    user_answers: Optional[Dict[str, str]] = None
+    conversation_history: list[dict[str, str]]
+    role_expertise: str | None = None
+    approach_steps: list[str] | None = None
+    output_format: str | None = None
+    constraints: list[str] | None = None
+    tone_style: str | None = None
+    user_answers: dict[str, str] | None = None
 
 
 @dataclass
@@ -49,10 +49,10 @@ class GeneratedDirective:
     name: str
     description: str
     content: str  # Contains @probe: references
-    probe_ids: List[str]  # Extracted from @probe: references (Registry does this)
-    metadata: Dict[str, Any]
+    probe_ids: list[str]  # Extracted from @probe: references (Registry does this)
+    metadata: dict[str, Any]
     similarity_score: float = 0.0
-    similar_directive_id: Optional[str] = None
+    similar_directive_id: str | None = None
 
 
 class DirectiveGenerator:
@@ -75,9 +75,7 @@ class DirectiveGenerator:
         self.probe_registry = probe_registry
         self.llm = llm
 
-    async def generate_directive(
-        self, context: GatheredContext
-    ) -> GeneratedDirective:
+    async def generate_directive(self, context: GatheredContext) -> GeneratedDirective:
         """Generate a new directive from gathered context.
 
         Args:
@@ -90,7 +88,9 @@ class DirectiveGenerator:
 
         # Step 1: Read all available probes
         available_probes = self._read_available_probes()
-        logger.info(f"DirectiveGenerator: Found {len(available_probes)} available probes")
+        logger.info(
+            f"DirectiveGenerator: Found {len(available_probes)} available probes"
+        )
 
         # Step 2: Select relevant probes for this task
         selected_probes = await self._select_relevant_probes(context, available_probes)
@@ -129,7 +129,7 @@ class DirectiveGenerator:
 
         return generated
 
-    def _read_available_probes(self) -> List[Dict[str, Any]]:
+    def _read_available_probes(self) -> list[dict[str, Any]]:
         """Read all available probes from ProbeRegistry.
 
         Returns:
@@ -149,8 +149,8 @@ class DirectiveGenerator:
         return probes
 
     async def _select_relevant_probes(
-        self, context: GatheredContext, available_probes: List[Dict[str, Any]]
-    ) -> List[str]:
+        self, context: GatheredContext, available_probes: list[dict[str, Any]]
+    ) -> list[str]:
         """Use LLM to select relevant probes for this task.
 
         Args:
@@ -162,10 +162,7 @@ class DirectiveGenerator:
         """
         # Format probes for prompt
         probes_text = "\n".join(
-            [
-                f"- {p['id']}: {p['description']}"
-                for p in available_probes
-            ]
+            [f"- {p['id']}: {p['description']}" for p in available_probes]
         )
 
         prompt = f"""You are selecting which probes (tools) are needed for a task.
@@ -195,7 +192,9 @@ Example: ["search_google_news", "get_financial_data"]
 
         try:
             response = await self.llm.ainvoke(messages, temperature=0.2, max_tokens=500)
-            content = response.content if hasattr(response, "content") else str(response)
+            content = (
+                response.content if hasattr(response, "content") else str(response)
+            )
 
             # Parse JSON response
             import json
@@ -221,7 +220,7 @@ Example: ["search_google_news", "get_financial_data"]
             return []
 
     async def _generate_content(
-        self, context: GatheredContext, selected_probes: List[str]
+        self, context: GatheredContext, selected_probes: list[str]
     ) -> tuple[str, str, str]:
         """Generate directive content with @probe: references embedded.
 
@@ -293,8 +292,12 @@ Return your response as JSON:
         messages = [{"role": "user", "content": prompt}]
 
         try:
-            response = await self.llm.ainvoke(messages, temperature=0.7, max_tokens=2000)
-            content = response.content if hasattr(response, "content") else str(response)
+            response = await self.llm.ainvoke(
+                messages, temperature=0.7, max_tokens=2000
+            )
+            content = (
+                response.content if hasattr(response, "content") else str(response)
+            )
 
             # Parse JSON response
             import json
@@ -326,7 +329,7 @@ Return your response as JSON:
 
     async def _check_similarity(
         self, name: str, description: str, content: str
-    ) -> tuple[float, Optional[str]]:
+    ) -> tuple[float, str | None]:
         """Check semantic similarity with existing directives.
 
         Args:
@@ -362,7 +365,9 @@ Return your response as JSON:
                 best_score = score
                 best_id = directive.id
 
-        logger.info(f"DirectiveGenerator: Best similarity - {best_score:.2f} with {best_id}")
+        logger.info(
+            f"DirectiveGenerator: Best similarity - {best_score:.2f} with {best_id}"
+        )
 
         return best_score, best_id
 
@@ -377,6 +382,7 @@ Return your response as JSON:
         """
         # Generate unique ID
         import uuid
+
         directive_id = f"gen-{uuid.uuid4().hex[:8]}"
 
         # Create Directive object
@@ -395,9 +401,13 @@ Return your response as JSON:
         created, warnings = await self.directive_registry.create_directive(directive)
 
         if warnings:
-            logger.warning(f"DirectiveGenerator: Directive saved with {len(warnings)} warnings: {[w.message for w in warnings]}")
+            logger.warning(
+                f"DirectiveGenerator: Directive saved with {len(warnings)} warnings: {[w.message for w in warnings]}"
+            )
 
-        logger.info(f"DirectiveGenerator: Saved directive '{generated.name}' with ID {directive_id}")
+        logger.info(
+            f"DirectiveGenerator: Saved directive '{generated.name}' with ID {directive_id}"
+        )
 
         return directive_id
 

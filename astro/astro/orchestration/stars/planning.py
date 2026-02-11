@@ -1,7 +1,7 @@
 """PlanningStar - generates structured execution plans."""
 
 import json
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from pydantic import Field
 
@@ -9,8 +9,8 @@ from astro.orchestration.models.star_types import StarType
 from astro.orchestration.stars.base import AtomicStar
 
 if TYPE_CHECKING:
+    from astro.core.models.outputs import Plan  # type: ignore[attr-defined]
     from astro.orchestration.context import ConstellationContext
-    from astro.core.models.outputs import Plan
 
 
 class PlanningStar(AtomicStar):
@@ -30,7 +30,7 @@ class PlanningStar(AtomicStar):
         description="Maximum iterations for tool calling during planning",
     )
 
-    def validate_star(self) -> List[str]:
+    def validate_star(self) -> list[str]:
         """Validate PlanningStar configuration."""
         errors = super().validate_star()
         # Must have ExecutionStar downstream - validated at Constellation level
@@ -48,7 +48,7 @@ class PlanningStar(AtomicStar):
         from langchain_core.messages import HumanMessage, SystemMessage
 
         from astro.core.llm.utils import get_langchain_llm
-        from astro.core.models.outputs import Plan, Task
+        from astro.core.models.outputs import Plan, Task  # type: ignore[attr-defined]
         from astro.orchestration.stars.tool_support import execute_with_tools
 
         # Get directive for system prompt
@@ -142,7 +142,7 @@ Keep the plan focused and actionable. Each task should be completable by a singl
             plan_data = json.loads(content.strip())
 
             # Build Plan object
-            tasks: List[Task] = []
+            tasks: list[Task] = []
             for task_data in plan_data.get("tasks", []):
                 tasks.append(
                     Task(

@@ -1,6 +1,6 @@
 """SynthesisStar - aggregates outputs from multiple upstream Stars."""
 
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
 
@@ -8,8 +8,8 @@ from astro.orchestration.models.star_types import StarType
 from astro.orchestration.stars.base import AtomicStar
 
 if TYPE_CHECKING:
+    from astro.core.models.outputs import SynthesisOutput  # type: ignore[attr-defined]
     from astro.orchestration.context import ConstellationContext
-    from astro.core.models.outputs import SynthesisOutput
 
 
 class SynthesisStar(AtomicStar):
@@ -29,7 +29,7 @@ class SynthesisStar(AtomicStar):
         description="Maximum iterations for tool calling during synthesis",
     )
 
-    def validate_star(self) -> List[str]:
+    def validate_star(self) -> list[str]:
         """Validate SynthesisStar configuration."""
         errors = super().validate_star()
         # Must have upstream - validated at Constellation level
@@ -47,7 +47,9 @@ class SynthesisStar(AtomicStar):
         from langchain_core.messages import HumanMessage, SystemMessage
 
         from astro.core.llm.utils import get_langchain_llm
-        from astro.core.models.outputs import SynthesisOutput
+        from astro.core.models.outputs import (  # type: ignore[attr-defined]
+            SynthesisOutput,
+        )
         from astro.orchestration.stars.tool_support import execute_with_tools
 
         # Get directive for formatting instructions
@@ -60,8 +62,8 @@ class SynthesisStar(AtomicStar):
         # (Plan and EvalDecision are not content to synthesize)
         # NOTE: Synthesis stars need ALL node outputs (not just direct upstream)
         # to create comprehensive reports combining all analyst inputs
-        sources: List[str] = []
-        upstream_content_parts: List[str] = []
+        sources: list[str] = []
+        upstream_content_parts: list[str] = []
 
         # Use all node_outputs for synthesis (special case - needs full context)
         # Truncate each output to avoid bloated context (configurable, default 3000 chars)
@@ -83,7 +85,9 @@ class SynthesisStar(AtomicStar):
                 )
             elif hasattr(output, "formatted_result"):
                 content = output.formatted_result[:max_upstream_length]
-                truncated = "..." if len(output.formatted_result) > max_upstream_length else ""
+                truncated = (
+                    "..." if len(output.formatted_result) > max_upstream_length else ""
+                )
                 upstream_content_parts.append(
                     f"## Output from {node_id}\n{content}{truncated}"
                 )
@@ -92,20 +96,30 @@ class SynthesisStar(AtomicStar):
                 for i, wo in enumerate(output.worker_outputs):
                     if hasattr(wo, "result"):
                         content = wo.result[:max_upstream_length]
-                        truncated = "..." if len(wo.result) > max_upstream_length else ""
+                        truncated = (
+                            "..." if len(wo.result) > max_upstream_length else ""
+                        )
                         upstream_content_parts.append(
                             f"## Worker {i+1} output\n{content}{truncated}"
                         )
             elif isinstance(output, dict):
                 if "output" in output:
-                    content = str(output['output'])[:max_upstream_length]
-                    truncated = "..." if len(str(output['output'])) > max_upstream_length else ""
+                    content = str(output["output"])[:max_upstream_length]
+                    truncated = (
+                        "..."
+                        if len(str(output["output"])) > max_upstream_length
+                        else ""
+                    )
                     upstream_content_parts.append(
                         f"## Output from {node_id}\n{content}{truncated}"
                     )
                 elif "result" in output:
-                    content = str(output['result'])[:max_upstream_length]
-                    truncated = "..." if len(str(output['result'])) > max_upstream_length else ""
+                    content = str(output["result"])[:max_upstream_length]
+                    truncated = (
+                        "..."
+                        if len(str(output["result"])) > max_upstream_length
+                        else ""
+                    )
                     upstream_content_parts.append(
                         f"## Output from {node_id}\n{content}{truncated}"
                     )
@@ -171,7 +185,7 @@ Please synthesize these outputs into a clear, comprehensive final result."""
             )
 
             # Build metadata including tool call info
-            metadata: Dict[str, Any] = {"original_query": context.original_query}
+            metadata: dict[str, Any] = {"original_query": context.original_query}
             if tool_calls:
                 metadata["tool_calls"] = [
                     {

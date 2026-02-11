@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock
 
-
 from astro_backend_service.launchpad.preferences import UserSynthesisPreferences
 from astro_backend_service.launchpad.synthesis import SynthesisAgent
 

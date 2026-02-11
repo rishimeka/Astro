@@ -1,34 +1,32 @@
 """Constellations router - CRUD and execution endpoints."""
 
 import asyncio
-import json
 import logging
-from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sse_starlette.sse import EventSourceResponse
 
-from astro_api.dependencies import get_registry, get_runner, get_orchestration_storage
+from astro_api.dependencies import get_orchestration_storage, get_registry, get_runner
 
 logger = logging.getLogger(__name__)
-from astro_api.schemas import (
-    ConstellationCreate,
-    ConstellationUpdate,
-    ConstellationSummary,
-    ConstellationResponse,
-    RunRequest,
-)
-from astro.core.registry import Registry, ValidationError
-from astro.orchestration.runner import ConstellationRunner
+from astro.core.models import TemplateVariable
+from astro.core.registry import Registry
 from astro.orchestration.models import (
     Constellation,
-    Position,
-    StartNode,
-    EndNode,
-    StarNode,
     Edge,
+    EndNode,
+    Position,
+    StarNode,
+    StartNode,
 )
-from astro.core.models import TemplateVariable
+from astro.orchestration.runner import ConstellationRunner
+
+from astro_api.schemas import (
+    ConstellationCreate,
+    ConstellationResponse,
+    ConstellationSummary,
+    ConstellationUpdate,
+    RunRequest,
+)
 
 router = APIRouter()
 
@@ -88,10 +86,10 @@ def _build_constellation(request: ConstellationCreate) -> Constellation:
     )
 
 
-@router.get("", response_model=List[ConstellationSummary])
+@router.get("", response_model=list[ConstellationSummary])
 async def list_constellations(
     storage = Depends(get_orchestration_storage),
-) -> List[ConstellationSummary]:
+) -> list[ConstellationSummary]:
     """List all constellations."""
     logger.debug("Listing all constellations")
     constellations = await storage.list_constellations()
@@ -122,11 +120,11 @@ async def get_constellation(
     return constellation
 
 
-@router.get("/{id}/variables", response_model=List[TemplateVariable])
+@router.get("/{id}/variables", response_model=list[TemplateVariable])
 async def get_constellation_variables(
     id: str,
     foundry: Registry = Depends(get_registry),
-) -> List[TemplateVariable]:
+) -> list[TemplateVariable]:
     """Get required variables for a constellation."""
     try:
         variables = foundry.compute_constellation_variables(id)

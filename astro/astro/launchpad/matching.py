@@ -1,6 +1,6 @@
 """Constellation matching logic for the triggering agent."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from astro.launchpad.conversation import Message
 from astro.launchpad.prompts import get_prompt
@@ -12,8 +12,8 @@ class ConstellationMatch:
     def __init__(
         self,
         constellation_id: str,
-        extracted_variables: Dict[str, Any],
-        missing_variables: List[str],
+        extracted_variables: dict[str, Any],
+        missing_variables: list[str],
         confidence: float = 1.0,
     ) -> None:
         self.constellation_id = constellation_id
@@ -28,10 +28,10 @@ class ConstellationMatch:
 
 def find_matching_constellation(
     query: str,
-    conversation_history: List[Message],
-    constellation_summaries: List[Dict[str, Any]],
+    conversation_history: list[Message],
+    constellation_summaries: list[dict[str, Any]],
     llm_client: Any = None,
-) -> Optional[ConstellationMatch]:
+) -> ConstellationMatch | None:
     """Find constellation matching the query.
 
     Uses LLM to:
@@ -96,9 +96,9 @@ def find_matching_constellation(
 def _llm_match_constellation(
     query: str,
     context: str,
-    summaries: List[Dict[str, Any]],
+    summaries: list[dict[str, Any]],
     llm_client: Any,
-) -> Optional[ConstellationMatch]:
+) -> ConstellationMatch | None:
     """Use LLM to match query to best constellation.
 
     Args:
@@ -111,6 +111,7 @@ def _llm_match_constellation(
         ConstellationMatch or None.
     """
     import json
+
     from langchain_core.messages import HumanMessage, SystemMessage
 
     # Build constellation list for the prompt
@@ -190,7 +191,7 @@ def _llm_match_constellation(
     return None
 
 
-def _build_conversation_context(messages: List[Message]) -> str:
+def _build_conversation_context(messages: list[Message]) -> str:
     """Build context string from conversation history."""
     context_parts = []
     for msg in messages[-5:]:  # Last 5 messages
@@ -219,10 +220,10 @@ def _has_keyword_match(query: str, description: str, name: str) -> bool:
 
 def extract_variables_from_conversation(
     query: str,
-    conversation_history: List[Message],
-    variable_specs: List[Dict[str, Any]],
+    conversation_history: list[Message],
+    variable_specs: list[dict[str, Any]],
     llm_client: Any = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Extract variable values from query and conversation history.
 
     Args:
@@ -237,7 +238,7 @@ def extract_variables_from_conversation(
     if not variable_specs:
         return {}
 
-    extracted: Dict[str, Any] = {}
+    extracted: dict[str, Any] = {}
 
     # Combine query with recent history for extraction
     all_text = query
@@ -267,9 +268,9 @@ def extract_variables_from_conversation(
 
 def _llm_extract_variables(
     text: str,
-    variable_specs: List[Dict[str, Any]],
+    variable_specs: list[dict[str, Any]],
     llm_client: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Use LLM to extract variable values from text.
 
     Args:
@@ -281,6 +282,7 @@ def _llm_extract_variables(
         Dict of variable name to extracted value.
     """
     import json
+
     from langchain_core.messages import HumanMessage, SystemMessage
 
     # Build variable list for the prompt
@@ -319,8 +321,9 @@ def _llm_extract_variables(
                 content = content[4:]
             content = content.strip()
 
-        result = json.loads(content)
-        return result.get("extracted", {})
+        result: dict[str, Any] = json.loads(content)
+        extracted: dict[str, Any] = result.get("extracted", {})
+        return extracted
 
     except Exception:
         # Fall back to heuristic extraction on any error
@@ -329,7 +332,7 @@ def _llm_extract_variables(
 
 def _extract_value_heuristic(
     text: str, var_name: str, var_type: str, var_desc: str
-) -> Optional[Any]:
+) -> Any | None:
     """Simple heuristic to extract variable values.
 
     Fallback when LLM is not available.
@@ -411,7 +414,7 @@ def _extract_value_heuristic(
     return None
 
 
-def get_all_constellation_summaries(foundry: Any) -> List[Dict[str, Any]]:
+def get_all_constellation_summaries(foundry: Any) -> list[dict[str, Any]]:
     """Get summaries of all constellations from Foundry.
 
     Args:

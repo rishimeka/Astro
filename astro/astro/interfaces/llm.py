@@ -5,7 +5,7 @@ EmbeddingProvider because not all LLM providers support both generation and
 embeddings, and you typically use different models for each purpose.
 """
 
-from typing import Protocol, List, Dict, Any, Optional
+from typing import Any, Protocol
 
 
 class LLMProvider(Protocol):
@@ -55,12 +55,12 @@ class LLMProvider(Protocol):
 
     async def invoke(
         self,
-        messages: List[Dict[str, str]],
-        tools: Optional[List[Any]] = None,
+        messages: list[dict[str, str]],
+        tools: list[Any] | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stop_sequences: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        max_tokens: int | None = None,
+        stop_sequences: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Invoke LLM with messages and optional tools.
 
         This is the core method for text generation. It supports both simple
@@ -161,7 +161,7 @@ class EmbeddingProvider(Protocol):
         ```
     """
 
-    async def embed(self, text: str) -> List[float]:
+    async def embed(self, text: str) -> list[float]:
         """Generate embedding vector for text.
 
         Used by Second Brain for semantic search. Converts text into a dense
@@ -196,7 +196,7 @@ class EmbeddingProvider(Protocol):
         """
         ...
 
-    async def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for multiple texts (batch optimization).
 
         More efficient than calling embed() multiple times because:

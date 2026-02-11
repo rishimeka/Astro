@@ -1,12 +1,10 @@
 """Request and response schemas for API endpoints."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
-
-from pydantic import BaseModel, Field
+from typing import Any
 
 from astro.orchestration.models.star_types import StarType
-
+from pydantic import BaseModel, Field
 
 # =============================================================================
 # Request Schemas
@@ -20,16 +18,16 @@ class DirectiveCreate(BaseModel):
     name: str
     description: str
     content: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class DirectiveUpdate(BaseModel):
     """Request schema for updating a directive."""
 
-    name: Optional[str] = None
-    description: Optional[str] = None
-    content: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    name: str | None = None
+    description: str | None = None
+    content: str | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class StarCreate(BaseModel):
@@ -39,18 +37,18 @@ class StarCreate(BaseModel):
     name: str
     type: StarType
     directive_id: str
-    probe_ids: List[str] = Field(default_factory=list)
-    config: Dict[str, Any] = Field(default_factory=dict)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    probe_ids: list[str] = Field(default_factory=list)
+    config: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class StarUpdate(BaseModel):
     """Request schema for updating a star."""
 
-    name: Optional[str] = None
-    probe_ids: Optional[List[str]] = None
-    config: Optional[Dict[str, Any]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    name: str | None = None
+    probe_ids: list[str] | None = None
+    config: dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class NodeCreate(BaseModel):
@@ -58,10 +56,10 @@ class NodeCreate(BaseModel):
 
     id: str
     star_id: str
-    position: Dict[str, float]
-    display_name: Optional[str] = None
+    position: dict[str, float]
+    display_name: str | None = None
     requires_confirmation: bool = False
-    confirmation_prompt: Optional[str] = None
+    confirmation_prompt: str | None = None
 
 
 class EdgeCreate(BaseModel):
@@ -70,7 +68,7 @@ class EdgeCreate(BaseModel):
     id: str
     source: str
     target: str
-    condition: Optional[str] = None
+    condition: str | None = None
 
 
 class ConstellationCreate(BaseModel):
@@ -79,40 +77,40 @@ class ConstellationCreate(BaseModel):
     id: str
     name: str
     description: str
-    start: Dict[str, Any]
-    end: Dict[str, Any]
-    nodes: List[Dict[str, Any]]
-    edges: List[Dict[str, Any]]
+    start: dict[str, Any]
+    end: dict[str, Any]
+    nodes: list[dict[str, Any]]
+    edges: list[dict[str, Any]]
     max_loop_iterations: int = 3
     max_retry_attempts: int = 3
     retry_delay_base: float = 2.0
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ConstellationUpdate(BaseModel):
     """Request schema for updating a constellation."""
 
-    name: Optional[str] = None
-    description: Optional[str] = None
-    nodes: Optional[List[Dict[str, Any]]] = None
-    edges: Optional[List[Dict[str, Any]]] = None
-    max_loop_iterations: Optional[int] = None
-    max_retry_attempts: Optional[int] = None
-    retry_delay_base: Optional[float] = None
-    metadata: Optional[Dict[str, Any]] = None
+    name: str | None = None
+    description: str | None = None
+    nodes: list[dict[str, Any]] | None = None
+    edges: list[dict[str, Any]] | None = None
+    max_loop_iterations: int | None = None
+    max_retry_attempts: int | None = None
+    retry_delay_base: float | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class RunRequest(BaseModel):
     """Request schema for running a constellation."""
 
-    variables: Dict[str, Any]
+    variables: dict[str, Any]
 
 
 class ConfirmRequest(BaseModel):
     """Request schema for confirming/cancelling a paused run."""
 
     proceed: bool = Field(..., description="True to continue, False to cancel")
-    additional_context: Optional[str] = Field(
+    additional_context: str | None = Field(
         None,
         description="Optional additional context to inject into downstream nodes",
     )
@@ -122,7 +120,7 @@ class ChatRequest(BaseModel):
     """Request schema for chat endpoint."""
 
     message: str
-    conversation_id: Optional[str] = None
+    conversation_id: str | None = None
 
 
 # =============================================================================
@@ -136,7 +134,7 @@ class DirectiveSummary(BaseModel):
     id: str
     name: str
     description: str
-    tags: List[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
 
 
 class StarSummary(BaseModel):
@@ -155,7 +153,7 @@ class ConstellationSummary(BaseModel):
     name: str
     description: str
     node_count: int
-    tags: List[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
 
 
 class RunSummary(BaseModel):
@@ -166,7 +164,7 @@ class RunSummary(BaseModel):
     constellation_name: str
     status: str
     started_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
 
 
 class NodeOutputResponse(BaseModel):
@@ -175,11 +173,11 @@ class NodeOutputResponse(BaseModel):
     node_id: str
     star_id: str
     status: str
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    output: Optional[str] = None
-    error: Optional[str] = None
-    tool_calls: List[Dict[str, Any]] = Field(default_factory=list)
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    output: str | None = None
+    error: str | None = None
+    tool_calls: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class RunResponse(BaseModel):
@@ -189,14 +187,14 @@ class RunResponse(BaseModel):
     constellation_id: str
     constellation_name: str
     status: str
-    variables: Dict[str, Any]
+    variables: dict[str, Any]
     started_at: datetime
-    completed_at: Optional[datetime] = None
-    node_outputs: Dict[str, NodeOutputResponse]
-    final_output: Optional[str] = None
-    error: Optional[str] = None
-    awaiting_node_id: Optional[str] = None
-    awaiting_prompt: Optional[str] = None
+    completed_at: datetime | None = None
+    node_outputs: dict[str, NodeOutputResponse]
+    final_output: str | None = None
+    error: str | None = None
+    awaiting_node_id: str | None = None
+    awaiting_prompt: str | None = None
 
 
 class ConfirmResponse(BaseModel):
@@ -210,29 +208,29 @@ class ConfirmResponse(BaseModel):
 class DirectiveResponse(BaseModel):
     """Response schema with warnings for directive operations."""
 
-    directive: Dict[str, Any]
-    warnings: List[str] = Field(default_factory=list)
+    directive: dict[str, Any]
+    warnings: list[str] = Field(default_factory=list)
 
 
 class StarResponse(BaseModel):
     """Response schema with warnings for star operations."""
 
-    star: Dict[str, Any]
-    warnings: List[str] = Field(default_factory=list)
+    star: dict[str, Any]
+    warnings: list[str] = Field(default_factory=list)
 
 
 class ConstellationResponse(BaseModel):
     """Response schema with warnings for constellation operations."""
 
-    constellation: Dict[str, Any]
-    warnings: List[str] = Field(default_factory=list)
+    constellation: dict[str, Any]
+    warnings: list[str] = Field(default_factory=list)
 
 
 class ErrorResponse(BaseModel):
     """Standard error response."""
 
     detail: str
-    error_code: Optional[str] = None
+    error_code: str | None = None
 
 
 class ProbeResponse(BaseModel):
@@ -240,7 +238,7 @@ class ProbeResponse(BaseModel):
 
     name: str
     description: str
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    parameters: dict[str, Any] = Field(default_factory=dict)
 
 
 class ChatResponse(BaseModel):
@@ -248,7 +246,7 @@ class ChatResponse(BaseModel):
 
     action: str
     response: str
-    constellation_id: Optional[str] = None
-    run_id: Optional[str] = None
-    missing_variables: List[str] = Field(default_factory=list)
+    constellation_id: str | None = None
+    run_id: str | None = None
+    missing_variables: list[str] = Field(default_factory=list)
     conversation_id: str

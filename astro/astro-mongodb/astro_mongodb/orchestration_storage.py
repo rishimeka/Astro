@@ -1,7 +1,7 @@
 """MongoDB implementation of OrchestrationStorageBackend for Layer 2 primitives."""
 
-from typing import Optional, List, Any
 import logging
+from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo import ASCENDING, DESCENDING
@@ -72,8 +72,8 @@ class MongoDBOrchestrationStorage:
         self.stars_collection_name = stars_collection
         self.constellations_collection_name = constellations_collection
         self.runs_collection_name = runs_collection
-        self._client: Optional[AsyncIOMotorClient] = None
-        self._db: Optional[AsyncIOMotorDatabase] = None
+        self._client: AsyncIOMotorClient | None = None
+        self._db: AsyncIOMotorDatabase | None = None
 
     async def startup(self) -> None:
         """Initialize storage backend.
@@ -189,7 +189,7 @@ class MongoDBOrchestrationStorage:
             logger.error(f"Failed to save star {star.id}: {e}")
             raise RuntimeError(f"Failed to save star: {e}") from e
 
-    async def get_star(self, star_id: str) -> Optional[Any]:
+    async def get_star(self, star_id: str) -> Any | None:
         """Retrieve star by ID.
 
         Args:
@@ -226,8 +226,8 @@ class MongoDBOrchestrationStorage:
 
     async def list_stars(
         self,
-        filter_type: Optional[str] = None,
-    ) -> List[Any]:
+        filter_type: str | None = None,
+    ) -> list[Any]:
         """List all stars, optionally filtered by type.
 
         Args:
@@ -344,7 +344,7 @@ class MongoDBOrchestrationStorage:
     async def get_constellation(
         self,
         constellation_id: str,
-    ) -> Optional[Any]:
+    ) -> Any | None:
         """Retrieve constellation by ID.
 
         Args:
@@ -375,7 +375,7 @@ class MongoDBOrchestrationStorage:
             logger.error(f"Failed to get constellation {constellation_id}: {e}")
             raise RuntimeError(f"Failed to get constellation: {e}") from e
 
-    async def list_constellations(self) -> List[Any]:
+    async def list_constellations(self) -> list[Any]:
         """List all constellations.
 
         Returns:
@@ -481,7 +481,7 @@ class MongoDBOrchestrationStorage:
             logger.error(f"Failed to save run {run.id}: {e}")
             raise RuntimeError(f"Failed to save run: {e}") from e
 
-    async def get_run(self, run_id: str) -> Optional[Any]:
+    async def get_run(self, run_id: str) -> Any | None:
         """Retrieve run by ID.
 
         Args:
@@ -518,9 +518,9 @@ class MongoDBOrchestrationStorage:
 
     async def list_runs(
         self,
-        constellation_id: Optional[str] = None,
+        constellation_id: str | None = None,
         limit: int = 100,
-    ) -> List[Any]:
+    ) -> list[Any]:
         """List runs, optionally filtered by constellation.
 
         Args:

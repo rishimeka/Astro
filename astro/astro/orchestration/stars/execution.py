@@ -1,7 +1,7 @@
 """ExecutionStar - consumes plans and spawns workers."""
 
 import asyncio
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from pydantic import Field
 
@@ -9,8 +9,8 @@ from astro.orchestration.models.star_types import StarType
 from astro.orchestration.stars.base import OrchestratorStar
 
 if TYPE_CHECKING:
+    from astro.core.models.outputs import ExecutionResult  # type: ignore[attr-defined]
     from astro.orchestration.context import ConstellationContext
-    from astro.core.models.outputs import ExecutionResult
 
 
 class ExecutionStar(OrchestratorStar):
@@ -26,7 +26,7 @@ class ExecutionStar(OrchestratorStar):
         default=True, description="Execute workers in parallel if True"
     )
 
-    def validate_star(self) -> List[str]:
+    def validate_star(self) -> list[str]:
         """Validate ExecutionStar configuration."""
         errors = super().validate_star()
         # Must have PlanningStar upstream - validated at Constellation level
@@ -41,7 +41,7 @@ class ExecutionStar(OrchestratorStar):
         Returns:
             ExecutionResult with worker outputs.
         """
-        from astro.core.models.outputs import (
+        from astro.core.models.outputs import (  # type: ignore[attr-defined]
             ExecutionResult,
             Plan,
             WorkerOutput,
@@ -57,8 +57,8 @@ class ExecutionStar(OrchestratorStar):
                 errors=["No plan or tasks found"],
             )
 
-        worker_outputs: List[WorkerOutput] = []
-        errors: List[str] = []
+        worker_outputs: list[WorkerOutput] = []
+        errors: list[str] = []
 
         async def execute_task(task) -> WorkerOutput:
             """Execute a single task with a worker."""
