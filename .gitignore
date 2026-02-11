@@ -72,7 +72,9 @@ Thumbs.db
 # Claude configuration
 **/.claude/
 
-# Markdown (except README)
+# Markdown (except README and prompt files)
 *.md
 *.mdx
 !README.md
+!astro/astro/launchpad/prompts/matching.md
+!astro/astro/launchpad/prompts/triggering_agent.md

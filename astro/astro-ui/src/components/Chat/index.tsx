@@ -6,6 +6,8 @@ import { useChat } from '@/hooks/useChat';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import ExecutionProgress from './ExecutionProgress';
+import ZeroShotProgress from './ZeroShotProgress';
+import DirectiveGenerationCard from './DirectiveGenerationCard';
 import { ConfirmationModal } from '@/components/Execution/ConfirmationModal';
 import styles from './Chat.module.scss';
 
@@ -24,6 +26,7 @@ export default function Chat() {
     clearChat,
     variableCollection,
     executionProgress,
+    zeroShotProgress,
     confirmationRequest,
     respondToConfirmation,
   } = useChat();
@@ -132,6 +135,33 @@ export default function Chat() {
                 message={message}
                 isStreaming={isStreaming && index === messages.length - 1 && message.role === 'assistant'}
               />
+              {/* Show zero-shot progress for the most recent assistant message */}
+              {message.role === 'assistant' &&
+                index === messages.length - 1 &&
+                isStreaming &&
+                (zeroShotProgress.thinkingMessage ||
+                  zeroShotProgress.selectedDirectives.length > 0 ||
+                  zeroShotProgress.boundTools.length > 0) && (
+                  <ZeroShotProgress
+                    thinkingMessage={zeroShotProgress.thinkingMessage}
+                    selectedDirectives={zeroShotProgress.selectedDirectives}
+                    directiveReasoning={zeroShotProgress.directiveReasoning}
+                    boundTools={zeroShotProgress.boundTools}
+                  />
+                )}
+              {/* Show directive generation card if generating */}
+              {message.role === 'assistant' &&
+                isStreaming &&
+                (zeroShotProgress.directiveGeneration.offered ||
+                  zeroShotProgress.directiveGeneration.previewContent) && (
+                  <DirectiveGenerationCard
+                    offered={zeroShotProgress.directiveGeneration.offered}
+                    previewContent={zeroShotProgress.directiveGeneration.previewContent}
+                    directiveName={zeroShotProgress.directiveGeneration.directiveName}
+                    selectedProbes={zeroShotProgress.directiveGeneration.selectedProbes}
+                    isApproving={zeroShotProgress.directiveGeneration.isApproving}
+                  />
+                )}
               {/* Show execution progress below the assistant message that triggered the run */}
               {message.role === 'assistant' &&
                 executionProgress.runId &&

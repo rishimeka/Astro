@@ -58,6 +58,24 @@ export interface ConfirmationRequest {
   prompt: string;
 }
 
+export interface DirectiveGenerationState {
+  isGenerating: boolean;
+  offered: boolean;
+  previewContent: string;
+  directiveName: string;
+  selectedProbes: string[];
+  directiveId?: string;
+  isApproving: boolean;
+}
+
+export interface ZeroShotProgressState {
+  thinkingMessage: string;
+  selectedDirectives: string[];
+  directiveReasoning: string;
+  boundTools: string[];
+  directiveGeneration: DirectiveGenerationState;
+}
+
 export interface UseChat {
   messages: ChatMessage[];
   sendMessage: (content: string) => Promise<void>;
@@ -66,6 +84,7 @@ export interface UseChat {
   clearChat: () => void;
   variableCollection: VariableCollectionState;
   executionProgress: ExecutionProgressState;
+  zeroShotProgress: ZeroShotProgressState;
   confirmationRequest: ConfirmationRequest | null;
   respondToConfirmation: (approved: boolean, additionalContext?: string) => void;
 }
@@ -163,6 +182,21 @@ interface SSEErrorEvent {
   message: string;
 }
 
+// Zero-shot progress events
+interface SSEThinkingEvent {
+  message: string;
+}
+
+interface SSEDirectiveSelectedEvent {
+  directives: string[];
+  reasoning: string;
+}
+
+interface SSEToolsBoundEvent {
+  tools: string[];
+  count: number;
+}
+
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -204,6 +238,23 @@ const initialExecutionProgress: ExecutionProgressState = {
   thoughts: '',
 };
 
+const initialDirectiveGeneration: DirectiveGenerationState = {
+  isGenerating: false,
+  offered: false,
+  previewContent: '',
+  directiveName: '',
+  selectedProbes: [],
+  isApproving: false,
+};
+
+const initialZeroShotProgress: ZeroShotProgressState = {
+  thinkingMessage: '',
+  selectedDirectives: [],
+  directiveReasoning: '',
+  boundTools: [],
+  directiveGeneration: initialDirectiveGeneration,
+};
+
 export function useChat(): UseChat {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -213,6 +264,7 @@ export function useChat(): UseChat {
     isCollecting: false,
   });
   const [executionProgress, setExecutionProgress] = useState<ExecutionProgressState>(initialExecutionProgress);
+  const [zeroShotProgress, setZeroShotProgress] = useState<ZeroShotProgressState>(initialZeroShotProgress);
   const [confirmationRequest, setConfirmationRequest] = useState<ConfirmationRequest | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -223,6 +275,7 @@ export function useChat(): UseChat {
     setIsStreaming(true);
     // Reset execution progress
     setExecutionProgress(initialExecutionProgress);
+    setZeroShotProgress(initialZeroShotProgress);
 
     // Add user message
     const userMessage: ChatMessage = {
@@ -469,6 +522,92 @@ export function useChat(): UseChat {
           break;
         }
 
+        case 'mode': {
+          // Mode event (zero_shot or constellation)
+          break;
+        }
+
+        case 'thinking': {
+          const thinkingData = data as SSEThinkingEvent;
+          setZeroShotProgress((prev) => ({
+            ...prev,
+            thinkingMessage: thinkingData.message,
+          }));
+          break;
+        }
+
+        case 'directive_selected': {
+          const directiveData = data as SSEDirectiveSelectedEvent;
+          setZeroShotProgress((prev) => ({
+            ...prev,
+            selectedDirectives: directiveData.directives,
+            directiveReasoning: directiveData.reasoning,
+            thinkingMessage: '', // Clear thinking message
+          }));
+          break;
+        }
+
+        case 'tools_bound': {
+          const toolsData = data as SSEToolsBoundEvent;
+          setZeroShotProgress((prev) => ({
+            ...prev,
+            boundTools: toolsData.tools,
+          }));
+          break;
+        }
+
+        case 'directive_generation_offered': {
+          setZeroShotProgress((prev) => ({
+            ...prev,
+            directiveGeneration: {
+              ...initialDirectiveGeneration,
+              isGenerating: true,
+              offered: true,
+            },
+          }));
+          break;
+        }
+
+        case 'directive_generated': {
+          const genData = data as { directive_id: string; message: string };
+          // The directive was generated - we'll get preview info from backend
+          // For now, just mark it as no longer generating
+          setZeroShotProgress((prev) => ({
+            ...prev,
+            directiveGeneration: {
+              ...prev.directiveGeneration,
+              isGenerating: false,
+              directiveId: genData.directive_id,
+            },
+          }));
+          break;
+        }
+
+        case 'directive_similar_found': {
+          const similarData = data as {
+            directive_id: string;
+            similarity_score: number;
+            message: string;
+          };
+          // Found a similar directive - show it briefly then hide
+          setZeroShotProgress((prev) => ({
+            ...prev,
+            directiveGeneration: {
+              ...prev.directiveGeneration,
+              isGenerating: false,
+              directiveId: similarData.directive_id,
+            },
+          }));
+          // Clear after 2 seconds
+          setTimeout(() => {
+            setZeroShotProgress((prev) => ({
+              ...prev,
+              directiveGeneration: initialDirectiveGeneration,
+            }));
+          }, 2000);
+          break;
+        }
+
         case 'log': {
           // Could show in UI or just log to console
           const logData = data as { level: string; message: string };
@@ -611,6 +750,7 @@ export function useChat(): UseChat {
     clearChat,
     variableCollection,
     executionProgress,
+    zeroShotProgress,
     confirmationRequest,
     respondToConfirmation,
   };
