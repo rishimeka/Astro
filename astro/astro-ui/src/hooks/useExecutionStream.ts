@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { ENDPOINTS } from '@/lib/api/endpoints';
 import type {
   SSENodeStarted,
@@ -91,10 +91,23 @@ export function useExecutionStream({
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Track if we've received a terminal event to prevent reconnection
   const isTerminalRef = useRef(initialStatus ? TERMINAL_STATUSES.includes(initialStatus) : false);
-  const MAX_RETRIES = 3; // Reduced from 5
-  const BASE_DELAY_MS = 2000; // Increased from 1000
+  // Track if we're waiting for user confirmation (paused state - don't reconnect)
+  const isAwaitingConfirmationRef = useRef(initialStatus === 'awaiting_confirmation');
+  const MAX_RETRIES = 3;
+  const BASE_DELAY_MS = 2000;
 
-  // Handle SSE events
+  // Store callbacks in refs so handleEvent and the useEffect are stable
+  // (prevents effect re-runs when parent passes new inline function references)
+  const onCompleteRef = useRef(onComplete);
+  const onErrorRef = useRef(onError);
+  const onAwaitingConfirmationRef = useRef(onAwaitingConfirmation);
+  useLayoutEffect(() => {
+    onCompleteRef.current = onComplete;
+    onErrorRef.current = onError;
+    onAwaitingConfirmationRef.current = onAwaitingConfirmation;
+  });
+
+  // Handle SSE events — stable reference (empty deps) thanks to callback refs
   const handleEvent = useCallback(
     (eventType: SSEEventType, data: unknown) => {
       setState((prev) => {
@@ -191,12 +204,18 @@ export function useExecutionStream({
               nodeId: confirmData.node_id,
               prompt: confirmData.prompt,
             };
-            onAwaitingConfirmation?.(confirmData.node_id, confirmData.prompt);
+            // Mark as paused — close stream and don't reconnect until user responds
+            isAwaitingConfirmationRef.current = true;
+            isTerminalRef.current = true;
+            if (eventSourceRef.current) {
+              eventSourceRef.current.close();
+              eventSourceRef.current = null;
+            }
+            onAwaitingConfirmationRef.current?.(confirmData.node_id, confirmData.prompt);
             break;
           }
 
           case 'run_resumed': {
-            // Run was resumed after user confirmation
             newState.status = 'running';
             newState.awaitingConfirmation = null;
             break;
@@ -207,10 +226,9 @@ export function useExecutionStream({
             newState.status = 'completed';
             newState.finalOutput = completedRunData.final_output;
             newState.currentNodeId = null;
-            // Mark as terminal to prevent any reconnection attempts
             isTerminalRef.current = true;
-            onComplete?.(completedRunData.final_output);
-            // Close the connection to prevent auto-reconnect
+            isAwaitingConfirmationRef.current = false;
+            onCompleteRef.current?.(completedRunData.final_output);
             if (eventSourceRef.current) {
               eventSourceRef.current.close();
               eventSourceRef.current = null;
@@ -223,10 +241,9 @@ export function useExecutionStream({
             newState.status = 'failed';
             newState.error = failedRunData.error;
             newState.currentNodeId = null;
-            // Mark as terminal to prevent any reconnection attempts
             isTerminalRef.current = true;
-            onError?.(failedRunData.error);
-            // Close the connection to prevent auto-reconnect
+            isAwaitingConfirmationRef.current = false;
+            onErrorRef.current?.(failedRunData.error);
             if (eventSourceRef.current) {
               eventSourceRef.current.close();
               eventSourceRef.current = null;
@@ -238,12 +255,11 @@ export function useExecutionStream({
         return newState;
       });
     },
-    [onComplete, onError, onAwaitingConfirmation]
+    [] // stable — uses refs for all callbacks
   );
 
-  // Connect to SSE stream
+  // Connect to SSE stream — only re-runs when runId or shouldConnect changes
   useEffect(() => {
-    // Don't connect if disabled, terminal, or already in terminal state
     if (!shouldConnect || isTerminalRef.current) {
       return;
     }
@@ -253,49 +269,43 @@ export function useExecutionStream({
 
     eventSource.onopen = () => {
       setIsConnected(true);
-      retryCountRef.current = 0; // Reset retry count on successful connection
+      retryCountRef.current = 0;
     };
 
     eventSource.onerror = () => {
       setIsConnected(false);
 
-      // Don't reconnect if we've reached a terminal state
-      if (isTerminalRef.current) {
+      if (isTerminalRef.current || isAwaitingConfirmationRef.current) {
+        // Don't reconnect — either terminal or waiting for user confirmation
         eventSource.close();
         eventSourceRef.current = null;
         return;
       }
 
-      // Only handle reconnection if the connection was closed unexpectedly
       if (eventSource.readyState === EventSource.CLOSED) {
         retryCountRef.current += 1;
 
         if (retryCountRef.current >= MAX_RETRIES) {
-          // Max retries exceeded - close and surface error
           console.error(`SSE connection failed after ${MAX_RETRIES} attempts`);
           eventSource.close();
           eventSourceRef.current = null;
-          isTerminalRef.current = true; // Prevent further retries
+          isTerminalRef.current = true;
 
           setState((prev) => ({
             ...prev,
             status: 'failed',
             error: `Connection lost after ${MAX_RETRIES} retry attempts`,
           }));
-          onError?.(`Connection lost after ${MAX_RETRIES} retry attempts`);
+          onErrorRef.current?.(`Connection lost after ${MAX_RETRIES} retry attempts`);
         } else {
-          // Exponential backoff: 2s, 4s, 8s
           const delay = BASE_DELAY_MS * Math.pow(2, retryCountRef.current - 1);
           console.log(`SSE reconnecting in ${delay}ms (attempt ${retryCountRef.current}/${MAX_RETRIES})`);
-
-          // Close current connection to prevent auto-reconnect
           eventSource.close();
           eventSourceRef.current = null;
         }
       }
     };
 
-    // Generic message handler
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -305,7 +315,6 @@ export function useExecutionStream({
       }
     };
 
-    // Register specific event handlers
     const eventTypes: SSEEventType[] = [
       'run_started',
       'node_started',
@@ -339,7 +348,7 @@ export function useExecutionStream({
         retryTimeoutRef.current = null;
       }
     };
-  }, [runId, shouldConnect, handleEvent, onError]);
+  }, [runId, shouldConnect, handleEvent]);
 
   // Disconnect function for manual cleanup
   const disconnect = useCallback(() => {
@@ -355,19 +364,64 @@ export function useExecutionStream({
     retryCountRef.current = 0;
   }, []);
 
-  // Clear awaiting confirmation state after user responds
+  // Reconnect after user confirms — resets the paused state and opens a new stream
+  const reconnect = useCallback(() => {
+    isTerminalRef.current = false;
+    isAwaitingConfirmationRef.current = false;
+    retryCountRef.current = 0;
+
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    const eventSource = new EventSource(ENDPOINTS.RUN_STREAM(runId));
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      setIsConnected(true);
+      retryCountRef.current = 0;
+    };
+
+    eventSource.onerror = () => {
+      setIsConnected(false);
+      if (isTerminalRef.current || isAwaitingConfirmationRef.current) {
+        eventSource.close();
+        eventSourceRef.current = null;
+      }
+    };
+
+    const eventTypes: SSEEventType[] = [
+      'run_started', 'node_started', 'node_progress', 'node_completed',
+      'node_failed', 'node_retrying', 'awaiting_confirmation', 'run_resumed',
+      'run_completed', 'run_failed',
+    ];
+    eventTypes.forEach((eventType) => {
+      eventSource.addEventListener(eventType, (event: MessageEvent) => {
+        try {
+          handleEvent(eventType, JSON.parse(event.data));
+        } catch (error) {
+          console.error(`Failed to parse SSE event (${eventType}):`, error);
+        }
+      });
+    });
+  }, [runId, handleEvent]);
+
+  // Clear awaiting confirmation state and reconnect after user responds
   const clearAwaitingConfirmation = useCallback(() => {
     setState((prev) => ({
       ...prev,
       awaitingConfirmation: null,
       status: 'running',
     }));
-  }, []);
+    reconnect();
+  }, [reconnect]);
 
   return {
     state,
     isConnected,
     disconnect,
+    reconnect,
     clearAwaitingConfirmation,
   };
 }

@@ -21,6 +21,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from astro.core.llm.utils import get_default_max_tokens
 from astro.core.models.directive import Directive
 from astro.core.probes.registry import ProbeRegistry
 from astro.core.registry.registry import Registry
@@ -293,7 +294,7 @@ Return your response as JSON:
 
         try:
             response = await self.llm.ainvoke(
-                messages, temperature=0.7, max_tokens=2000
+                messages, temperature=0.7, max_tokens=get_default_max_tokens()
             )
             content = (
                 response.content if hasattr(response, "content") else str(response)

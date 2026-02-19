@@ -130,7 +130,7 @@ class TestWorkerContext:
             variable_bindings={"ticker": "TSLA"},
             original_query="Analyze Tesla",
             constellation_purpose="Financial analysis",
-            available_probes=["search_web", "get_financial_data"],
+            available_probes=["search_google_news", "fetch_google_news_headlines"],
             constraints=None,
             role=None,
         )
@@ -139,7 +139,7 @@ class TestWorkerContext:
         assert context.variable_bindings == {"ticker": "TSLA"}
         assert context.original_query == "Analyze Tesla"
         assert context.constellation_purpose == "Financial analysis"
-        assert context.available_probes == ["search_web", "get_financial_data"]
+        assert context.available_probes == ["search_google_news", "fetch_google_news_headlines"]
         assert context.constraints is None
         assert context.role is None
         assert "ambiguous" in context.error_handling

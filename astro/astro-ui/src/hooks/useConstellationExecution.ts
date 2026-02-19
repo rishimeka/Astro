@@ -72,7 +72,7 @@ export interface ExecutionState {
 
 export interface UseConstellationExecutionResult {
   state: ExecutionState;
-  execute: (variables: Record<string, string>) => Promise<void>;
+  execute: (variables: Record<string, string>, file?: File) => Promise<void>;
   confirmContinue: (additionalContext?: string) => Promise<void>;
   confirmCancel: () => Promise<void>;
   reset: () => void;
@@ -475,7 +475,7 @@ export function useConstellationExecution(
 
   // Execute constellation
   const execute = useCallback(
-    async (variables: Record<string, string>): Promise<void> => {
+    async (variables: Record<string, string>, file?: File): Promise<void> => {
       // Reset state before starting
       setState({
         ...initialState,
@@ -485,11 +485,33 @@ export function useConstellationExecution(
       isTerminalRef.current = false;
 
       try {
-        // Start the run via API
-        const response = await api.post<RunStartResponse>(
-          ENDPOINTS.CONSTELLATION_RUN(constellationId),
-          { variables }
-        );
+        // Build FormData if file is provided, otherwise use JSON
+        let response: RunStartResponse;
+
+        if (file) {
+          // Send as multipart/form-data
+          const formData = new FormData();
+          formData.append('variables', JSON.stringify(variables));
+          formData.append('file', file);
+
+          const res = await fetch(ENDPOINTS.CONSTELLATION_RUN(constellationId), {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!res.ok) {
+            const error = await res.json().catch(() => ({ detail: 'Unknown error' }));
+            throw new ApiClientError(error.detail || 'Failed to start execution', res.status);
+          }
+
+          response = await res.json();
+        } else {
+          // Send as JSON (original flow)
+          response = await api.post<RunStartResponse>(
+            ENDPOINTS.CONSTELLATION_RUN(constellationId),
+            { variables }
+          );
+        }
 
         // Update state with run ID
         setState((prev) => ({

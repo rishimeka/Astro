@@ -10,6 +10,7 @@ export interface ChatMessage {
   timestamp: Date;
   runId?: string;
   constellationName?: string;
+  fileName?: string;
 }
 
 export interface VariableCollectionState {
@@ -68,6 +69,14 @@ export interface DirectiveGenerationState {
   isApproving: boolean;
 }
 
+export interface ClarificationState {
+  isActive: boolean;
+  questions: string[];
+  reasoning: string;
+  round: number;
+  maxRounds: number;
+}
+
 export interface ZeroShotProgressState {
   thinkingMessage: string;
   selectedDirectives: string[];
@@ -78,13 +87,14 @@ export interface ZeroShotProgressState {
 
 export interface UseChat {
   messages: ChatMessage[];
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, file?: File) => Promise<void>;
   isStreaming: boolean;
   error: string | null;
   clearChat: () => void;
   variableCollection: VariableCollectionState;
   executionProgress: ExecutionProgressState;
   zeroShotProgress: ZeroShotProgressState;
+  clarification: ClarificationState;
   confirmationRequest: ConfirmationRequest | null;
   respondToConfirmation: (approved: boolean, additionalContext?: string) => void;
 }
@@ -197,6 +207,13 @@ interface SSEToolsBoundEvent {
   count: number;
 }
 
+interface SSEClarificationNeededEvent {
+  questions: string[];
+  reasoning: string;
+  round: number;
+  max_rounds: number;
+}
+
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -255,6 +272,14 @@ const initialZeroShotProgress: ZeroShotProgressState = {
   directiveGeneration: initialDirectiveGeneration,
 };
 
+const initialClarification: ClarificationState = {
+  isActive: false,
+  questions: [],
+  reasoning: '',
+  round: 0,
+  maxRounds: 3,
+};
+
 export function useChat(): UseChat {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -265,24 +290,26 @@ export function useChat(): UseChat {
   });
   const [executionProgress, setExecutionProgress] = useState<ExecutionProgressState>(initialExecutionProgress);
   const [zeroShotProgress, setZeroShotProgress] = useState<ZeroShotProgressState>(initialZeroShotProgress);
+  const [clarification, setClarification] = useState<ClarificationState>(initialClarification);
   const [confirmationRequest, setConfirmationRequest] = useState<ConfirmationRequest | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, file?: File) => {
     if (!content.trim() || isStreaming) return;
 
     setError(null);
     setIsStreaming(true);
-    // Reset execution progress
+    // Reset execution progress and clarification
     setExecutionProgress(initialExecutionProgress);
     setZeroShotProgress(initialZeroShotProgress);
+    setClarification(initialClarification);
 
-    // Add user message
     const userMessage: ChatMessage = {
       id: generateId(),
       role: 'user',
       content: content.trim(),
       timestamp: new Date(),
+      fileName: file?.name,
     };
     setMessages((prev) => [...prev, userMessage]);
 
@@ -556,6 +583,26 @@ export function useChat(): UseChat {
           break;
         }
 
+        case 'clarification_needed': {
+          const clarData = data as SSEClarificationNeededEvent;
+          setClarification({
+            isActive: true,
+            questions: clarData.questions,
+            reasoning: clarData.reasoning,
+            round: clarData.round,
+            maxRounds: clarData.max_rounds,
+          });
+          // Set a placeholder message so the assistant bubble isn't empty
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId && !m.content
+                ? { ...m, content: '💭 Thinking...' }
+                : m
+            )
+          );
+          break;
+        }
+
         case 'directive_generation_offered': {
           setZeroShotProgress((prev) => ({
             ...prev,
@@ -634,16 +681,28 @@ export function useChat(): UseChat {
     }
 
     try {
+      // Prepare request body (always FormData - backend expects multipart/form-data)
+      let requestBody: FormData;
+      const headers: Record<string, string> = {
+        Accept: 'text/event-stream',
+      };
+
+      // Always send as FormData (backend expects multipart/form-data)
+      const formData = new FormData();
+      formData.append('message', content.trim());
+      if (conversationId) {
+        formData.append('conversation_id', conversationId);
+      }
+      if (file) {
+        formData.append('file', file);
+      }
+      requestBody = formData;
+      // Don't set Content-Type - browser will set it with boundary for FormData
+
       const response = await fetch(ENDPOINTS.CHAT, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'text/event-stream',
-        },
-        body: JSON.stringify({
-          message: content.trim(),
-          conversation_id: conversationId,
-        }),
+        headers,
+        body: requestBody,
         signal: abortControllerRef.current.signal,
       });
 
@@ -716,6 +775,7 @@ export function useChat(): UseChat {
     setConversationId(undefined);
     setVariableCollection({ isCollecting: false });
     setExecutionProgress(initialExecutionProgress);
+    setClarification(initialClarification);
     setConfirmationRequest(null);
   }, []);
 
@@ -751,6 +811,7 @@ export function useChat(): UseChat {
     variableCollection,
     executionProgress,
     zeroShotProgress,
+    clarification,
     confirmationRequest,
     respondToConfirmation,
   };

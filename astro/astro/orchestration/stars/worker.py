@@ -251,7 +251,7 @@ class WorkerStar(AtomicStar):
                 return WorkerOutput(
                     result=f"Error during execution: {str(e)}",
                     tool_calls=tool_calls,
-                    iterations=iterations,
+                    iterations=max(iterations, 1),
                     status="failed",
                 )
         else:
@@ -284,6 +284,6 @@ class WorkerStar(AtomicStar):
                 return WorkerOutput(
                     result=f"Error during execution: {str(e)}",
                     tool_calls=tool_calls,
-                    iterations=iterations,
+                    iterations=max(iterations, 1),
                     status="failed",
                 )

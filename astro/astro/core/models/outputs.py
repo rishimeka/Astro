@@ -35,3 +35,28 @@ class WorkerOutput(BaseModel):
     tool_calls: list[ToolCall] = Field(default_factory=list)
     iterations: int = Field(default=1, ge=1)
     status: str = Field(default="completed")  # "completed", "failed", "max_iterations"
+
+
+class EvalDecision(BaseModel):
+    """Output from an EvalStar — routing decision for constellation loops.
+
+    The runner inspects this to decide whether to loop back to a prior node
+    or continue forward to the next one.
+    """
+
+    decision: str  # "continue" or "loop"
+    reasoning: str = ""
+    loop_target: str | None = None  # Optional explicit node ID to loop back to
+
+
+class PlanTask(BaseModel):
+    """A single task within a Plan."""
+
+    description: str
+    node_id: str | None = None
+
+
+class Plan(BaseModel):
+    """Output from a PlanningStar — structured list of tasks to execute."""
+
+    tasks: list[PlanTask] = Field(default_factory=list)

@@ -20,8 +20,19 @@ DEFAULT_MODELS = {
     "google_genai": "gemini-2.0-flash-exp",
 }
 
+# Models that only support default temperature (1.0)
+FIXED_TEMPERATURE_MODELS = [
+    "gpt-5-nano",
+    "gpt-4.1-nano",
+]
+
 # Cache for LLM client instances, keyed on (provider, model, temperature)
 _llm_cache: dict[tuple[str, str, float], "LLMClient"] = {}
+
+
+def get_default_max_tokens() -> int:
+    """Return the configured max tokens from LLM_MAX_TOKENS env var (default 4096)."""
+    return int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
 
 class LLMClient(ABC):
@@ -89,18 +100,28 @@ class AnthropicClient(LLMClient):
 
     def __init__(self, model: str, temperature: float = 0):
         super().__init__(model, temperature)
-        api_key = get_required_env("ANTHROPIC_API_KEY")
-        base_url = os.getenv("ANTHROPIC_BASE_URL")  # Optional custom endpoint
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        base_url = os.getenv("ANTHROPIC_BASE_URL")
+
+        # Prefer direct API key; fall back to custom gateway
+        if api_key:
+            base_url = None  # Direct API — ignore gateway URL
+            logger.debug("Using direct Anthropic API key")
+        elif base_url:
+            api_key = "dummy"  # Gateway handles auth; SDK still needs a non-empty value
+            logger.debug("Using custom Anthropic gateway with Bearer auth")
+        else:
+            raise ValueError(
+                "Either ANTHROPIC_API_KEY or ANTHROPIC_BASE_URL must be set"
+            )
 
         # Configure custom headers
         default_headers = {}
 
-        # Handle custom API gateway with Bearer auth
         if base_url:
-            default_headers["Authorization"] = f"Bearer {api_key}"
+            proxy_token = os.getenv("PROXY_TOKEN", "")
+            default_headers["Authorization"] = f"Bearer {proxy_token}"
             default_headers["anthropic-version"] = "2024-05-01"
-            api_key = "dummy"  # Use Bearer token instead
-            logger.debug("Using custom Anthropic gateway with Bearer auth")
 
         # Add custom headers if configured
         if app_id := os.getenv("ANTHROPIC_APPLICATION_ID"):
@@ -368,6 +389,48 @@ def clear_llm_cache() -> None:
     _llm_cache.clear()
 
 
+class TemperatureFixedLLMWrapper:
+    """Wrapper for LLMs that only support default temperature.
+
+    Intercepts ainvoke/invoke calls and removes temperature parameter
+    to prevent API errors on models that don't support custom temperature.
+    """
+
+    def __init__(self, llm: Any, model_name: str):
+        """Initialize wrapper.
+
+        Args:
+            llm: The underlying LangChain LLM instance.
+            model_name: Model identifier for logging.
+        """
+        self._llm = llm
+        self._model_name = model_name
+
+    async def ainvoke(self, *args, **kwargs) -> Any:
+        """Async invoke with temperature parameter removed."""
+        if "temperature" in kwargs:
+            logger.debug(
+                f"Removing temperature parameter for {self._model_name} "
+                f"(only supports default temperature=1.0)"
+            )
+            kwargs.pop("temperature")
+        return await self._llm.ainvoke(*args, **kwargs)
+
+    def invoke(self, *args, **kwargs) -> Any:
+        """Sync invoke with temperature parameter removed."""
+        if "temperature" in kwargs:
+            logger.debug(
+                f"Removing temperature parameter for {self._model_name} "
+                f"(only supports default temperature=1.0)"
+            )
+            kwargs.pop("temperature")
+        return self._llm.invoke(*args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate all other attributes to the underlying LLM."""
+        return getattr(self._llm, name)
+
+
 def get_langchain_llm(
     temperature: float = 0,
     provider: str | None = None,
@@ -410,6 +473,13 @@ def get_langchain_llm(
 
     model = model or os.getenv("LLM_MODEL") or DEFAULT_MODELS[provider]
 
+    # Check if model only supports default temperature
+    if model in FIXED_TEMPERATURE_MODELS:
+        temperature = 1.0
+        logger.debug(
+            f"Model {model} only supports default temperature, forcing temperature=1.0"
+        )
+
     logger.debug(
         f"Initializing LangChain {provider} chat model with model={model}, temperature={temperature}"
     )
@@ -418,16 +488,26 @@ def get_langchain_llm(
     model_kwargs: dict[str, Any] = {"temperature": temperature}
 
     if provider == "anthropic":
-        api_key = get_required_env("ANTHROPIC_API_KEY")
+        api_key = os.getenv("ANTHROPIC_API_KEY")
         base_url = os.getenv("ANTHROPIC_BASE_URL")
 
-        # Handle custom API gateway with Bearer auth
+        # Prefer direct API key; fall back to custom gateway
+        if api_key:
+            base_url = None  # Direct API — ignore gateway URL
+            logger.debug("Using direct Anthropic API key")
+        elif base_url:
+            api_key = "dummy"  # Gateway handles auth; SDK still needs a non-empty value
+            logger.debug("Using custom Anthropic gateway with Bearer auth")
+        else:
+            raise ValueError(
+                "Either ANTHROPIC_API_KEY or ANTHROPIC_BASE_URL must be set"
+            )
+
         default_headers = {}
         if base_url:
-            default_headers["Authorization"] = f"Bearer {api_key}"
+            proxy_token = os.getenv("PROXY_TOKEN", "")
+            default_headers["Authorization"] = f"Bearer {proxy_token}"
             default_headers["anthropic-version"] = "2024-05-01"
-            api_key = "dummy"  # Use Bearer token instead
-            logger.debug("Using custom Anthropic gateway with Bearer auth")
 
         # Add custom headers if configured
         if app_id := os.getenv("ANTHROPIC_APPLICATION_ID"):
@@ -458,4 +538,13 @@ def get_langchain_llm(
 
     # Use universal factory to create the chat model
     logger.debug(f"Creating {provider} chat model with init_chat_model()")
-    return init_chat_model(model=model, model_provider=provider, **model_kwargs)  # type: ignore[call-overload]
+    logger.debug(f"Model kwargs: {model_kwargs}")
+    llm = init_chat_model(model=model, model_provider=provider, **model_kwargs)  # type: ignore[call-overload]
+    logger.info(f"Created {provider} chat model: {type(llm).__name__}")
+
+    # Wrap models that only support default temperature
+    if model in FIXED_TEMPERATURE_MODELS:
+        logger.debug(f"Wrapping {model} with TemperatureFixedLLMWrapper")
+        return TemperatureFixedLLMWrapper(llm, model)
+
+    return llm

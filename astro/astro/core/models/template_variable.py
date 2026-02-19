@@ -44,6 +44,13 @@ class TemplateVariable(BaseModel):
         "{'accept': '.pdf,.docx'} for file",
     )
 
+    # If False, this variable is auto-populated by the runner from upstream outputs
+    # and should NOT be shown in the UI input form.
+    user_provided: bool = Field(
+        default=True,
+        description="If True, the user must supply this value. If False, the runner resolves it from upstream outputs.",
+    )
+
     # Populated at Constellation level (Layer 2 concept)
     used_by: list[str] = Field(
         default_factory=list, description="Node IDs using this variable"

@@ -12,18 +12,17 @@ Requires MongoDB running locally on default port (27017).
 import asyncio
 import os
 
-from astro_backend_service.foundry.persistence import FoundryPersistence
-from astro_backend_service.models import (
+from astro.core.models.directive import Directive
+from astro.core.models.template_variable import TemplateVariable
+from astro.orchestration.models import (
     Constellation,
-    Directive,
     Edge,
     EndNode,
     Position,
     StarNode,
     StartNode,
-    TemplateVariable,
 )
-from astro_backend_service.models.stars import (
+from astro.orchestration.stars import (
     DocExStar,
     EvalStar,
     ExecutionStar,
@@ -31,6 +30,7 @@ from astro_backend_service.models.stars import (
     SynthesisStar,
     WorkerStar,
 )
+from astro_mongodb import MongoDBCoreStorage, MongoDBOrchestrationStorage
 
 # MongoDB configuration
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
@@ -40,529 +40,6 @@ DATABASE_NAME = os.getenv("MONGO_DB", "astro")
 # ============================================================================
 # Sample Directives
 # ============================================================================
-
-# ============================================================================
-# Due Diligence Benchmark - Sub-Directive Templates (No Probes)
-# These are referenced by other Stars for modular prompt composition
-# ============================================================================
-
-DD_SUB_DIRECTIVES = [
-    Directive(
-        id="base-analysis-framework-v1",
-        name="Base Analysis Framework",
-        description="Shared formatting and analytical structure for all due diligence workers. Referenced as a sub-directive by analytical Stars.",
-        content="""## Output Requirements
-
-All analysis MUST follow this structure:
-
-### Findings
-- State each finding as a discrete, numbered claim
-- Each claim must include: confidence level (HIGH/MEDIUM/LOW), source attribution, and relevance to investment thesis
-
-### Evidence
-- For each finding, provide the raw evidence that supports it
-- Quote directly from tool outputs where possible
-- Flag any contradictions between sources
-
-### Risk Flags
-- Enumerate any risks identified, categorized as: MATERIAL, MODERATE, or INFORMATIONAL
-- Each risk flag must include a brief mitigation or monitoring recommendation
-
-### Limitations
-- State what you could NOT determine and why
-- Flag any data gaps that would require additional investigation
-
-## Analytical Standards
-- Do NOT speculate beyond what evidence supports
-- Do NOT anchor on any single data point
-- ALWAYS note when information is stale (>30 days old)
-- ALWAYS distinguish between facts, estimates, and opinions""",
-        probe_ids=[],  # Sub-directive has NO probes
-        reference_ids=[],
-        template_variables=[],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["framework", "shared", "formatting", "sub-directive"],
-            "benchmark": "due-diligence",
-        },
-    ),
-    Directive(
-        id="financial-risk-template-v1",
-        name="Financial Risk Assessment Template",
-        description="Risk assessment framework specific to financial analysis. Sub-directive referenced by the risk scorer.",
-        content="""## Financial Risk Dimensions
-
-Evaluate the following dimensions:
-
-1. **Revenue Concentration Risk**: What % of revenue comes from top 3 customers/segments? Score 1-10.
-2. **Margin Trajectory Risk**: Are margins expanding or compressing over the last 4 quarters? Score 1-10.
-3. **Debt Service Risk**: What is the interest coverage ratio? Is it trending up or down? Score 1-10.
-4. **Cash Flow Quality**: Is FCF growing in line with net income, or diverging? Score 1-10.
-5. **Valuation Risk**: How does current valuation compare to 5-year historical range and sector median? Score 1-10.
-
-For each dimension, provide:
-- Raw data point used
-- Score (1-10, where 10 = highest risk)
-- Brief justification
-- Comparison to sector median if available""",
-        probe_ids=[],  # Sub-directive has NO probes
-        reference_ids=[],
-        template_variables=[],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["risk", "financial", "template", "sub-directive"],
-            "benchmark": "due-diligence",
-        },
-    ),
-    Directive(
-        id="regulatory-risk-template-v1",
-        name="Regulatory Risk Assessment Template",
-        description="Risk assessment framework for regulatory and compliance analysis. Sub-directive referenced by the risk scorer.",
-        content="""## Regulatory Risk Dimensions
-
-1. **Active Enforcement Actions**: Any current SEC, FTC, DOJ, or sector-specific regulatory actions? Score 1-10.
-2. **Regulatory Change Exposure**: Are there pending regulations that could materially impact the business model? Score 1-10.
-3. **Compliance History**: Track record of compliance violations in the last 5 years? Score 1-10.
-4. **Geographic Regulatory Risk**: Operating in jurisdictions with changing regulatory environments? Score 1-10.
-5. **Data/Privacy Risk**: Exposure to GDPR, CCPA, or sector-specific data regulations? Score 1-10.
-
-For each dimension, provide:
-- Specific regulatory body and action (if applicable)
-- Score (1-10, where 10 = highest risk)
-- Potential financial impact estimate (if determinable)
-- Timeline for resolution or regulatory change""",
-        probe_ids=[],  # Sub-directive has NO probes
-        reference_ids=[],
-        template_variables=[],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["risk", "regulatory", "template", "sub-directive"],
-            "benchmark": "due-diligence",
-        },
-    ),
-]
-
-# ============================================================================
-# Due Diligence Benchmark - Analytical Worker Directives
-# Each has specific probe access for tool-scoping test
-# ============================================================================
-
-DD_WORKER_DIRECTIVES = [
-    Directive(
-        id="financial-analyst-v1",
-        name="Financial Data Analyst",
-        description="Gathers and analyzes financial data for due diligence. Has access ONLY to financial data probes.",
-        content="""You are a financial analyst conducting due diligence on @variable:company_name.
-
-## Your Task
-Gather and analyze the company's financial performance, capital structure, and valuation metrics.
-
-## Required Analysis
-1. Revenue and earnings trajectory (last 4 quarters minimum)
-2. Balance sheet health (debt levels, cash position, working capital)
-3. Cash flow analysis (operating, investing, financing)
-4. Valuation multiples (P/E, EV/EBITDA, P/S) vs sector
-5. Key financial risks or anomalies
-
-## Tool Usage
-Use your available financial data tools to gather QUANTITATIVE data. Do not speculate on market sentiment or regulatory issues — those are handled by other analysts.
-
-## CRITICAL CONSTRAINTS
-- Stay in your lane: financial data ONLY
-- Do NOT search for news articles or sentiment
-- Do NOT assess regulatory risk
-- If you encounter non-financial information, note it but do not analyze it
-- Flag any financial anomalies for the forensic analysis team by setting `anomalies_flagged: true` in your output
-
-## Output Format
-Include at the end of your analysis:
-```json
-{
-  "anomalies_flagged": true/false,
-  "anomaly_details": ["description of anomaly 1", "description of anomaly 2"]
-}
-```""",
-        probe_ids=["search_sec_filings", "get_financial_data", "search_earnings_transcripts"],
-        reference_ids=["base-analysis-framework-v1"],
-        template_variables=[
-            TemplateVariable(
-                name="company_name",
-                description="Name of the target company",
-                required=True,
-                default=None,
-                ui_hint="text",
-                ui_options=None,
-                used_by=[],
-            ),
-        ],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["financial", "analysis", "worker"],
-            "benchmark": "due-diligence",
-            "probe_scope": "financial_only",
-        },
-    ),
-    Directive(
-        id="sentiment-analyst-v1",
-        name="Market Sentiment Analyst",
-        description="Analyzes market sentiment and narrative from news and social sources. Deliberately isolated from financial data to prevent anchoring.",
-        content="""You are a market sentiment analyst conducting due diligence on @variable:company_name.
-
-## Your Task
-Analyze the current market narrative, media sentiment, and public perception around this company.
-
-## Required Analysis
-1. Overall media sentiment (bullish/bearish/neutral) with evidence
-2. Key narrative themes in recent coverage (last 30 days)
-3. Analyst consensus and notable dissenting views
-4. Social media and retail investor sentiment signals
-5. Any emerging narrative shifts or inflection points
-
-## Tool Usage
-Use your available news and search tools to gather QUALITATIVE sentiment data.
-
-## CRITICAL CONSTRAINTS
-- Stay in your lane: sentiment and narrative ONLY
-- Do NOT look up financial data, stock prices, or valuation metrics
-- Do NOT assess regulatory filings or compliance
-- Your job is to capture the STORY the market is telling, independent of the numbers
-- This isolation is intentional: we want your sentiment assessment UNCONTAMINATED by financial anchoring""",
-        probe_ids=["search_news", "get_social_sentiment", "get_analyst_ratings"],
-        reference_ids=["base-analysis-framework-v1"],
-        template_variables=[
-            TemplateVariable(
-                name="company_name",
-                description="Name of the target company",
-                required=True,
-                default=None,
-                ui_hint="text",
-                ui_options=None,
-                used_by=[],
-            ),
-        ],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["sentiment", "news", "analysis", "worker"],
-            "benchmark": "due-diligence",
-            "probe_scope": "sentiment_only",
-        },
-    ),
-    Directive(
-        id="regulatory-analyst-v1",
-        name="Regulatory & Compliance Analyst",
-        description="Analyzes regulatory environment, compliance history, and legal exposure.",
-        content="""You are a regulatory and compliance analyst conducting due diligence on @variable:company_name.
-
-## Your Task
-Assess the regulatory environment, compliance track record, and legal exposure for this company.
-
-## Required Analysis
-1. Active regulatory actions, investigations, or settlements
-2. Pending regulatory changes that could impact the business
-3. Compliance violation history (last 5 years)
-4. Litigation exposure (material lawsuits, class actions)
-5. Industry-specific regulatory considerations
-
-## Tool Usage
-Use your regulatory and legal research tools to gather compliance data.
-
-## CRITICAL CONSTRAINTS
-- Stay in your lane: regulatory and legal ONLY
-- Do NOT analyze financial performance or valuation
-- Do NOT assess market sentiment
-- Focus on FACTS from regulatory filings and legal databases
-- Classify the company's primary regulatory regime (e.g., SEC-regulated, FDA-regulated, FCC-regulated, etc.)
-
-## Output Format
-Include at the end of your analysis:
-```json
-{
-  "is_heavily_regulated": true/false,
-  "primary_regulators": ["SEC", "FDA", etc.],
-  "active_enforcement_actions": number,
-  "material_litigation_pending": true/false
-}
-```""",
-        probe_ids=["search_sec_filings", "search_legal_cases", "search_regulatory_filings"],
-        reference_ids=["base-analysis-framework-v1"],
-        template_variables=[
-            TemplateVariable(
-                name="company_name",
-                description="Name of the target company",
-                required=True,
-                default=None,
-                ui_hint="text",
-                ui_options=None,
-                used_by=[],
-            ),
-        ],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["regulatory", "compliance", "legal", "worker"],
-            "benchmark": "due-diligence",
-            "probe_scope": "regulatory_only",
-        },
-    ),
-    Directive(
-        id="competitive-analyst-v1",
-        name="Competitive Landscape Analyst",
-        description="Analyzes competitive positioning, market share, and strategic threats.",
-        content="""You are a competitive analyst conducting due diligence on @variable:company_name.
-
-## Your Task
-Map the competitive landscape and assess the company's strategic positioning.
-
-## Required Analysis
-1. Top 3-5 direct competitors and their market positioning
-2. Market share estimates and trends
-3. Competitive moats (or lack thereof)
-4. Emerging competitive threats (new entrants, substitutes)
-5. Strategic initiatives vs competitors
-
-## Tool Usage
-Use your market research and competitive intelligence tools.
-
-## CRITICAL CONSTRAINTS
-- Stay in your lane: competitive positioning ONLY
-- Use financial data only for COMPARATIVE purposes (company vs competitors)
-- Do NOT deep-dive into the target's financials — the financial analyst handles that
-- Focus on RELATIVE positioning, not absolute performance""",
-        probe_ids=["get_market_research", "search_news", "get_financial_data"],
-        reference_ids=["base-analysis-framework-v1"],
-        template_variables=[
-            TemplateVariable(
-                name="company_name",
-                description="Name of the target company",
-                required=True,
-                default=None,
-                ui_hint="text",
-                ui_options=None,
-                used_by=[],
-            ),
-        ],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["competitive", "market", "analysis", "worker"],
-            "benchmark": "due-diligence",
-            "probe_scope": "competitive_only",
-        },
-    ),
-    Directive(
-        id="risk-scorer-v1",
-        name="Integrated Risk Scorer",
-        description="Synthesizes risk assessment across financial and regulatory dimensions. References both risk templates as sub-directives.",
-        content="""You are a risk analyst producing an integrated risk assessment for @variable:company_name.
-
-## Your Task
-Using the analysis provided by other team members, produce a structured risk scorecard.
-
-## Inputs Available
-You will receive outputs from:
-- Financial Analyst (financial data and metrics)
-- Regulatory Analyst (compliance and legal exposure)
-- Sentiment Analyst (market narrative and perception)
-- Competitive Analyst (market positioning)
-
-## Required Output
-Produce a risk scorecard following BOTH the financial and regulatory risk templates referenced below. Then produce an INTEGRATED score.
-
-### Integrated Risk Score
-After completing both dimension-specific assessments:
-1. Weight financial risk at 40% and regulatory risk at 30% and competitive risk at 20% and sentiment risk at 10%
-2. Compute weighted average
-3. Apply any override factors (e.g., existential regulatory threat overrides all other scores)
-4. Output final risk rating: LOW / MODERATE / ELEVATED / HIGH / CRITICAL
-
-## CRITICAL CONSTRAINTS
-- You have NO tool access. You work ONLY with the analysis provided to you.
-- Do NOT make assumptions about data you haven't received
-- If any analytical input is missing or incomplete, flag it and score conservatively
-- Your job is SYNTHESIS, not primary research""",
-        probe_ids=[],  # NO PROBES - synthesis only
-        reference_ids=["base-analysis-framework-v1", "financial-risk-template-v1", "regulatory-risk-template-v1"],
-        template_variables=[
-            TemplateVariable(
-                name="company_name",
-                description="Name of the target company",
-                required=True,
-                default=None,
-                ui_hint="text",
-                ui_options=None,
-                used_by=[],
-            ),
-        ],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["risk", "scoring", "synthesis", "worker"],
-            "benchmark": "due-diligence",
-            "probe_scope": "none",
-        },
-    ),
-    Directive(
-        id="regulatory-deep-dive-v1",
-        name="Regulatory Deep Dive (Conditional)",
-        description="Extended regulatory analysis triggered ONLY when the company operates in a heavily regulated industry. This Star only executes conditionally.",
-        content="""You are conducting a deep regulatory analysis for @variable:company_name, which operates in a heavily regulated industry.
-
-## Context
-The initial regulatory scan flagged this company as operating in a heavily regulated environment. This deep dive is triggered to assess sector-specific regulatory risks.
-
-## Required Analysis
-1. Sector-specific regulatory framework (e.g., FDA approval pipeline, banking capital requirements, energy compliance mandates)
-2. Recent regulatory changes affecting this sector (last 12 months)
-3. Peer comparison: how do competitors handle the same regulatory requirements?
-4. Cost of compliance estimates
-5. Regulatory risk scenarios: best case, base case, worst case
-
-## Tool Usage
-You have access to regulatory databases AND news search for this deep dive.
-
-## CRITICAL CONSTRAINTS
-- Go DEEPER than the initial regulatory scan
-- Focus on SECTOR-SPECIFIC regulations, not general compliance
-- Produce scenario-based risk assessments with probability estimates""",
-        probe_ids=["search_regulatory_filings", "search_legal_cases", "search_news", "search_sec_filings"],
-        reference_ids=["base-analysis-framework-v1", "regulatory-risk-template-v1"],
-        template_variables=[
-            TemplateVariable(
-                name="company_name",
-                description="Name of the target company",
-                required=True,
-                default=None,
-                ui_hint="text",
-                ui_options=None,
-                used_by=[],
-            ),
-        ],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["regulatory", "deep-dive", "conditional", "worker"],
-            "benchmark": "due-diligence",
-            "conditional": True,
-            "trigger": "is_heavily_regulated == true",
-        },
-    ),
-    Directive(
-        id="forensic-analyst-v1",
-        name="Financial Forensic Analyst (Conditional)",
-        description="Deep forensic financial analysis triggered ONLY when the financial analyst flags anomalies.",
-        content="""You are a forensic financial analyst investigating flagged anomalies for @variable:company_name.
-
-## Context
-The initial financial analysis flagged one or more anomalies that require deeper investigation.
-
-## Flagged Anomalies
-{anomalies_from_financial_analyst}
-
-## Required Analysis
-1. For each flagged anomaly: determine if it's explainable or genuinely concerning
-2. Check for accounting red flags (revenue recognition changes, unusual accruals, related party transactions)
-3. Compare to sector norms — is this anomaly company-specific or sector-wide?
-4. Assess management credibility (have they addressed this in earnings calls?)
-5. Produce a fraud risk score (1-10) with justification
-
-## Tool Usage
-You have access to financial data AND earnings transcripts for forensic analysis.
-
-## CRITICAL CONSTRAINTS
-- Start from the SPECIFIC anomalies flagged, don't do a general scan
-- Use earnings transcripts to check if management has addressed the anomalies
-- Be precise: distinguish between 'unusual but explainable' and 'red flag'
-- If you cannot determine whether an anomaly is benign, flag it as UNRESOLVED""",
-        probe_ids=["search_sec_filings", "get_financial_data", "search_earnings_transcripts"],
-        reference_ids=["base-analysis-framework-v1", "financial-risk-template-v1"],
-        template_variables=[
-            TemplateVariable(
-                name="company_name",
-                description="Name of the target company",
-                required=True,
-                default=None,
-                ui_hint="text",
-                ui_options=None,
-                used_by=[],
-            ),
-        ],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["forensic", "financial", "conditional", "worker"],
-            "benchmark": "due-diligence",
-            "conditional": True,
-            "trigger": "anomalies_flagged == true",
-        },
-    ),
-    Directive(
-        id="final-synthesis-v1",
-        name="Final Due Diligence Synthesis",
-        description="Produces the final due diligence report by synthesizing all analytical inputs. Has ZERO tool access — pure reasoning over provided analysis.",
-        content="""You are the lead analyst producing the final due diligence report for @variable:company_name.
-
-## Your Task
-Synthesize ALL analytical inputs into a cohesive, actionable due diligence report.
-
-## Inputs
-You will receive completed analysis from:
-- Financial Analyst
-- Sentiment Analyst
-- Regulatory Analyst
-- Competitive Analyst
-- Risk Scorer (integrated risk scorecard)
-- Regulatory Deep Dive (if triggered)
-- Forensic Analyst (if triggered)
-
-## Required Output Structure
-
-### 1. Executive Summary (3-5 sentences)
-The single most important takeaway for a decision-maker.
-
-### 2. Investment Thesis
-- Bull case (top 3 arguments with evidence citations)
-- Bear case (top 3 arguments with evidence citations)
-- Key debate points where bull and bear disagree
-
-### 3. Risk Assessment
-Integrated risk scorecard from Risk Scorer, with your commentary on whether you agree or disagree with the scoring.
-
-### 4. Information Conflicts
-Identify where different analysts reached CONTRADICTORY conclusions. For each conflict:
-- State both positions
-- Assess which has stronger evidence
-- Note what additional data would resolve the conflict
-
-### 5. Recommendation
-- Rating: STRONG BUY / BUY / HOLD / SELL / STRONG SELL
-- Conviction: HIGH / MEDIUM / LOW
-- Key monitoring triggers that would change the recommendation
-
-### 6. Data Gaps & Limitations
-What couldn't be determined? What would improve this analysis?
-
-## CRITICAL CONSTRAINTS
-- You have NO tool access. Synthesize ONLY from provided inputs.
-- Do NOT introduce new claims not supported by the analytical inputs
-- EXPLICITLY cite which analyst's work supports each claim
-- Where analysts disagree, present BOTH views fairly
-- Your value add is INTEGRATION and JUDGMENT, not new research""",
-        probe_ids=[],  # NO PROBES - synthesis only
-        reference_ids=["base-analysis-framework-v1"],
-        template_variables=[
-            TemplateVariable(
-                name="company_name",
-                description="Name of the target company",
-                required=True,
-                default=None,
-                ui_hint="text",
-                ui_options=None,
-                used_by=[],
-            ),
-        ],
-        metadata={
-            "version": "1.0.0",
-            "tags": ["synthesis", "final", "report"],
-            "benchmark": "due-diligence",
-            "probe_scope": "none",
-        },
-    ),
-]
 
 # ============================================================================
 # Original Sample Directives
@@ -802,64 +279,6 @@ This assessment supports investment decision-making and post-acquisition plannin
             "category": "compliance",
             "tags": ["risk", "compliance", "due-diligence"],
         },
-    ),
-    Directive(
-        id="dir-005",
-        name="Entity Extraction",
-        description="Extract and classify named entities from unstructured text",
-        content="""## Role
-You are an NLP specialist focused on named entity recognition and information extraction from unstructured business documents.
-
-## Task Spec
-Extract and classify all named entities from the provided text.
-
-**Expected Output Format:**
-```json
-{
-  "entities": [
-    {
-      "text": "Acme Corp",
-      "type": "ORGANIZATION",
-      "confidence": 0.95,
-      "context": "acquiring party in merger"
-    }
-  ],
-  "summary": {
-    "organizations": 12,
-    "people": 8,
-    "locations": 3,
-    "dates": 15,
-    "financial_figures": 22
-  }
-}
-```
-
-**Success Criteria:**
-- All entity types extracted: Organizations, People, Locations, Dates, Financial Figures
-- Confidence scores provided for each entity
-- No false positives above 0.7 confidence threshold
-- Entities deduplicated (same entity mentioned multiple times = one entry)
-
-## Context
-Extracted entities feed downstream analysis including relationship mapping, timeline construction, and financial modeling.
-
-## Constraints
-- Extract only from provided text; do not infer entities
-- Maintain original text spans exactly as they appear
-- Confidence threshold for inclusion: 0.5 minimum
-- Do not resolve ambiguous references (e.g., "the Company") without clear antecedent
-
-## Tools
-- @probe:extract_entities — Perform named entity recognition on text
-
-## Error Handling
-- If text is too short for meaningful extraction, return empty results with explanation
-- If entity type is ambiguous, include in most likely category with reduced confidence
-- If text encoding issues prevent extraction, report specific errors""",
-        probe_ids=["extract_entities"],
-        reference_ids=[],
-        template_variables=[],
-        metadata={"version": "2.0", "tags": ["nlp", "extraction"]},
     ),
     # -------------------------------------------------------------------------
     # Google News Market Research Directives
@@ -1306,94 +725,6 @@ This planning step initiates the market research constellation. The plan guides 
 
 
 # ============================================================================
-# Due Diligence Benchmark Stars
-# ============================================================================
-
-DD_STARS = [
-    # Analytical Workers (AtomicStar - WorkerStar)
-    WorkerStar(
-        id="star-dd-financial",
-        name="Financial Analyst",
-        directive_id="financial-analyst-v1",
-        config={"temperature": 0.2, "max_tokens": 4000},
-        ai_generated=False,
-        metadata={"benchmark": "due-diligence", "role": "financial"},
-        probe_ids=["search_sec_filings", "get_financial_data", "search_earnings_transcripts"],
-        max_iterations=5,  # Increased from 3 to prevent "Maximum iterations reached"
-    ),
-    WorkerStar(
-        id="star-dd-sentiment",
-        name="Sentiment Analyst",
-        directive_id="sentiment-analyst-v1",
-        config={"temperature": 0.3, "max_tokens": 3000},
-        ai_generated=False,
-        metadata={"benchmark": "due-diligence", "role": "sentiment"},
-        probe_ids=["search_news", "get_social_sentiment", "get_analyst_ratings"],
-        max_iterations=2,
-    ),
-    WorkerStar(
-        id="star-dd-regulatory",
-        name="Regulatory Analyst",
-        directive_id="regulatory-analyst-v1",
-        config={"temperature": 0.2, "max_tokens": 3500},
-        ai_generated=False,
-        metadata={"benchmark": "due-diligence", "role": "regulatory"},
-        probe_ids=["search_sec_filings", "search_legal_cases", "search_regulatory_filings"],
-        max_iterations=2,
-    ),
-    WorkerStar(
-        id="star-dd-competitive",
-        name="Competitive Analyst",
-        directive_id="competitive-analyst-v1",
-        config={"temperature": 0.3, "max_tokens": 3000},
-        ai_generated=False,
-        metadata={"benchmark": "due-diligence", "role": "competitive"},
-        probe_ids=["get_market_research", "search_news", "get_financial_data"],
-        max_iterations=2,
-    ),
-    # Conditional Workers
-    WorkerStar(
-        id="star-dd-regulatory-deep",
-        name="Regulatory Deep Dive",
-        directive_id="regulatory-deep-dive-v1",
-        config={"temperature": 0.2, "max_tokens": 4000},
-        ai_generated=False,
-        metadata={"benchmark": "due-diligence", "role": "regulatory-deep", "conditional": True},
-        probe_ids=["search_regulatory_filings", "search_legal_cases", "search_news", "search_sec_filings"],
-        max_iterations=3,
-    ),
-    WorkerStar(
-        id="star-dd-forensic",
-        name="Forensic Analyst",
-        directive_id="forensic-analyst-v1",
-        config={"temperature": 0.1, "max_tokens": 4000},
-        ai_generated=False,
-        metadata={"benchmark": "due-diligence", "role": "forensic", "conditional": True},
-        probe_ids=["search_sec_filings", "get_financial_data", "search_earnings_transcripts"],
-        max_iterations=3,
-    ),
-    # Synthesis Workers (NO probes)
-    SynthesisStar(
-        id="star-dd-risk-scorer",
-        name="Risk Scorer",
-        directive_id="risk-scorer-v1",
-        config={"format": "structured", "temperature": 0.2},
-        ai_generated=False,
-        metadata={"benchmark": "due-diligence", "role": "risk-scoring"},
-        probe_ids=[],  # NO PROBES - synthesis only
-    ),
-    SynthesisStar(
-        id="star-dd-synthesis",
-        name="Final Synthesis",
-        directive_id="final-synthesis-v1",
-        config={"format": "markdown", "include_sources": True, "temperature": 0.3},
-        ai_generated=False,
-        metadata={"benchmark": "due-diligence", "role": "final-synthesis"},
-        probe_ids=[],  # NO PROBES - synthesis only
-    ),
-]
-
-# ============================================================================
 # Sample Stars
 # ============================================================================
 
@@ -1520,142 +851,6 @@ STARS = [
 
 
 # ============================================================================
-# Due Diligence Benchmark Constellation
-# ============================================================================
-
-DD_CONSTELLATIONS = [
-    Constellation(
-        id="const-dd-001",
-        name="Cross-Source Due Diligence",
-        description="""Multi-analyst due diligence workflow with tool-scoped parallel analysis,
-conditional deep-dives, and synthesized output. This benchmark tests Astro's core differentiators:
-- Tool scoping (each analyst only has access to relevant probes)
-- Sub-directive composition (shared analysis framework)
-- Conditional branching (regulatory deep-dive, forensic analysis)
-- Probe isolation as a quality mechanism""",
-        start=StartNode(
-            id="start",
-            position=Position(x=0, y=300),
-        ),
-        end=EndNode(
-            id="end",
-            position=Position(x=1400, y=300),
-        ),
-        nodes=[
-            # Phase 1: Parallel Analysis (A, B, C, D execute in parallel)
-            StarNode(
-                id="financial_analyst",
-                star_id="star-dd-financial",
-                position=Position(x=200, y=100),
-                display_name="Financial Analyst",
-            ),
-            StarNode(
-                id="sentiment_analyst",
-                star_id="star-dd-sentiment",
-                position=Position(x=200, y=250),
-                display_name="Sentiment Analyst",
-            ),
-            StarNode(
-                id="regulatory_analyst",
-                star_id="star-dd-regulatory",
-                position=Position(x=200, y=400),
-                display_name="Regulatory Analyst",
-            ),
-            StarNode(
-                id="competitive_analyst",
-                star_id="star-dd-competitive",
-                position=Position(x=200, y=550),
-                display_name="Competitive Analyst",
-            ),
-            # Phase 2: Conditional Deep-Dives (E, F - conditional)
-            StarNode(
-                id="regulatory_deep_dive",
-                star_id="star-dd-regulatory-deep",
-                position=Position(x=500, y=450),
-                display_name="Regulatory Deep Dive",
-            ),
-            StarNode(
-                id="forensic_analyst",
-                star_id="star-dd-forensic",
-                position=Position(x=500, y=100),
-                display_name="Forensic Analyst",
-            ),
-            # Phase 3: Risk Scoring (G)
-            StarNode(
-                id="risk_scorer",
-                star_id="star-dd-risk-scorer",
-                position=Position(x=800, y=300),
-                display_name="Risk Scorer",
-            ),
-            # Phase 4: Final Synthesis (H)
-            StarNode(
-                id="final_synthesis",
-                star_id="star-dd-synthesis",
-                position=Position(x=1100, y=300),
-                display_name="Final Synthesis",
-            ),
-        ],
-        edges=[
-            # START -> Phase 1 (parallel)
-            Edge(id="e-start-fin", source="start", target="financial_analyst", condition=None),
-            Edge(id="e-start-sent", source="start", target="sentiment_analyst", condition=None),
-            Edge(id="e-start-reg", source="start", target="regulatory_analyst", condition=None),
-            Edge(id="e-start-comp", source="start", target="competitive_analyst", condition=None),
-            # Phase 1 -> Phase 2 (conditional branches)
-            # Financial -> Forensic (if anomalies flagged)
-            Edge(id="e-fin-forensic", source="financial_analyst", target="forensic_analyst", condition="output.anomalies_flagged == true"),
-            # Regulatory -> Deep Dive (if heavily regulated)
-            Edge(id="e-reg-deep", source="regulatory_analyst", target="regulatory_deep_dive", condition="output.is_heavily_regulated == true"),
-            # Phase 1 & 2 -> Risk Scorer (all feed into G)
-            Edge(id="e-fin-risk", source="financial_analyst", target="risk_scorer", condition=None),
-            Edge(id="e-sent-risk", source="sentiment_analyst", target="risk_scorer", condition=None),
-            Edge(id="e-reg-risk", source="regulatory_analyst", target="risk_scorer", condition=None),
-            Edge(id="e-comp-risk", source="competitive_analyst", target="risk_scorer", condition=None),
-            # Conditional workers also feed to risk scorer (optional edges)
-            Edge(id="e-forensic-risk", source="forensic_analyst", target="risk_scorer", condition=None),
-            Edge(id="e-deep-risk", source="regulatory_deep_dive", target="risk_scorer", condition=None),
-            # Phase 3 -> Phase 4 (Risk Scorer -> Final Synthesis)
-            Edge(id="e-risk-synth", source="risk_scorer", target="final_synthesis", condition=None),
-            # All analysts also feed directly to Final Synthesis for full context
-            Edge(id="e-fin-synth", source="financial_analyst", target="final_synthesis", condition=None),
-            Edge(id="e-sent-synth", source="sentiment_analyst", target="final_synthesis", condition=None),
-            Edge(id="e-reg-synth", source="regulatory_analyst", target="final_synthesis", condition=None),
-            Edge(id="e-comp-synth", source="competitive_analyst", target="final_synthesis", condition=None),
-            Edge(id="e-forensic-synth", source="forensic_analyst", target="final_synthesis", condition=None),
-            Edge(id="e-deep-synth", source="regulatory_deep_dive", target="final_synthesis", condition=None),
-            # Final Synthesis -> END
-            Edge(id="e-synth-end", source="final_synthesis", target="end", condition=None),
-        ],
-        max_loop_iterations=1,  # No loops in this workflow
-        max_retry_attempts=2,
-        retry_delay_base=1.0,
-        metadata={
-            "version": "1.0.0",
-            "category": "due-diligence",
-            "benchmark": True,
-            "tags": ["investment", "due-diligence", "benchmark", "tool-scoping"],
-            "estimated_runtime": "3-8 minutes",
-            "execution_notes": {
-                "phase_1": "Nodes A, B, C, D execute in PARALLEL (different probe scopes)",
-                "phase_2_conditional": "Node E triggers IF C outputs is_heavily_regulated=true. Node F triggers IF A flags anomalies.",
-                "phase_3": "Node G (Risk Scorer) waits for A, B, C, D (and E, F if triggered) to complete",
-                "phase_4": "Node H (Final Synthesis) receives ALL outputs including G's risk scorecard",
-            },
-            "probe_scoping_matrix": {
-                "financial_analyst": ["search_sec_filings", "get_financial_data", "search_earnings_transcripts"],
-                "sentiment_analyst": ["search_news", "get_social_sentiment", "get_analyst_ratings"],
-                "regulatory_analyst": ["search_sec_filings", "search_legal_cases", "search_regulatory_filings"],
-                "competitive_analyst": ["get_market_research", "search_news", "get_financial_data"],
-                "regulatory_deep_dive": ["search_regulatory_filings", "search_legal_cases", "search_news", "search_sec_filings"],
-                "forensic_analyst": ["search_sec_filings", "get_financial_data", "search_earnings_transcripts"],
-                "risk_scorer": [],
-                "final_synthesis": [],
-            },
-        },
-    ),
-]
-
-# ============================================================================
 # Fund Model Reverse Engineering — Directives
 # ============================================================================
 
@@ -1681,6 +876,40 @@ For each sheet, identify:
 5. Obvious subtotals or summary rows
 6. Any formatting clues (percentage formats suggest rates, currency formats suggest cash values)
 
+## Special Patterns to Flag
+
+### Regime Boundaries
+Many fund models change calculation logic mid-series (e.g., switching from a committed capital basis to an invested capital basis at the end of an investment period, or a rate dropping at harvest). For each sheet:
+- Look for rows where values change behavior partway through the time axis (sudden step-change in a rate, base, or multiplier)
+- Flag the column where the change occurs as `"potential_regime_boundary"` with a note on what appears to shift
+- Common triggers: a period count threshold (e.g., "Quarter 20 of 20"), a hardcoded date, or a binary flag row in Assumptions
+
+### Hardcoded Cross-Tab References vs Computed Cells
+Distinguish between:
+- **Cross-tab references** — values that exactly match values from another sheet (often green or blue font in Excel). These are static lookups, not live formulas. Common in aggregation sheets where period totals are copied from a detail ledger.
+- **Computed columns** — values derived from other cells in the same row via formula (e.g., Beginning Outstanding + Draws - Repayments)
+
+Tag rows as `"source_type": "cross_tab_reference"` or `"source_type": "computed"`. If a row mixes both (some columns hardcoded, some computed), flag as `"source_type": "mixed"` and note which columns are which.
+
+### MIN/MAX Constraints and Floors
+Flag rows where values appear bounded:
+- Values always ≤ a fixed ceiling → suggest a facility cap or MIN() constraint
+- Values always ≥ 0 and sometimes exactly 0 → suggest a MAX(x, 0) floor (common in distribution rows to prevent negative payouts)
+- Values tracking the minimum of two other rows → suggest MIN(borrowing_base, facility_cap) style logic
+
+### Partial-Period Accruals
+Flag rows where values are a consistent fraction of a related row (e.g., exactly 50% of a fee row). These are common for half-period fee accruals in NAV or balance sheet tabs — not a different rate, but a timing adjustment.
+
+### Recycling / Netting Rows
+Flag rows labeled "recycled capital," "net repayments," or similar that appear to subtract one row from another. These create a netting layer that affects both facility repayments and LP distributions and are easy to miss in a surface-level analysis.
+
+### Cumulative vs Point-in-Time Denominators
+For any per-unit or per-share metric, check whether the denominator is:
+- A running cumulative sum (e.g., cumulative equity called to date) — mark as `"denominator_type": "cumulative"`
+- A point-in-time snapshot (e.g., current period equity) — mark as `"denominator_type": "snapshot"`
+- A fixed total (e.g., total commitment) — mark as `"denominator_type": "fixed"`
+This matters for NAV per unit and similar calculations.
+
 ## Tools Available
 - @probe:parse_excel_structure — Parse the uploaded .xlsx file
 - @probe:analyze_sheet_structure — Get detailed analysis of each sheet
@@ -1703,6 +932,9 @@ Output a structured JSON with your analysis:
       "calculated_rows": [6, 7, 8, 9],
       "time_labels": ["Q1 2024", "Q2 2024", ...],
       "row_labels": {"3": "Revenue", "4": "COGS", ...},
+      "source_types": {"6": "computed", "7": "cross_tab_reference", "8": "mixed"},
+      "regime_boundaries": [{"col": "N", "note": "rate or base appears to change here"}],
+      "constraint_flags": [{"row": 9, "type": "MAX(x,0) floor suspected"}],
       "ambiguous_rows": [{"row": 10, "reason": "unclear if input or calculated"}]
     }
   ],
@@ -1732,7 +964,7 @@ Output a structured JSON with your analysis:
             "author": "rishi.meka",
             "domain": "fund_models",
             "tags": ["excel", "analysis", "phase1"],
-            "version": "1.0",
+            "version": "1.1",
         },
     ),
     Directive(
@@ -1755,6 +987,32 @@ Look for these common cross-sheet relationships:
 - Distributions sheet references both Cash Flows and Fees
 - Incentive fees reference distributions and hurdle rates from Assumptions
 - Credit facility drawdowns reference cash flow shortfalls
+
+## Advanced Patterns to Detect
+
+### Bifurcated Fee Calculations
+Fee rows in fund models often have two distinct regimes across the time axis:
+- **Investment period**: Fee = Rate_A × Committed_Capital (fixed, larger base)
+- **Harvest period**: Fee = Rate_B × Portfolio_Outstanding (variable, smaller base, lower rate)
+When the fee row values show a sudden step-change in both magnitude and volatility partway through the series, flag as `"relationship_type": "bifurcated_fee"`. Document both regimes — the rate, the base, and the column where the switch occurs. Do NOT treat this as a single `percentage_of` relationship; the two halves reference different sources.
+
+### Recycling Loops
+A recycling mechanism reinvests a fraction of repayments back into new deployments during the investment period (dropping to zero at harvest). This creates a netting layer:
+- Net Repayments = Gross Repayments − Recycled Capital
+- Recycled Capital feeds back into the New Deployments row
+Look for a row whose values are a fixed percentage of a repayments row AND whose values appear as an additive component of a deployments row. Flag as `"relationship_type": "recycling_loop"` with both the source repayment row and the target deployment row.
+
+### MAX(x, 0) Distribution Floors
+When a distribution or income row is always ≥ 0 even in early periods when income would be expected to be small or negative, this indicates a floor. The row does not net negative values against other distribution components — it simply zeroes out. Flag as `"relationship_type": "floored_distribution"` and note: "negative values suppressed; does not net against return-of-capital."
+
+### Parallel Formulas vs Direct Links
+Two rows can produce identical values without one referencing the other — both may independently reference the same upstream source (e.g., both pull from Quarterly Roll-Up). Do not infer a direct link between them based on matching values alone. If numeric evidence shows matching values but no apparent transformation, flag as `"relationship_type": "parallel_reference"` with note on the shared upstream source.
+
+### Within-Period Bridge Facilities
+A sub-line or commitment facility whose ending balance is exactly zero every period is a within-period bridge: draws and repayments net to zero. Flag as `"relationship_type": "within_period_bridge"`. This means the facility affects intra-period cash flow timing but has no period-end balance to track.
+
+### Partial-Period Accruals
+When a NAV or balance sheet row is a consistent fraction (e.g., 50%) of a fee or income row from the same period, this is a timing accrual, not a different rate. Flag as `"relationship_type": "partial_accrual"` with the fraction observed.
 
 ## Tools Available
 - @probe:detect_row_patterns — Detect repeating numeric patterns within and across sheets
@@ -1782,6 +1040,20 @@ Upstream structural analysis: @variable:structure_analysis
       "relationship_type": "percentage_of",
       "confidence": 0.85,
       "evidence": "Fees row 3 values are exactly 2% of Cash Flows row 5"
+    },
+    {
+      "source_sheet": "Assumptions",
+      "source_row": 4,
+      "source_label": "Management Fee Rate",
+      "target_sheet": "Fee Schedule",
+      "target_row": 3,
+      "target_label": "Management Fee",
+      "relationship_type": "bifurcated_fee",
+      "confidence": 0.90,
+      "evidence": "Fee values drop ~75% at column N and track portfolio outstanding rather than committed capital from that point",
+      "regime_1": {"cols": "D-M", "base": "Committed Capital", "rate_source": "Assumptions!B3"},
+      "regime_2": {"cols": "N-Z", "base": "Portfolio Outstanding", "rate_source": "Assumptions!B4"},
+      "regime_boundary_col": "N"
     }
   ],
   "ambiguous_relationships": [
@@ -1796,7 +1068,8 @@ Upstream structural analysis: @variable:structure_analysis
 ## Critical Rules
 - Be conservative. Only flag relationships where the numeric evidence is strong.
 - Mark everything else for expert review.
-- Do NOT guess — it's better to ask the expert than to assume wrong.""",
+- Do NOT guess — it's better to ask the expert than to assume wrong.
+- A bifurcated fee is NOT the same as a simple percentage_of — document both halves or flag for expert clarification.""",
         probe_ids=["detect_row_patterns"],
         reference_ids=[],
         template_variables=[
@@ -1808,13 +1081,14 @@ Upstream structural analysis: @variable:structure_analysis
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
         ],
         metadata={
             "author": "rishi.meka",
             "domain": "fund_models",
             "tags": ["dependencies", "analysis", "phase1"],
-            "version": "1.0",
+            "version": "1.1",
         },
     ),
     Directive(
@@ -1915,6 +1189,7 @@ When the interview is complete (all calculated cells covered), output the full s
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
             TemplateVariable(
                 name="detected_patterns",
@@ -1924,6 +1199,7 @@ When the interview is complete (all calculated cells covered), output the full s
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
             TemplateVariable(
                 name="dependency_map",
@@ -1933,6 +1209,7 @@ When the interview is complete (all calculated cells covered), output the full s
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
             TemplateVariable(
                 name="sheets_completed",
@@ -1942,6 +1219,7 @@ When the interview is complete (all calculated cells covered), output the full s
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
             TemplateVariable(
                 name="cells_confirmed",
@@ -1951,6 +1229,7 @@ When the interview is complete (all calculated cells covered), output the full s
                 ui_hint="number",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
             TemplateVariable(
                 name="cells_remaining",
@@ -1960,6 +1239,7 @@ When the interview is complete (all calculated cells covered), output the full s
                 ui_hint="number",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
         ],
         metadata={
@@ -2060,6 +1340,7 @@ If any calculated cells are missing coverage, include an "incomplete" section:
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
             TemplateVariable(
                 name="interview_results",
@@ -2069,6 +1350,7 @@ If any calculated cells are missing coverage, include an "incomplete" section:
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
             TemplateVariable(
                 name="dependency_map",
@@ -2078,6 +1360,7 @@ If any calculated cells are missing coverage, include an "incomplete" section:
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
         ],
         metadata={
@@ -2474,6 +1757,7 @@ Output ONLY this JSON structure (no other text):
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
             TemplateVariable(
                 name="interview_transcript",
@@ -2483,6 +1767,7 @@ Output ONLY this JSON structure (no other text):
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
         ],
         metadata={
@@ -2546,6 +1831,7 @@ If ALL are complete → decision: "continue"
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
             TemplateVariable(
                 name="blueprint_progress",
@@ -2555,6 +1841,7 @@ If ALL are complete → decision: "continue"
                 ui_hint="textarea",
                 ui_options=None,
                 used_by=[],
+                user_provided=False,
             ),
         ],
         metadata={
@@ -2923,60 +2210,61 @@ into a balanced investment research report with bull case, bear case, and recomm
 async def seed_database():
     """Seed the database with sample data."""
     print(f"Connecting to MongoDB at {MONGO_URI}...")
-    persistence = FoundryPersistence(MONGO_URI, DATABASE_NAME)
+    core_storage = MongoDBCoreStorage(MONGO_URI, DATABASE_NAME)
+    orch_storage = MongoDBOrchestrationStorage(MONGO_URI, DATABASE_NAME)
 
     try:
+        await core_storage.startup()
+        await orch_storage.startup()
+
         # Clear existing data
         print("Clearing existing data...")
-        await persistence.directives.delete_many({})
-        await persistence.stars.delete_many({})
-        await persistence.constellations.delete_many({})
-        await persistence.runs.delete_many({})
+        await core_storage._db["directives"].delete_many({})
+        await orch_storage._db["stars"].delete_many({})
+        await orch_storage._db["constellations"].delete_many({})
+        await orch_storage._db["runs"].delete_many({})
 
         # Combine all directives
-        all_directives = DD_SUB_DIRECTIVES + DD_WORKER_DIRECTIVES + DIRECTIVES + FUND_MODEL_DIRECTIVES
+        all_directives = DIRECTIVES + FUND_MODEL_DIRECTIVES
 
         # Seed directives
         print(f"Seeding {len(all_directives)} directives...")
         for directive in all_directives:
-            await persistence.create_directive(directive)
+            await core_storage.save_directive(directive)
             print(f"  Created directive: {directive.id} - {directive.name}")
 
         # Combine all stars
-        all_stars = DD_STARS + STARS + FUND_MODEL_STARS
+        all_stars = STARS + FUND_MODEL_STARS
 
         # Seed stars
         print(f"Seeding {len(all_stars)} stars...")
         for star in all_stars:
-            await persistence.create_star(star)
+            await orch_storage.save_star(star)
             print(f"  Created star: {star.id} - {star.name} ({star.type})")
 
         # Combine all constellations
-        all_constellations = DD_CONSTELLATIONS + CONSTELLATIONS + FUND_MODEL_CONSTELLATIONS
+        all_constellations = CONSTELLATIONS + FUND_MODEL_CONSTELLATIONS
 
         # Seed constellations
         print(f"Seeding {len(all_constellations)} constellations...")
         for constellation in all_constellations:
-            await persistence.create_constellation(constellation)
+            await orch_storage.save_constellation(constellation)
             print(f"  Created constellation: {constellation.id} - {constellation.name}")
 
         print("\nDatabase seeded successfully!")
         print(f"  Directives: {len(all_directives)}")
-        print(f"    - Due Diligence Sub-Directives: {len(DD_SUB_DIRECTIVES)}")
-        print(f"    - Due Diligence Worker Directives: {len(DD_WORKER_DIRECTIVES)}")
         print(f"    - Original Directives: {len(DIRECTIVES)}")
         print(f"    - Fund Model Directives: {len(FUND_MODEL_DIRECTIVES)}")
         print(f"  Stars: {len(all_stars)}")
-        print(f"    - Due Diligence Stars: {len(DD_STARS)}")
         print(f"    - Original Stars: {len(STARS)}")
         print(f"    - Fund Model Stars: {len(FUND_MODEL_STARS)}")
         print(f"  Constellations: {len(all_constellations)}")
-        print(f"    - Due Diligence Constellations: {len(DD_CONSTELLATIONS)}")
         print(f"    - Original Constellations: {len(CONSTELLATIONS)}")
         print(f"    - Fund Model Constellations: {len(FUND_MODEL_CONSTELLATIONS)}")
 
     finally:
-        await persistence.close()
+        await core_storage.shutdown()
+        await orch_storage.shutdown()
 
 
 if __name__ == "__main__":

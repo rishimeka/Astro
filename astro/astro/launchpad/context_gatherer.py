@@ -15,6 +15,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
+from astro.core.llm.utils import get_default_max_tokens
 from astro.launchpad.conversation import Conversation
 from astro.launchpad.directive_generator import GatheredContext
 
@@ -162,7 +163,7 @@ Return JSON:
 
         try:
             response = await self.llm.ainvoke(
-                messages, temperature=0.3, max_tokens=1000
+                messages, temperature=0.3, max_tokens=get_default_max_tokens()
             )
             content = (
                 response.content if hasattr(response, "content") else str(response)

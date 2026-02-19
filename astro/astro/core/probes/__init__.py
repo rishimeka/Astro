@@ -5,7 +5,7 @@ Probes are tools that can be bound to LLMs for function calling.
 """
 
 # Import probe implementations to register them
-from astro.core.probes import due_diligence, excel, google_news
+from astro.core.probes import excel, google_news
 from astro.core.probes.decorator import probe
 from astro.core.probes.exceptions import DuplicateProbeError
 from astro.core.probes.probe import Probe
@@ -16,7 +16,6 @@ __all__ = [
     "ProbeRegistry",
     "probe",
     "DuplicateProbeError",
-    "due_diligence",
     "google_news",
     "excel",
 ]

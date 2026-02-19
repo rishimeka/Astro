@@ -49,6 +49,20 @@ class PendingConstellation(BaseModel):
     )
 
 
+class ClarificationState(BaseModel):
+    """Tracks a clarification session during interpreter evaluation."""
+
+    rounds_completed: int = Field(default=0, description="Number of Q&A rounds so far")
+    max_rounds: int = Field(default=3, description="Maximum allowed rounds")
+    original_query: str = Field(
+        ..., description="The original ambiguous query that started clarification"
+    )
+    interpretation_history: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="History of InterpretationResult dicts from each round",
+    )
+
+
 class Conversation(BaseModel):
     """A multi-turn conversation with message history."""
 
@@ -66,6 +80,11 @@ class Conversation(BaseModel):
     # Track pending constellation awaiting variables
     pending_constellation: PendingConstellation | None = Field(
         default=None, description="Constellation waiting for variable input"
+    )
+
+    # Track clarification session for interpreter
+    clarification_state: ClarificationState | None = Field(
+        default=None, description="Clarification session state during interpretation"
     )
 
     def add_message(
@@ -176,3 +195,55 @@ class Conversation(BaseModel):
         if not self.pending_constellation:
             return False
         return len(self.pending_constellation.missing_variables) == 0
+
+    def start_clarification(self, original_query: str, max_rounds: int = 3) -> None:
+        """Start a new clarification session.
+
+        Args:
+            original_query: The ambiguous query that triggered clarification.
+            max_rounds: Maximum number of clarification rounds (default 3).
+        """
+        self.clarification_state = ClarificationState(
+            rounds_completed=0,
+            max_rounds=max_rounds,
+            original_query=original_query,
+            interpretation_history=[],
+        )
+        self.updated_at = datetime.now(UTC)
+
+    def increment_clarification_round(self, interpretation_dict: dict[str, Any]) -> None:
+        """Increment the clarification round and store interpretation result.
+
+        Args:
+            interpretation_dict: InterpretationResult dict from this round.
+        """
+        if self.clarification_state:
+            self.clarification_state.rounds_completed += 1
+            self.clarification_state.interpretation_history.append(interpretation_dict)
+            self.updated_at = datetime.now(UTC)
+
+    def should_force_decision(self) -> bool:
+        """Check if we've reached max rounds and must force a decision.
+
+        Returns:
+            True if max rounds reached, False otherwise.
+        """
+        if not self.clarification_state:
+            return False
+        return (
+            self.clarification_state.rounds_completed
+            >= self.clarification_state.max_rounds
+        )
+
+    def clear_clarification(self) -> None:
+        """Clear the clarification state."""
+        self.clarification_state = None
+        self.updated_at = datetime.now(UTC)
+
+    def is_in_clarification(self) -> bool:
+        """Check if currently in a clarification session.
+
+        Returns:
+            True if clarification state exists, False otherwise.
+        """
+        return self.clarification_state is not None

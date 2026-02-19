@@ -77,13 +77,78 @@ class ZeroShotPipeline:
         # Add the user message to conversation BEFORE interpretation
         conversation.add_message(role="user", content=message)
 
-        # Step 1: Interpret (select directives)
+        # Check for topic change and reset clarification if needed
+        if self._should_reset_clarification(message, conversation):
+            conversation.clear_clarification()
+
+        # Start clarification session if not already in one
+        if not conversation.is_in_clarification():
+            conversation.start_clarification(message, max_rounds=3)
+
+        # Step 1: Interpret (evaluate with clarification loop)
         yield {
             "type": "thinking",
             "message": "Analyzing query and selecting directives...",
         }
 
-        interpretation = await self._interpret(message, conversation)
+        interpretation = None
+        attempts = 0
+        max_attempts = 5  # Safety limit to prevent infinite loops
+
+        while attempts < max_attempts:
+            attempts += 1
+            result = await self.interpreter.evaluate(conversation)
+            conversation.increment_clarification_round(result.model_dump())
+
+            if result.action == "ask_user":
+                # Need clarification - save questions to conversation history
+                questions_text = "\n".join(f"{i+1}. {q}" for i, q in enumerate(result.questions))
+                assistant_message = f"I need more information to help you:\n\n{questions_text}"
+
+                conversation.add_message(role="assistant", content=assistant_message)
+
+                # Yield event for UI
+                yield {
+                    "type": "clarification_needed",
+                    "questions": result.questions,
+                    "reasoning": result.reasoning,
+                    "round": conversation.clarification_state.rounds_completed,
+                    "max_rounds": conversation.clarification_state.max_rounds,
+                }
+                # Early return - wait for user to provide answers
+                return
+
+            elif result.action == "generate_directive":
+                # Trigger directive generation
+                interpretation = result
+                break
+
+            elif result.action == "select_directives":
+                # Ready to proceed with directive selection
+                interpretation = result
+                break
+
+            # Should never reach here, but safety fallback
+            logger.warning(
+                f"ZeroShotPipeline: Unexpected action '{result.action}' in clarification loop"
+            )
+            interpretation = result
+            break
+
+        # Clear clarification state now that we have a decision
+        conversation.clear_clarification()
+
+        if interpretation is None:
+            # Fallback if loop exits without interpretation
+            from astro.launchpad.interpreter import InterpretationResult
+
+            interpretation = InterpretationResult(
+                action="select_directives",
+                directive_ids=[],
+                context_queries=[message],
+                reasoning="Max attempts reached in clarification loop",
+                confidence=0.0,
+            )
 
         # Handle directive selection or generation
         if interpretation.directive_ids:
@@ -122,7 +187,11 @@ class ZeroShotPipeline:
 
         # Step 3: Execute with running agent (will yield its own events)
         async for event in self._execute_agent_with_events(
-            interpretation.directive_ids, context, conversation, message
+            interpretation.directive_ids,
+            context,
+            conversation,
+            message,
+            interpreter_reasoning=interpretation.reasoning,
         ):
             yield event
 
@@ -134,7 +203,10 @@ class ZeroShotPipeline:
         message: str,
         conversation: Conversation,
     ) -> AgentOutput:
-        """Execute 4-step zero-shot pipeline.
+        """Execute 4-step zero-shot pipeline (blocking mode).
+
+        In blocking mode, we cannot ask the user for clarification,
+        so we force a decision immediately.
 
         Args:
             message: User's message/query.
@@ -147,8 +219,22 @@ class ZeroShotPipeline:
         # The Interpreter needs to see this message to select directives
         conversation.add_message(role="user", content=message)
 
-        # Step 1: Interpret (select directives)
-        interpretation = await self._interpret(message, conversation)
+        # Check for topic change and reset clarification if needed
+        if self._should_reset_clarification(message, conversation):
+            conversation.clear_clarification()
+
+        # Start clarification with max_rounds=0 to force decision
+        # (cannot ask user in blocking mode)
+        if not conversation.is_in_clarification():
+            conversation.start_clarification(message, max_rounds=0)
+
+        # Step 1: Interpret (force decision in blocking mode)
+        interpretation = await self._interpret_with_clarification_blocking(
+            message, conversation
+        )
+
+        # Clear clarification state
+        conversation.clear_clarification()
 
         # Step 2: Retrieve context from Second Brain
         context = await self._retrieve_context(
@@ -157,7 +243,10 @@ class ZeroShotPipeline:
 
         # Step 3: Execute with running agent
         output = await self._execute_agent(
-            interpretation.directive_ids, context, conversation
+            interpretation.directive_ids,
+            context,
+            conversation,
+            interpreter_reasoning=interpretation.reasoning,
         )
 
         # Step 4: Persist to Second Brain
@@ -171,6 +260,7 @@ class ZeroShotPipeline:
         context: dict[str, Any],
         conversation: Conversation,
         message: str = "",
+        interpreter_reasoning: str | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Execute agent and yield progress events.
 
@@ -178,6 +268,8 @@ class ZeroShotPipeline:
             directive_ids: Selected directive IDs.
             context: Retrieved context.
             conversation: Current conversation.
+            message: User message for persistence.
+            interpreter_reasoning: Optional reasoning from interpreter.
 
         Yields:
             Progress events and final output.
@@ -217,6 +309,7 @@ class ZeroShotPipeline:
                 directive_ids=directive_ids,
                 conversation=conversation,
                 context=context,
+                interpreter_reasoning=interpreter_reasoning,
             )
 
             yield {"type": "output", "output": output}
@@ -264,6 +357,61 @@ class ZeroShotPipeline:
             from astro.launchpad.interpreter import InterpretationResult
 
             return InterpretationResult(
+                action="select_directives",
+                directive_ids=[],
+                context_queries=[message],
+                reasoning=f"Interpretation failed: {str(e)}",
+                confidence=0.0,
+            )
+
+    async def _interpret_with_clarification_blocking(
+        self, message: str, conversation: Conversation
+    ) -> Any:
+        """Interpret query in blocking mode (force decision, cannot ask user).
+
+        In blocking mode, the interpreter cannot ask for clarification since
+        we can't wait for user response. Forces a decision immediately.
+
+        Args:
+            message: User's message.
+            conversation: Current conversation.
+
+        Returns:
+            InterpretationResult with action=select_directives or generate_directive.
+        """
+        logger.info("ZeroShotPipeline: Starting interpretation (blocking mode)")
+        try:
+            result = await self.interpreter.evaluate(conversation)
+
+            # If result is ask_user, force it to select_directives
+            if result.action == "ask_user":
+                logger.warning(
+                    "ZeroShotPipeline: Blocking mode cannot ask user, forcing decision"
+                )
+                from astro.launchpad.interpreter import InterpretationResult
+
+                return InterpretationResult(
+                    action="select_directives",
+                    directive_ids=[],
+                    context_queries=[message],
+                    reasoning=f"Blocking mode: {result.reasoning}. Proceeding without clarification.",
+                    confidence=result.confidence * 0.5,  # Lower confidence
+                )
+
+            logger.info(
+                f"ZeroShotPipeline: Interpretation complete (blocking) - action={result.action}"
+            )
+            return result
+
+        except Exception as e:
+            # Fallback: empty interpretation
+            logger.error(
+                f"ZeroShotPipeline: Interpretation failed with error: {str(e)}"
+            )
+            from astro.launchpad.interpreter import InterpretationResult
+
+            return InterpretationResult(
+                action="select_directives",
                 directive_ids=[],
                 context_queries=[message],
                 reasoning=f"Interpretation failed: {str(e)}",
@@ -306,6 +454,7 @@ class ZeroShotPipeline:
         directive_ids: list[str],
         context: dict[str, Any],
         conversation: Conversation,
+        interpreter_reasoning: str | None = None,
     ) -> AgentOutput:
         """Step 3: Execute with running agent.
 
@@ -319,6 +468,7 @@ class ZeroShotPipeline:
             directive_ids: Selected directive IDs.
             context: Retrieved context from Second Brain.
             conversation: Current conversation.
+            interpreter_reasoning: Optional reasoning from interpreter.
 
         Returns:
             AgentOutput with response and execution metadata.
@@ -328,6 +478,7 @@ class ZeroShotPipeline:
                 directive_ids=directive_ids,
                 conversation=conversation,
                 context=context,
+                interpreter_reasoning=interpreter_reasoning,
             )
             return output
 
@@ -475,3 +626,109 @@ class ZeroShotPipeline:
         except Exception as e:
             logger.error(f"ZeroShotPipeline: Error generating directive: {str(e)}")
             return
+
+    def _should_reset_clarification(
+        self, message: str, conversation: Conversation
+    ) -> bool:
+        """Detect if user changed topic and should reset clarification.
+
+        Detects topic changes by checking for explicit reset phrases
+        or significant content mismatch with the original query.
+
+        Args:
+            message: Current user message.
+            conversation: Current conversation.
+
+        Returns:
+            True if clarification should be reset, False otherwise.
+        """
+        if not conversation.is_in_clarification():
+            return False
+
+        # Explicit reset phrases
+        reset_phrases = [
+            "never mind",
+            "nevermind",
+            "forget it",
+            "new question",
+            "different question",
+            "change topic",
+            "actually",
+            "instead",
+        ]
+        message_lower = message.lower()
+        if any(phrase in message_lower for phrase in reset_phrases):
+            logger.info(
+                f"ZeroShotPipeline: Topic change detected (explicit phrase): {message[:50]}"
+            )
+            return True
+
+        # Check word overlap with original query
+        original = conversation.clarification_state.original_query.lower()
+        original_words = set(original.split())
+        message_words = set(message_lower.split())
+
+        # Filter out common stop words
+        stop_words = {
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "has",
+            "have",
+            "had",
+            "do",
+            "does",
+            "did",
+            "can",
+            "could",
+            "will",
+            "would",
+            "should",
+            "may",
+            "might",
+            "i",
+            "you",
+            "he",
+            "she",
+            "it",
+            "we",
+            "they",
+            "what",
+            "when",
+            "where",
+            "who",
+            "why",
+            "how",
+        }
+        original_words = original_words - stop_words
+        message_words = message_words - stop_words
+
+        # If less than 30% word overlap, likely a topic change
+        if original_words and message_words:
+            overlap = len(original_words & message_words)
+            overlap_ratio = overlap / max(len(original_words), len(message_words))
+
+            if overlap_ratio < 0.3:
+                logger.info(
+                    f"ZeroShotPipeline: Topic change detected (low word overlap {overlap_ratio:.2f})"
+                )
+                return True
+
+        return False

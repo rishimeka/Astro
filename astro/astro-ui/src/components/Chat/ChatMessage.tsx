@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Bot, CheckCircle, User } from 'lucide-react';
+import { Bot, CheckCircle, Paperclip, User } from 'lucide-react';
 import type { ChatMessage as ChatMessageType } from '@/hooks/useChat';
 import { Markdown } from '@/components/Markdown';
 import styles from './Chat.module.scss';
@@ -35,6 +35,12 @@ export default function ChatMessage({ message, isStreaming }: ChatMessageProps) 
             <StreamingIndicator />
           ) : (
             <Markdown>{message.content}</Markdown>
+          )}
+          {message.fileName && (
+            <div className={styles.messageFileCard}>
+              <Paperclip className={styles.messageFileIcon} />
+              <span className={styles.messageFileName}>{message.fileName}</span>
+            </div>
           )}
         </div>
         <span className={styles.messageTimestamp}>{formatTime(message.timestamp)}</span>

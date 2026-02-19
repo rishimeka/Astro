@@ -10,9 +10,28 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from astro.core.llm.utils import get_default_max_tokens
 from astro.launchpad.conversation import Conversation
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_text_content(content: Any) -> str:
+    """Extract plain text from an Anthropic content value.
+
+    The Anthropic API sometimes returns content as a list of typed blocks
+    (e.g. [{'type': 'text', 'text': '...'}, {'type': 'tool_use', ...}])
+    rather than a bare string. This helper normalises both forms.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return " ".join(
+            block.get("text", "") if isinstance(block, dict) else str(block)
+            for block in content
+            if not isinstance(block, dict) or block.get("type") == "text"
+        ).strip()
+    return str(content)
 
 
 class AgentOutput(BaseModel):
@@ -83,6 +102,7 @@ class RunningAgent:
         directive_ids: list[str],
         conversation: Conversation,
         context: dict[str, Any],
+        interpreter_reasoning: str | None = None,
     ) -> AgentOutput:
         """Execute with scoped tools via ReAct loop.
 
@@ -90,6 +110,8 @@ class RunningAgent:
             directive_ids: Selected directive IDs.
             conversation: Current conversation.
             context: Context from Second Brain retrieval.
+            interpreter_reasoning: Optional reasoning from interpreter about why
+                these directives were selected and how they should be used.
 
         Returns:
             AgentOutput with response and execution metadata.
@@ -112,7 +134,12 @@ class RunningAgent:
         logger.info(f"RunningAgent: Scoped {len(tools)} tools for execution")
 
         # Build system prompt
-        system_prompt = self._build_system_prompt(directives)
+        if interpreter_reasoning:
+            logger.info(
+                f"RunningAgent: Including interpreter reasoning in system prompt: "
+                f"{interpreter_reasoning[:100]}..."
+            )
+        system_prompt = self._build_system_prompt(directives, interpreter_reasoning)
 
         # Execute ReAct loop
         return await self._react_loop(
@@ -240,11 +267,14 @@ class RunningAgent:
             )
             return None
 
-    def _build_system_prompt(self, directives: list[Any]) -> str:
+    def _build_system_prompt(
+        self, directives: list[Any], interpreter_reasoning: str | None = None
+    ) -> str:
         """Build system prompt with directive instructions.
 
         Args:
             directives: Selected directives.
+            interpreter_reasoning: Optional reasoning from interpreter.
 
         Returns:
             System prompt string.
@@ -254,7 +284,23 @@ class RunningAgent:
             directives_text += f"\n{i}. {directive.name}\n"
             directives_text += f"{directive.content}\n"
 
-        return RUNNING_AGENT_SYSTEM_PROMPT.format(directives_text=directives_text)
+        base_prompt = RUNNING_AGENT_SYSTEM_PROMPT.format(directives_text=directives_text)
+
+        # Add interpreter reasoning if available
+        if interpreter_reasoning:
+            reasoning_section = f"""
+
+## Query Intent Analysis
+
+The query interpretation system analyzed this request and determined:
+
+{interpreter_reasoning}
+
+Use this context to understand which aspects of the query each directive should address and how they should work together.
+"""
+            return base_prompt + reasoning_section
+
+        return base_prompt
 
     async def _react_loop(
         self,
@@ -291,6 +337,10 @@ class RunningAgent:
             if tools:
                 logger.info(f"RunningAgent: Binding {len(tools)} tools to LLM")
                 llm_with_tools = self.llm.bind_tools(tools)
+
+                # DEBUG: Log tool schemas being sent
+                logger.info(f"RunningAgent: Tool schemas: {[{'name': t.name, 'description': t.description} for t in tools]}")
+
                 logger.info("RunningAgent: Invoking LLM with tools bound")
                 response = await llm_with_tools.ainvoke(messages)
             else:
@@ -298,12 +348,21 @@ class RunningAgent:
                 response = await self.llm.ainvoke(messages)
 
             # LangChain returns AIMessage object, not dict
-            content = (
+            content = _extract_text_content(
                 response.content if hasattr(response, "content") else str(response)
             )
             response_tool_calls = (
                 response.tool_calls if hasattr(response, "tool_calls") else []
             )
+
+            # DEBUG: Log full response details
+            logger.info(f"RunningAgent: Response type: {type(response)}")
+            logger.info(f"RunningAgent: Response content length: {len(str(content))}")
+            logger.info(f"RunningAgent: Response tool_calls: {response_tool_calls}")
+            if hasattr(response, 'response_metadata'):
+                logger.info(f"RunningAgent: Response metadata: {response.response_metadata}")
+            if hasattr(response, 'additional_kwargs'):
+                logger.info(f"RunningAgent: Additional kwargs: {response.additional_kwargs}")
 
             # Track tool calls
             tool_calls.extend(response_tool_calls)
@@ -314,14 +373,19 @@ class RunningAgent:
                 # Execute tool calls
                 tool_results = await self._execute_tools(response_tool_calls, tools)
 
-                # Add tool results to messages
-                messages.append({"role": "assistant", "content": content})
-                for result in tool_results:
+                # Add AI message with tool calls
+                messages.append(response)
+
+                # Add tool results using LangChain's ToolMessage format
+                from langchain_core.messages import ToolMessage
+
+                for tool_call, result in zip(response_tool_calls, tool_results):
                     messages.append(
-                        {
-                            "role": "user",
-                            "content": f"Tool result: {result['content']}",
-                        }
+                        ToolMessage(
+                            content=result['content'],
+                            tool_call_id=tool_call['id'],
+                            name=tool_call['name']
+                        )
                     )
 
                 # Invoke LLM again
@@ -511,9 +575,9 @@ When asked about my capabilities, I can reference these specific directives. I'm
 
         try:
             response = await self.llm.ainvoke(
-                messages, temperature=0.7, max_tokens=1000
+                messages, temperature=0.7, max_tokens=get_default_max_tokens()
             )
-            content = (
+            content = _extract_text_content(
                 response.content if hasattr(response, "content") else str(response)
             )
 

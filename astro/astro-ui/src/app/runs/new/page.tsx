@@ -142,11 +142,34 @@ function NewRunContent() {
     });
 
     try {
-      // Use fetch directly for SSE stream
+      // The backend expects multipart/form-data with a 'variables' form field (JSON string)
+      // and an optional 'file' field. Always use FormData so the backend parses correctly.
+      const formData = new FormData();
+
+      // Separate file variables (base64 data URLs) from plain text variables
+      const fileEntry = Object.entries(variables).find(([, v]) => typeof v === 'string' && v.startsWith('data:'));
+      const nonFileVars = fileEntry
+        ? Object.fromEntries(Object.entries(variables).filter(([k]) => k !== fileEntry[0]))
+        : variables;
+
+      formData.append('variables', JSON.stringify(nonFileVars));
+
+      if (fileEntry) {
+        // Convert base64 data URL back to a Blob for the 'file' form field
+        const dataUrl = fileEntry[1];
+        const [meta, base64] = dataUrl.split(',');
+        const mimeType = meta.match(/:(.*?);/)?.[1] || 'application/octet-stream';
+        const byteString = atob(base64);
+        const bytes = new Uint8Array(byteString.length);
+        for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mimeType });
+        formData.append('file', blob, 'upload.xlsx');
+      }
+
+      // No Content-Type header — browser sets multipart/form-data with boundary automatically
       const response = await fetch(ENDPOINTS.CONSTELLATION_RUN(constellationId), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variables }),
+        body: formData,
       });
 
       if (!response.ok) {

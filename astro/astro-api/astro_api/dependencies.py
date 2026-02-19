@@ -41,6 +41,7 @@ CONVERSATION_TTL_SECONDS = 3600
 # Global singletons
 _registry: Any | None = None
 _second_brain: Any | None = None
+_foundry: Any | None = None
 _constellation_runner: Any | None = None
 _launchpad_controller: LaunchpadController | None = None
 
@@ -125,6 +126,101 @@ async def get_second_brain() -> Any:
     return _second_brain
 
 
+class FoundryAdapter:
+    """Adapts Registry + OrchestrationStorage into the interface expected by ConstellationRunner.
+
+    ConstellationRunner expects a single 'foundry' object with:
+    - Sync:  get_constellation(), get_star(), list_stars(), get_directive()
+    - Async: upsert_run(), get_run(), create_directive(), create_star()
+
+    Registry only provides get_directive() (sync, in-memory).
+    OrchestrationStorage provides the rest (all async, MongoDB-backed).
+
+    This adapter pre-loads stars and constellations into memory at startup so the
+    runner can access them synchronously, matching the existing call sites.
+    """
+
+    def __init__(self, registry: Any, orchestration_storage: Any) -> None:
+        self._registry = registry
+        self._storage = orchestration_storage
+        self._stars: dict[str, Any] = {}
+        self._constellations: dict[str, Any] = {}
+
+    async def startup(self) -> None:
+        """Pre-load stars and constellations into memory caches."""
+        stars = await self._storage.list_stars()
+        for star in stars:
+            self._stars[star.id] = star
+
+        constellations = await self._storage.list_constellations()
+        for constellation in constellations:
+            self._constellations[constellation.id] = constellation
+
+        logger.info(
+            f"FoundryAdapter loaded {len(self._stars)} stars, "
+            f"{len(self._constellations)} constellations"
+        )
+
+    # --- Sync methods (in-memory cache) ---
+
+    def get_star(self, star_id: str) -> Any | None:
+        return self._stars.get(star_id)
+
+    def get_constellation(self, constellation_id: str) -> Any | None:
+        return self._constellations.get(constellation_id)
+
+    def list_stars(self) -> list[Any]:
+        return list(self._stars.values())
+
+    def get_directive(self, directive_id: str) -> Any | None:
+        return self._registry.get_directive(directive_id)
+
+    # --- Async methods (delegate to storage) ---
+
+    async def upsert_run(self, run_data: dict) -> None:
+        """Save a pre-serialized run dict directly to MongoDB."""
+        db = self._storage._db
+        if db is None:
+            raise RuntimeError("Storage not initialized.")
+        run_dict = dict(run_data)
+        run_dict["_id"] = run_dict.pop("id")
+        collection = db[self._storage.runs_collection_name]
+        await collection.replace_one({"_id": run_dict["_id"]}, run_dict, upsert=True)
+
+    async def get_run(self, run_id: str) -> dict | None:
+        """Return the raw run document as a dict (runner reconstructs Run itself)."""
+        db = self._storage._db
+        if db is None:
+            raise RuntimeError("Storage not initialized.")
+        collection = db[self._storage.runs_collection_name]
+        doc = await collection.find_one({"_id": run_id})
+        if not doc:
+            return None
+        doc["id"] = doc.pop("_id")
+        return dict(doc)
+
+    async def create_directive(self, directive: Any) -> Any:
+        directive_obj, _ = await self._registry.create_directive(directive)
+        return directive_obj
+
+    async def create_star(self, star: Any) -> Any:
+        saved = await self._storage.save_star(star)
+        self._stars[star.id] = star  # keep cache consistent
+        return saved
+
+
+async def get_foundry() -> Any:
+    """Get the FoundryAdapter singleton (Registry + OrchestrationStorage combined)."""
+    global _foundry
+    if _foundry is None:
+        registry = await get_registry()
+        orchestration_storage = await get_orchestration_storage()
+        _foundry = FoundryAdapter(registry, orchestration_storage)
+        await _foundry.startup()
+        logger.info("FoundryAdapter initialized")
+    return _foundry
+
+
 async def get_constellation_runner() -> Any:
     """Get the ConstellationRunner singleton.
 
@@ -138,11 +234,10 @@ async def get_constellation_runner() -> Any:
     if _constellation_runner is None:
         logger.debug("Initializing ConstellationRunner...")
 
-        registry = await get_registry()
+        foundry = await get_foundry()
 
-        # Use V1 runner (takes Registry as "foundry" parameter)
         from astro.orchestration.runner import ConstellationRunner
-        _constellation_runner = ConstellationRunner(registry)
+        _constellation_runner = ConstellationRunner(foundry)
 
         logger.info("ConstellationRunner initialized")
 
@@ -332,7 +427,7 @@ async def get_runner() -> Any:
 
 async def cleanup() -> None:
     """Cleanup resources on shutdown."""
-    global _registry, _second_brain, _constellation_runner, _launchpad_controller, _conversations
+    global _registry, _second_brain, _foundry, _constellation_runner, _launchpad_controller, _conversations
 
     logger.debug("Starting cleanup of global resources...")
 
@@ -350,6 +445,7 @@ async def cleanup() -> None:
         _second_brain = None
         logger.debug("SecondBrain shutdown complete")
 
+    _foundry = None
     _constellation_runner = None
     _launchpad_controller = None
 

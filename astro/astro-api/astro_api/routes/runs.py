@@ -65,6 +65,11 @@ async def get_run(
     # Build node output responses
     node_outputs = {}
     for node_id, output in run.node_outputs.items():
+        # tool_calls may be ToolCallRecord objects or dicts — normalize to dicts
+        tcs = [
+            tc.model_dump() if hasattr(tc, "model_dump") else tc
+            for tc in (output.tool_calls or [])
+        ]
         node_outputs[node_id] = NodeOutputResponse(
             node_id=output.node_id,
             star_id=output.star_id,
@@ -73,7 +78,7 @@ async def get_run(
             completed_at=output.completed_at,
             output=output.output,
             error=output.error,
-            tool_calls=output.tool_calls,
+            tool_calls=tcs,
         )
 
     return RunResponse(
@@ -110,6 +115,10 @@ async def get_node_output(
             detail=f"Node '{node_id}' not found in run '{id}'",
         )
 
+    tcs = [
+        tc.model_dump() if hasattr(tc, "model_dump") else tc
+        for tc in (output.tool_calls or [])
+    ]
     return NodeOutputResponse(
         node_id=output.node_id,
         star_id=output.star_id,
@@ -118,7 +127,7 @@ async def get_node_output(
         completed_at=output.completed_at,
         output=output.output,
         error=output.error,
-        tool_calls=output.tool_calls,
+        tool_calls=tcs,
     )
 
 
@@ -230,6 +239,8 @@ async def stream_run_status(
                         or "Please confirm to proceed",
                     },
                 )
+                # Close the stream — frontend will reconnect after user confirms
+                break
             last_status = current_status
 
         # Send node updates
@@ -266,8 +277,8 @@ async def stream_run_status(
 
         last_node_outputs = node_outputs.copy()
 
-        # For already completed runs, exit immediately
-        if current_status in ("completed", "failed", "cancelled"):
+        # Exit for terminal or paused states
+        if current_status in ("completed", "failed", "cancelled", "awaiting_confirmation"):
             break
 
         # Poll interval

@@ -27,6 +27,7 @@ export default function Chat() {
     variableCollection,
     executionProgress,
     zeroShotProgress,
+    clarification,
     confirmationRequest,
     respondToConfirmation,
   } = useChat();
@@ -65,8 +66,8 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isStreaming]);
 
-  const handleSend = async (content: string) => {
-    await sendMessage(content);
+  const handleSend = async (content: string, file?: File) => {
+    await sendMessage(content, file);
   };
 
   return (
@@ -151,6 +152,7 @@ export default function Chat() {
                 )}
               {/* Show directive generation card if generating */}
               {message.role === 'assistant' &&
+                index === messages.length - 1 &&
                 isStreaming &&
                 (zeroShotProgress.directiveGeneration.offered ||
                   zeroShotProgress.directiveGeneration.previewContent) && (
@@ -177,6 +179,38 @@ export default function Chat() {
                     durationMs={executionProgress.durationMs}
                     isRunning={executionProgress.isRunning}
                   />
+                )}
+              {/* Show clarification card for the most recent assistant message */}
+              {message.role === 'assistant' &&
+                index === messages.length - 1 &&
+                clarification.isActive && (
+                  <div className={styles.clarificationCard}>
+                    <div className={styles.clarificationHeader}>
+                      <svg
+                        className={styles.clarificationIcon}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                        <path d="M12 17h.01" />
+                      </svg>
+                      <h3>I need more information</h3>
+                      <span className={styles.clarificationRound}>
+                        Round {clarification.round}/{clarification.maxRounds}
+                      </span>
+                    </div>
+                    {clarification.reasoning && (
+                      <p className={styles.clarificationReasoning}>
+                        {clarification.reasoning}
+                      </p>
+                    )}
+                    <p className={styles.clarificationHint}>
+                      Please answer the questions above in your next message to continue.
+                    </p>
+                  </div>
                 )}
             </div>
           ))

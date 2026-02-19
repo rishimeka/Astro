@@ -208,17 +208,31 @@ class MongoDBOrchestrationStorage:
             if not doc:
                 return None
 
-            # Convert MongoDB doc to Star
-            # Import star types based on 'type' field
-            from astro.orchestration.stars.base import BaseStar
-
             # Convert _id back to id
             doc["id"] = doc.pop("_id")
 
-            # Reconstruct the appropriate star type
-            # For now, return BaseStar (caller can handle type-specific logic)
-            # In production, you'd import the specific star classes
-            return BaseStar(**doc)
+            # Reconstruct the correct concrete star type based on the 'type' field
+            star_type = doc.get("type", "worker")
+            from astro.orchestration.stars import (
+                DocExStar,
+                EvalStar,
+                ExecutionStar,
+                PlanningStar,
+                SynthesisStar,
+                WorkerStar,
+            )
+            from astro.orchestration.stars.base import BaseStar
+
+            type_map = {
+                "worker": WorkerStar,
+                "eval": EvalStar,
+                "synthesis": SynthesisStar,
+                "planning": PlanningStar,
+                "execution": ExecutionStar,
+                "docex": DocExStar,
+            }
+            star_cls = type_map.get(star_type, BaseStar)
+            return star_cls(**doc)
 
         except Exception as e:
             logger.error(f"Failed to get star {star_id}: {e}")
@@ -251,13 +265,31 @@ class MongoDBOrchestrationStorage:
             cursor = collection.find(query)
             docs = await cursor.to_list(length=None)
 
-            # Convert to Star objects
+            # Convert to concrete Star objects based on type field
+            from astro.orchestration.stars import (
+                DocExStar,
+                EvalStar,
+                ExecutionStar,
+                PlanningStar,
+                SynthesisStar,
+                WorkerStar,
+            )
             from astro.orchestration.stars.base import BaseStar
+
+            type_map = {
+                "worker": WorkerStar,
+                "eval": EvalStar,
+                "synthesis": SynthesisStar,
+                "planning": PlanningStar,
+                "execution": ExecutionStar,
+                "docex": DocExStar,
+            }
 
             stars = []
             for doc in docs:
                 doc["id"] = doc.pop("_id")
-                stars.append(BaseStar(**doc))
+                star_cls = type_map.get(doc.get("type", "worker"), BaseStar)
+                stars.append(star_cls(**doc))
 
             logger.debug(f"Listed {len(stars)} stars")
             return stars
