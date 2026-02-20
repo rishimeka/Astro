@@ -1,5 +1,6 @@
 """Directive model - the core unit of agent behavior."""
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -24,6 +25,36 @@ class Directive(BaseModel):
     # Identity
     id: str = Field(..., description="Unique identifier, e.g. 'financial_analysis'")
     name: str = Field(..., description="Human-readable name, e.g. 'Financial Analysis'")
+
+    # Versioning
+    version: int = Field(
+        default=1,
+        description="Version number, incremented on each update.",
+    )
+    parent_id: str | None = Field(
+        default=None,
+        description="ID of the directive this was derived from (for forking/branching).",
+    )
+    lineage: list[str] = Field(
+        default_factory=list,
+        description="Ordered list of ancestor directive IDs (root first).",
+    )
+
+    # Timestamps
+    created_at: datetime | None = Field(
+        default=None,
+        description="When this directive was first created.",
+    )
+    updated_at: datetime | None = Field(
+        default=None,
+        description="When this directive was last updated.",
+    )
+
+    # Classification
+    tags: list[str] = Field(
+        default_factory=list,
+        description="First-class tags for categorization and index-based lookup.",
+    )
 
     # Progressive disclosure
     description: str = Field(
@@ -60,6 +91,6 @@ class Directive(BaseModel):
     # Extensibility
     metadata: dict[str, Any] = Field(
         default_factory=dict,
-        description="Tags, author, created_at, domain, etc. "
+        description="Author, domain, etc. "
         "Useful for filtering/search in Launchpad UI.",
     )

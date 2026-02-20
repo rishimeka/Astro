@@ -16,12 +16,7 @@ import logging
 import os
 from typing import Any
 
-# TODO: Once Agent 1 & 3 complete, uncomment these imports
-# from astro.core.registry import Registry
-# from astro.core.memory import SecondBrain, ContextWindow, LongTermMemory
-# from astro.orchestration.runner import ConstellationRunner
-# from astro_mongodb import MongoDBCoreStorage, MongoDBOrchestrationStorage, MongoDBMemory
-# Launchpad components (Phase 4 - completed)
+# Launchpad components
 from astro.launchpad import (
     ConstellationPipeline,
     Conversation,
@@ -94,34 +89,32 @@ async def get_second_brain() -> Any:
     if _second_brain is None:
         logger.debug("Initializing SecondBrain...")
 
-        # TODO: Uncomment once Agent 1 completes
-        # from astro_mongodb import MongoDBMemory
-        # from astro.core.memory import SecondBrain, ContextWindow, LongTermMemory
-        # from astro.core.llm.utils import get_embedding_provider
-        #
-        # memory_backend = MongoDBMemory(mongo_uri, db_name)
-        # await memory_backend.startup()
-        #
-        # context_window = ContextWindow(max_chars=50000)
-        # embedding_provider = get_embedding_provider()
-        # long_term = LongTermMemory(
-        #     backend=memory_backend,
-        #     embedding_provider=embedding_provider,
-        # )
-        #
-        # _second_brain = SecondBrain(context_window, long_term)
+        from astro.core.llm.utils import get_embedding_provider
+        from astro.core.memory import ContextWindow, LongTermMemory, SecondBrain
+        from astro_mongodb import MongoDBMemory
 
-        # Temporary: Use placeholder
-        class PlaceholderSecondBrain:
-            async def retrieve(self, queries, conversation):
-                return {"recent_messages": [], "memories": []}
+        mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+        db_name = os.getenv("MONGO_DB", "astro")
+        use_atlas = os.getenv("USE_ATLAS_SEARCH", "false").lower() == "true"
 
-            async def store(self, content, metadata):
-                pass
+        memory_backend = MongoDBMemory(
+            uri=mongo_uri,
+            database=db_name,
+            collection="memories",
+            use_atlas_search=use_atlas,
+        )
+        await memory_backend.startup()
 
-        _second_brain = PlaceholderSecondBrain()
+        context_window = ContextWindow(max_chars=50000)
+        embedding_provider = get_embedding_provider()
+        long_term = LongTermMemory(
+            backend=memory_backend,
+            embedding_provider=embedding_provider,
+        )
 
-        logger.info("SecondBrain initialized (placeholder)")
+        _second_brain = SecondBrain(context_window, long_term)
+
+        logger.info("SecondBrain initialized with MongoDBMemory backend")
 
     return _second_brain
 

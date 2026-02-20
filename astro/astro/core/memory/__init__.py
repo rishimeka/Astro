@@ -11,12 +11,14 @@ from astro.core.memory.compression import (
 )
 from astro.core.memory.context_window import ContextWindow, Message
 from astro.core.memory.long_term import LongTermMemory
+from astro.core.memory.retrieval import MemoryRetriever
 from astro.core.memory.second_brain import SecondBrain
 
 __all__ = [
     "ContextWindow",
     "Message",
     "LongTermMemory",
+    "MemoryRetriever",
     "SecondBrain",
     "CompressionStrategy",
     "NoOpCompression",

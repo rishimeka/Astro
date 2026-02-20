@@ -100,6 +100,10 @@ class MongoDBCoreStorage:
                 [("metadata.author", ASCENDING)],
                 background=True,
             )
+            await collection.create_index(
+                [("tags", ASCENDING)],
+                background=True,
+            )
             logger.info(f"Created indexes on {self.collection_name}")
 
         except ConnectionFailure as e:
@@ -125,6 +129,7 @@ class MongoDBCoreStorage:
 
         If directive.id exists in database, updates it. Otherwise creates new.
         Uses upsert to handle both create and update cases.
+        Serializes datetime fields to ISO strings for MongoDB storage.
 
         Args:
             directive: Directive object to save
@@ -135,25 +140,13 @@ class MongoDBCoreStorage:
         Raises:
             ValueError: If directive is invalid
             RuntimeError: If save fails
-
-        Example:
-            ```python
-            directive = Directive(
-                id="financial_analysis",
-                name="Financial Analysis",
-                description="Analyze financial data",
-                content="You are a financial analyst...",
-                probe_ids=["search_web", "analyze_data"],
-            )
-            saved = await storage.save_directive(directive)
-            ```
         """
         if self._db is None:
             raise RuntimeError("Storage not initialized. Call startup() first.")
 
         try:
-            # Convert Pydantic model to dict
-            directive_dict = directive.model_dump()
+            # Convert Pydantic model to dict (mode="json" serializes datetimes)
+            directive_dict = directive.model_dump(mode="json")
 
             # Use _id instead of id for MongoDB
             directive_dict["_id"] = directive_dict.pop("id")

@@ -63,14 +63,20 @@ def execute_tool_call(
     tool_args: dict[str, Any],
     probe_map: dict[str, "Probe"],
     context: Any | None = None,
+    star_name: str = "",
 ) -> tuple[str | None, str | None]:
     """Execute a single tool call, with optional result caching.
+
+    Enforces probe permission scoping: if a tool exists globally in the
+    ProbeRegistry but is not in the current star's probe_map, returns a
+    PermissionDeniedError instead of a generic "not found" error.
 
     Args:
         tool_name: Name of the tool to execute.
         tool_args: Arguments to pass to the tool.
         probe_map: Dictionary mapping tool names to Probe instances.
         context: Optional ExecutionContext for tool result caching.
+        star_name: Name of the star executing the call (for audit logging).
 
     Returns:
         Tuple of (result_string, error_string). One will be None.
@@ -89,7 +95,23 @@ def execute_tool_call(
                 context.cache_tool_result(tool_name, tool_args, result)
             return result, None
         else:
-            return None, f"Tool '{tool_name}' not found"
+            # Distinguish "not permitted" from "not found"
+            from astro.core.probes.registry import ProbeRegistry
+
+            if ProbeRegistry.get(tool_name) is not None:
+                # Tool exists globally but not in this star's scope
+                from datetime import UTC, datetime
+
+                from astro.core.runtime.exceptions import PermissionDeniedError
+
+                logger.warning(
+                    f"Permission denied: star='{star_name}' attempted tool='{tool_name}' "
+                    f"at {datetime.now(UTC).isoformat()}"
+                )
+                err = PermissionDeniedError(tool_name, star_name)
+                return None, str(err)
+            else:
+                return None, f"Tool '{tool_name}' not found"
     except Exception as e:
         return None, str(e)
 

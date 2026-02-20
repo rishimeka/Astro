@@ -31,6 +31,26 @@ class RunNotFoundError(Exception):
     pass
 
 
+class PermissionDeniedError(Exception):
+    """Raised when a tool call is denied due to probe scoping.
+
+    The tool exists globally in the ProbeRegistry but is not permitted
+    for the current star/directive context.
+
+    Attributes:
+        tool_name: Name of the denied tool.
+        star_name: Name of the star that attempted the call.
+    """
+
+    def __init__(self, tool_name: str, star_name: str = "") -> None:
+        self.tool_name = tool_name
+        self.star_name = star_name
+        super().__init__(
+            f"Permission denied: tool '{tool_name}' exists but is not permitted "
+            f"for star '{star_name}'"
+        )
+
+
 class ExecutionPausedException(Exception):
     """Raised when execution pauses for human-in-the-loop confirmation.
 

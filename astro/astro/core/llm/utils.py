@@ -431,6 +431,26 @@ class TemperatureFixedLLMWrapper:
         return getattr(self._llm, name)
 
 
+def get_embedding_provider(
+    model: str | None = None,
+    api_key: str | None = None,
+) -> Any:
+    """Get an EmbeddingProvider instance (OpenAI).
+
+    Args:
+        model: Embedding model name. Defaults to EMBEDDING_MODEL env var
+               or text-embedding-3-small.
+        api_key: OpenAI API key. Falls back to OPENAI_API_KEY env var.
+
+    Returns:
+        OpenAIEmbeddingProvider instance implementing EmbeddingProvider protocol.
+    """
+    from astro.core.llm.embeddings import OpenAIEmbeddingProvider
+
+    resolved_model = model or os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+    return OpenAIEmbeddingProvider(model=resolved_model, api_key=api_key)
+
+
 def get_langchain_llm(
     temperature: float = 0,
     provider: str | None = None,

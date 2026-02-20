@@ -15,12 +15,15 @@ This pipeline is slower but provides more comprehensive analysis through
 coordinated multi-agent workflows.
 """
 
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 from astro.launchpad.conversation import Conversation
+
+logger = logging.getLogger(__name__)
 
 
 class ConstellationPipelineOutput(BaseModel):
@@ -184,18 +187,28 @@ class ConstellationPipeline:
             Dict with retrieved context from both memory partitions.
         """
         try:
-            # Retrieve from Second Brain
-            context: dict[str, Any] = await self.second_brain.retrieve(
+            raw: dict[str, Any] = await self.second_brain.retrieve(
                 queries=[message], conversation=conversation
             )
-            return context
+
+            # Map SecondBrain output to RunningAgent expected format
+            recent = raw.get("recent", [])
+            long_term = raw.get("long_term", [])
+
+            return {
+                "recent_messages": [
+                    getattr(m, "content", str(m)) for m in recent
+                ],
+                "memories": [
+                    getattr(m, "content", str(m)) for m in long_term
+                ],
+            }
 
         except Exception as e:
-            # Fallback: minimal context
+            logger.warning(f"SecondBrain retrieval failed, continuing without memory: {e}")
             return {
                 "recent_messages": [],
                 "memories": [],
-                "error": str(e),
             }
 
     async def _execute_constellation(
@@ -275,36 +288,26 @@ class ConstellationPipeline:
                 role="assistant", content=final_output, run_id=run.id
             )
 
-            # Store to Second Brain
-            # User query
-            await self.second_brain.store(
-                content=message,
-                metadata={
-                    "type": "user_query",
-                    "conversation_id": conversation.id,
-                    "run_id": run.id,
-                    "constellation_id": run.constellation_id,
-                    "timestamp": datetime.now(UTC).isoformat(),
-                },
-            )
+            now = datetime.now(UTC).isoformat()
+            run_id = run.id if hasattr(run, "id") else ""
+            constellation_id = run.constellation_id if hasattr(run, "constellation_id") else ""
 
-            # Constellation response
+            # Store combined exchange to Second Brain
             await self.second_brain.store(
-                content=final_output,
+                content=f"User: {message}\n\nConstellation Response: {final_output}",
                 metadata={
-                    "type": "constellation_response",
+                    "type": "constellation_exchange",
+                    "user_query": message,
                     "conversation_id": conversation.id,
-                    "run_id": run.id,
-                    "constellation_id": run.constellation_id,
-                    "timestamp": datetime.now(UTC).isoformat(),
+                    "run_id": run_id,
+                    "constellation_id": constellation_id,
+                    "timestamp": now,
                     "status": run.status if hasattr(run, "status") else "completed",
                 },
             )
 
-        except Exception:
-            # Don't fail the whole pipeline if persistence fails
-            # Memory is important but not critical for immediate response
-            pass
+        except Exception as e:
+            logger.warning(f"SecondBrain persistence failed, continuing: {e}")
 
     def _format_response(
         self, run: Any, constellation: Any, reasoning: str

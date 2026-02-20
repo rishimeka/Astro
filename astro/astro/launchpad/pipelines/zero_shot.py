@@ -427,6 +427,10 @@ class ZeroShotPipeline:
         - Context Window: Recent conversation messages (fast access)
         - Long-Term Memory: Vector search over historical memories
 
+        Maps SecondBrain output keys to the format expected by RunningAgent:
+        - long_term -> memories (as content strings)
+        - recent -> recent_messages (as content strings)
+
         Args:
             context_queries: Queries for retrieval (from interpreter).
             conversation: Current conversation.
@@ -435,18 +439,28 @@ class ZeroShotPipeline:
             Dict with retrieved context from both memory partitions.
         """
         try:
-            # Retrieve from Second Brain
-            context: dict[str, Any] = await self.second_brain.retrieve(
+            raw: dict[str, Any] = await self.second_brain.retrieve(
                 queries=context_queries, conversation=conversation
             )
-            return context
+
+            # Map SecondBrain output to RunningAgent expected format
+            recent = raw.get("recent", [])
+            long_term = raw.get("long_term", [])
+
+            return {
+                "recent_messages": [
+                    getattr(m, "content", str(m)) for m in recent
+                ],
+                "memories": [
+                    getattr(m, "content", str(m)) for m in long_term
+                ],
+            }
 
         except Exception as e:
-            # Fallback: minimal context
+            logger.warning(f"SecondBrain retrieval failed, continuing without memory: {e}")
             return {
                 "recent_messages": [],
                 "memories": [],
-                "error": str(e),
             }
 
     async def _execute_agent(
@@ -514,33 +528,24 @@ class ZeroShotPipeline:
             # Add assistant response to conversation (user message already added in execute())
             conversation.add_message(role="assistant", content=output.content)
 
-            # Store to Second Brain
-            # User query
-            await self.second_brain.store(
-                content=message,
-                metadata={
-                    "type": "user_query",
-                    "conversation_id": conversation.id,
-                    "timestamp": datetime.now(UTC).isoformat(),
-                },
-            )
+            now = datetime.now(UTC).isoformat()
 
-            # Assistant response
+            # Store to Second Brain - combined exchange for better retrieval
             await self.second_brain.store(
-                content=output.content,
+                content=f"User: {message}\n\nAssistant: {output.content}",
                 metadata={
-                    "type": "assistant_response",
+                    "type": "zero_shot_exchange",
+                    "user_query": message,
                     "conversation_id": conversation.id,
-                    "timestamp": datetime.now(UTC).isoformat(),
-                    "tool_calls": len(output.tool_calls),
+                    "timestamp": now,
+                    "directive_ids": getattr(output, "directive_ids", []),
+                    "tool_calls_count": len(output.tool_calls),
                     "iterations": output.iterations,
                 },
             )
 
-        except Exception:
-            # Don't fail the whole pipeline if persistence fails
-            # Memory is important but not critical for immediate response
-            pass
+        except Exception as e:
+            logger.warning(f"SecondBrain persistence failed, continuing: {e}")
 
     async def _try_generate_directive(
         self,

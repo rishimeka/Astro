@@ -10,6 +10,7 @@ Layer 1 (core) only manages Directives and Probes.
 Stars, Constellations, and Runs are Layer 2 concepts and are NOT managed here.
 """
 
+from datetime import UTC, datetime
 from typing import Any
 
 from astro.core.models.directive import Directive
@@ -107,6 +108,7 @@ class Registry:
         directives = await self.storage.list_directives()
         for directive in directives:
             self._indexes.directives[directive.id] = directive
+            self._indexes.index_directive(directive)
 
     def _sync_probes_from_registry(self) -> None:
         """Sync probes from ProbeRegistry into Registry indexes."""
@@ -232,12 +234,15 @@ class Registry:
             variable_names, directive.template_variables
         )
 
-        # Update directive with extracted references
+        # Update directive with extracted references and timestamp
+        now = datetime.now(UTC)
         directive = directive.model_copy(
             update={
                 "probe_ids": probe_ids,
                 "reference_ids": reference_ids,
                 "template_variables": template_vars,
+                "created_at": directive.created_at or now,
+                "updated_at": now,
             }
         )
 
@@ -249,6 +254,7 @@ class Registry:
 
         # Update in-memory index
         self._indexes.directives[directive.id] = directive
+        self._indexes.index_directive(directive)
 
         return directive, warnings
 
@@ -262,6 +268,36 @@ class Registry:
             Directive if found, None otherwise
         """
         return self._indexes.get_directive(id)
+
+    def get_by_tag(self, tag: str) -> list[Directive]:
+        """Get directives matching a tag (case-insensitive).
+
+        Args:
+            tag: Tag string to search for.
+
+        Returns:
+            List of directives with the given tag.
+        """
+        ids = self._indexes.get_directive_ids_by_tag(tag)
+        return [
+            self._indexes.directives[did]
+            for did in ids
+            if did in self._indexes.directives
+        ]
+
+    def get_by_name(self, name: str) -> Directive | None:
+        """Get directive by name (case-insensitive).
+
+        Args:
+            name: Directive name to search for.
+
+        Returns:
+            Directive if found, None otherwise.
+        """
+        did = self._indexes.get_directive_id_by_name(name)
+        if did is None:
+            return None
+        return self._indexes.get_directive(did)
 
     def list_directives(
         self,
@@ -309,9 +345,16 @@ class Registry:
         if not existing:
             raise ValidationError(f"Directive '{id}' not found")
 
+        # Remove old directive from secondary indexes
+        self._indexes.unindex_directive(existing)
+
         # Apply updates
         updated_data = existing.model_dump()
         updated_data.update(updates)
+
+        # Bump version and updated_at
+        updated_data["version"] = existing.version + 1
+        updated_data["updated_at"] = datetime.now(UTC)
 
         # If content changed, re-extract references
         if "content" in updates:
@@ -339,6 +382,7 @@ class Registry:
 
         # Update in-memory index
         self._indexes.directives[id] = updated
+        self._indexes.index_directive(updated)
 
         return updated, warnings
 
@@ -375,6 +419,7 @@ class Registry:
 
         # Remove from in-memory index if deleted
         if deleted:
-            del self._indexes.directives[id]
+            directive = self._indexes.directives.pop(id)
+            self._indexes.unindex_directive(directive)
 
         return deleted
