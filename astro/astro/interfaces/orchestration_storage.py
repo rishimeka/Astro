@@ -314,3 +314,14 @@ class OrchestrationStorageBackend(Protocol):
             ```
         """
         ...
+
+    async def delete_run(self, run_id: str) -> bool:
+        """Delete a run by ID.
+
+        Args:
+            run_id: Unique identifier for run
+
+        Returns:
+            True if deleted, False if not found
+        """
+        ...

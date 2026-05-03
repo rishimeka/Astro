@@ -17,7 +17,9 @@ The generated directive follows this structure:
 - Tone/Style: If relevant to use case
 """
 
+import json
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -27,6 +29,64 @@ from astro.core.probes.registry import ProbeRegistry
 from astro.core.registry.registry import Registry
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_json(text: str) -> Any:
+    """Extract and parse JSON from LLM output, handling code blocks and malformed output.
+
+    Tries multiple strategies:
+    1. Direct parse
+    2. Extract from markdown code blocks
+    3. Find first { or [ and match to closing bracket
+    """
+    text = text.strip()
+
+    # Strategy 1: Direct parse
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Strategy 2: Extract from markdown code blocks
+    code_block_match = re.search(r'```(?:json)?\s*([\[{].*?[\]}])\s*```', text, re.DOTALL)
+    if code_block_match:
+        try:
+            return json.loads(code_block_match.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Strategy 3: Find outermost JSON object or array
+    for start_char, end_char in [('{', '}'), ('[', ']')]:
+        start = text.find(start_char)
+        if start == -1:
+            continue
+        # Find matching closing bracket by counting nesting
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == start_char:
+                depth += 1
+            elif text[i] == end_char:
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[start:i + 1])
+                    except json.JSONDecodeError:
+                        break
+
+    raise json.JSONDecodeError("Could not extract valid JSON from LLM output", text, 0)
+
+
+def _truncate_description(description: str, max_length: int = 150) -> str:
+    """Truncate a probe description to avoid bloating prompts."""
+    if len(description) <= max_length:
+        return description
+    # Try to cut at first sentence
+    dot_pos = description.find('. ')
+    if 0 < dot_pos <= max_length:
+        return description[:dot_pos + 1]
+    # Otherwise truncate on word boundary
+    truncated = description[:max_length].rsplit(' ', 1)[0]
+    return truncated + "..."
 
 
 @dataclass
@@ -52,6 +112,7 @@ class GeneratedDirective:
     content: str  # Contains @probe: references
     probe_ids: list[str]  # Extracted from @probe: references (Registry does this)
     metadata: dict[str, Any]
+    has_tools: bool = False
     similarity_score: float = 0.0
     similar_directive_id: str | None = None
 
@@ -90,14 +151,20 @@ class DirectiveGenerator:
         # Step 1: Read all available probes
         available_probes = self._read_available_probes()
         logger.info(
-            f"DirectiveGenerator: Found {len(available_probes)} available probes"
+            f"DirectiveGenerator: Found {len(available_probes)} available probes: "
+            f"{[p['id'] for p in available_probes]}"
         )
 
         # Step 2: Select relevant probes for this task
         selected_probes = await self._select_relevant_probes(context, available_probes)
-        logger.info(
-            f"DirectiveGenerator: Selected {len(selected_probes)} relevant probes"
-        )
+        if selected_probes:
+            logger.info(
+                f"DirectiveGenerator: Selected {len(selected_probes)} relevant probes: {selected_probes}"
+            )
+        else:
+            logger.info(
+                "DirectiveGenerator: No relevant probes selected — directive will be reasoning-only"
+            )
 
         # Step 3: Generate directive content with @probe: references
         content, name, description = await self._generate_content(
@@ -124,6 +191,7 @@ class DirectiveGenerator:
                 "source_query": context.query,
                 "selected_probes": selected_probes,
             },
+            has_tools=bool(selected_probes),
             similarity_score=similarity_score,
             similar_directive_id=similar_id,
         )
@@ -161,9 +229,9 @@ class DirectiveGenerator:
         Returns:
             List of selected probe IDs
         """
-        # Format probes for prompt
+        # Format probes for prompt (truncate descriptions to avoid 413 errors)
         probes_text = "\n".join(
-            [f"- {p['id']}: {p['description']}" for p in available_probes]
+            [f"- {p['id']}: {_truncate_description(p['description'])}" for p in available_probes]
         )
 
         prompt = f"""You are selecting which probes (tools) are needed for a task.
@@ -197,18 +265,7 @@ Example: ["search_google_news", "get_financial_data"]
                 response.content if hasattr(response, "content") else str(response)
             )
 
-            # Parse JSON response
-            import json
-
-            # Extract JSON array from response (handle markdown code blocks)
-            content = content.strip()
-            if content.startswith("```"):
-                content = content.split("```")[1]
-                if content.startswith("json"):
-                    content = content[4:]
-            content = content.strip()
-
-            selected = json.loads(content)
+            selected = _extract_json(content)
 
             # Validate that selected probes exist
             valid_ids = [p["id"] for p in available_probes]
@@ -278,6 +335,12 @@ Write a directive that reads like a seasoned expert instructing a junior analyst
 - Embed @probe: references naturally in the Approach section
 - The content should be a complete system prompt ready to use
 
+**If this is a research directive with multiple tools, include these tactical instructions in the content:**
+- For multi-entity tasks, specify the tool sequence: start with Wikipedia/comprehensive sources for historical data, then web search for supplemental sources, then news only for recent events
+- Add a "Definitional Compliance" section telling the agent to strictly follow any category definitions the user provides and to avoid common misclassifications
+- Add a "Completeness Priority" section: when a source contains a list or table, extract EVERY entry, not just highlights
+- Tell the agent to cross-reference across sources and clearly label information by source
+
 Also provide:
 - A short name for this directive (2-5 words, use Title Case)
 - A one-sentence description
@@ -300,32 +363,67 @@ Return your response as JSON:
                 response.content if hasattr(response, "content") else str(response)
             )
 
-            # Parse JSON response
-            import json
+            result = _extract_json(content)
 
-            # Extract JSON from response (handle markdown code blocks)
-            content = content.strip()
-            if content.startswith("```"):
-                content = content.split("```")[1]
-                if content.startswith("json"):
-                    content = content[4:]
-            content = content.strip()
+            generated_content = result.get("content", "")
 
-            result = json.loads(content)
+            # Append honesty clause or tool-usage instruction based on probe availability
+            if selected_probes:
+                generated_content += (
+                    "\n\n## Tool Usage\n"
+                    "You have access to external tools. Use them to verify facts and source information. Always cite tool-provided data.\n"
+                    "If any tool returns an error or empty results, fall back to your training knowledge for that specific information. "
+                    "Clearly label which information came from tools vs training knowledge. "
+                    "Never return an empty or apologetic response when you have relevant training knowledge available."
+                )
+            else:
+                generated_content += (
+                    "\n\n## Important Limitation\n"
+                    "You do not have access to external search tools, databases, or live data sources for this task.\n"
+                    "Your response is based entirely on your training knowledge. Be transparent about this:\n"
+                    "- Preface your response with a brief note that results are from training knowledge, not live research\n"
+                    "- Flag any facts you are uncertain about\n"
+                    "- Do not present training data as if it has been verified against external sources\n"
+                    "- If the user's request would significantly benefit from external tool access, note this and suggest they could get better results with research tools"
+                )
 
             return (
-                result.get("content", ""),
+                generated_content,
                 result.get("name", "Generated Directive"),
                 result.get("description", "Auto-generated directive"),
             )
 
         except Exception as e:
             logger.error(f"DirectiveGenerator: Error generating content: {str(e)}")
-            # Fallback: basic directive
+            # Fallback: build a useful directive that preserves probe references
+            fallback_content = f"You are an expert assistant helping with: {context.query}\n\n"
+            if context.role_expertise:
+                fallback_content += f"## Role\n{context.role_expertise}\n\n"
+            if context.approach_steps:
+                fallback_content += "## Approach\n" + "\n".join(
+                    f"- {step}" for step in context.approach_steps
+                ) + "\n\n"
+            # Inject @probe: references so they survive into the saved directive
+            if selected_probes:
+                fallback_content += "## Available Tools\n"
+                for probe_id in selected_probes:
+                    fallback_content += f"Use @probe:{probe_id} to gather relevant information.\n"
+                fallback_content += "\nUse these tools to verify facts and source information. Always cite tool-provided data.\n"
+            else:
+                fallback_content += "Provide a clear, helpful response based on your knowledge.\n"
+
+            # Derive a name from the query instead of "General Assistant"
+            name_words = context.query.split()[:5]
+            fallback_name = " ".join(w.capitalize() for w in name_words) if name_words else "Generated Directive"
+
+            logger.warning(
+                f"DirectiveGenerator: Content generation failed, using fallback directive '{fallback_name}' "
+                f"with {len(selected_probes)} probe references preserved"
+            )
             return (
-                f"You are helping with: {context.query}\n\nProvide a clear, helpful response.",
-                "General Assistant",
-                "General-purpose assistant for various tasks",
+                fallback_content,
+                fallback_name,
+                f"Auto-generated directive for: {context.query[:80]}",
             )
 
     async def _check_similarity(
@@ -406,9 +504,24 @@ Return your response as JSON:
                 f"DirectiveGenerator: Directive saved with {len(warnings)} warnings: {[w.message for w in warnings]}"
             )
 
+        # Verification logging
         logger.info(
             f"DirectiveGenerator: Saved directive '{generated.name}' with ID {directive_id}"
         )
+        logger.info(
+            f"DirectiveGenerator: Final directive content (preview): {generated.content[:500]!r}"
+        )
+        logger.info(
+            f"DirectiveGenerator: Final directive probe_ids: {created.probe_ids if hasattr(created, 'probe_ids') else 'N/A'}"
+        )
+        selected_probes = generated.metadata.get("selected_probes", [])
+        final_probe_ids = created.probe_ids if hasattr(created, "probe_ids") else []
+        if selected_probes and not final_probe_ids:
+            logger.error(
+                f"DirectiveGenerator: Probe attachment failed: selected {len(selected_probes)} probes "
+                f"{selected_probes} but directive has 0 probe_ids. "
+                f"Check that @probe: references exist in content and Registry extracts them."
+            )
 
         return directive_id
 

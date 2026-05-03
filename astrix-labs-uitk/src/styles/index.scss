@@ -1,7 +1,8 @@
-/* Astrix Labs UI Toolkit - Main Styles Entry Point */
+/* Astrix Labs UI Toolkit — Atelier Design System */
 
-/* Design tokens must be imported first */
+/* Foundation (must be first) */
 @use './tokens.scss';
+@use './utilities.scss';
 
 /* Form controls */
 @use './button.scss';
@@ -13,6 +14,6 @@
 @use './switch.scss';
 @use './slider.scss';
 
-/* Layout components */
+/* Layout */
 @use './modal.scss';
 @use './fieldWrapper.scss';

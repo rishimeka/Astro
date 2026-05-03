@@ -180,12 +180,12 @@
   font-weight: 500;
 
   &.user {
-    background: var(--accent-primary);
+    background: var(--accent, var(--accent-primary));
     color: white;
   }
 
   &.assistant {
-    background: var(--accent-primary);
+    background: var(--accent, var(--accent-primary));
     color: white;
 
     svg {
@@ -245,16 +245,20 @@
   overflow-x: auto;
 
   .user & {
-    background: var(--accent-primary);
-    color: white;
+    background: var(--accent, var(--accent-primary));
+    color: #ffffff;
     border-bottom-right-radius: 6px;
-    white-space: pre-wrap;
+
+    // Force white text inside user bubble (overrides Markdown ink tokens)
+    * { color: inherit; }
+    a { text-decoration: underline; }
+    code { background: rgba(255, 255, 255, 0.2); color: inherit; }
   }
 
   .assistant & {
-    background: var(--bg-elevated);
-    color: var(--text-primary);
-    border: 1px solid var(--border-default);
+    background: var(--paper-1, var(--bg-elevated));
+    color: var(--ink-1, var(--text-primary));
+    border: 1px solid var(--rule-1, var(--border-default));
     border-bottom-left-radius: 6px;
   }
 }
@@ -265,38 +269,25 @@
   gap: 8px;
   margin-top: 10px;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: var(--paper-1, var(--bg-elevated));
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-
-  .assistant & {
-    background: var(--bg-primary);
-    border-color: var(--border-default);
-  }
 }
 
 .messageFileIcon {
   width: 15px;
   height: 15px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--accent, var(--accent-primary));
   flex-shrink: 0;
-
-  .assistant .messageFileCard & {
-    color: var(--accent-primary);
-  }
 }
 
 .messageFileName {
   font-family: var(--font-body);
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-
-  .assistant .messageFileCard & {
-    color: var(--text-primary);
-  }
 }
 
 .messageTimestamp {
@@ -312,17 +303,17 @@
   gap: 6px;
   margin-top: 10px;
   padding: 8px 12px;
-  background: rgba(74, 157, 234, 0.15);
+  background: var(--accent-wash, rgba(74, 157, 234, 0.15));
   border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 500;
-  color: var(--accent-primary);
+  color: var(--accent, var(--accent-primary));
   text-decoration: none;
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(74, 157, 234, 0.25);
+    opacity: 0.85;
   }
 
   &:focus-visible {
@@ -680,6 +671,24 @@
   }
 }
 
+.deleteRunButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+
+  &:hover {
+    color: var(--accent-danger);
+    background: rgba(255, 85, 85, 0.1);
+  }
+}
+
 .executionProgressExpandButton {
   display: flex;
   align-items: center;
@@ -871,12 +880,12 @@
 .thoughtsContent {
   margin-top: 8px;
   padding: 12px;
-  background: var(--bg-primary);
+  background: var(--paper-2, var(--bg-primary));
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.6;
-  color: var(--text-secondary);
+  color: var(--ink-3, var(--text-secondary));
   white-space: pre-wrap;
   max-height: 200px;
   overflow-y: auto;

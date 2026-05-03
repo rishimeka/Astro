@@ -334,6 +334,11 @@ async def get_launchpad_controller() -> LaunchpadController:
             llm_provider=powerful_llm,
         )
 
+        # Create DirectResponder
+        from astro.launchpad.direct_responder import DirectResponder
+
+        direct_responder = DirectResponder(llm_provider=powerful_llm)
+
         # Create DirectiveGenerator and ContextGatherer
         from astro.launchpad.context_gatherer import ContextGatherer
         from astro.launchpad.directive_generator import DirectiveGenerator
@@ -355,6 +360,7 @@ async def get_launchpad_controller() -> LaunchpadController:
             second_brain=second_brain,
             directive_generator=directive_generator,
             context_gatherer=context_gatherer,
+            direct_responder=direct_responder,
         )
 
         # Create ConstellationPipeline

@@ -143,6 +143,12 @@ async def stream_chat_response(
                         "message": event.get("message", ""),
                     })
 
+                elif event_type == "response_mode":
+                    # Send response mode indicator (conversational vs directive)
+                    yield sse_event("response_mode", {
+                        "mode": event.get("mode", "directive"),
+                    })
+
                 elif event_type == "output":
                     # This is the final output
                     final_output = event.get("output")

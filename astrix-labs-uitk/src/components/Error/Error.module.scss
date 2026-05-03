@@ -2,45 +2,37 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
-  background: rgba(255, 92, 92, 0.1);
-  border: 1px solid var(--accent-danger);
-  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  background: var(--danger-wash);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-sm);
 }
 
 .errorIcon {
-  color: var(--accent-danger);
+  color: var(--danger);
   flex-shrink: 0;
 }
 
 .errorText {
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--text-primary);
+  font: var(--t-body);
+  color: var(--ink-1);
   flex: 1;
 }
 
 .retryButton {
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent-primary);
+  font: var(--t-label);
+  text-transform: uppercase;
+  letter-spacing: var(--trk-label);
+  color: var(--accent);
   background: transparent;
   border: none;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
+  border-radius: var(--r-sm);
+  transition: all var(--dur) var(--ease);
 }
 
-.retryButton:hover {
-  background: var(--accent-primary-subtle);
-}
-
-.retryButton:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
+.retryButton:hover { background: var(--accent-wash); }
 
 .errorPage {
   display: flex;
@@ -48,7 +40,7 @@
   justify-content: center;
   min-height: 50vh;
   width: 100%;
-  padding: var(--space-section-horizontal);
+  padding: var(--sp-32);
 }
 
 .errorPageContent {
@@ -60,22 +52,18 @@
 }
 
 .errorPageIcon {
-  color: var(--accent-danger);
-  margin-bottom: var(--space-element-gap);
+  color: var(--danger);
+  margin-bottom: var(--sp-16);
 }
 
 .errorPageTitle {
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 400;
-  color: var(--text-primary);
+  font: var(--t-h3);
+  color: var(--ink-1);
   margin: 0 0 8px 0;
 }
 
 .errorPageMessage {
-  font-family: var(--font-body);
-  font-size: 16px;
-  color: var(--text-secondary);
-  margin: 0 0 var(--space-card-padding) 0;
-  line-height: var(--leading-normal);
+  font: var(--t-lead);
+  color: var(--ink-3);
+  margin: 0 0 var(--sp-24) 0;
 }

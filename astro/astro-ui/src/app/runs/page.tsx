@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { DataTable, Column } from '@/components/DataTable';
 import { StatusFilter, FilterableStatus } from '@/components/StatusFilter';
@@ -12,6 +13,8 @@ import { Pagination } from '@/components/Pagination';
 import { EmptyState } from '@/components/EmptyState';
 import { Spinner } from '@/components/Loading';
 import { ErrorMessage } from '@/components/Error';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
+import { ENDPOINTS } from '@/lib/api/endpoints';
 import { useRuns } from '@/hooks';
 import { formatDateTime, getRelativeTime } from '@/lib/utils/date';
 import type { RunSummary, RunStatus } from '@/types/astro';
@@ -22,6 +25,8 @@ const PAGE_SIZE = 10;
 export default function RunList() {
   const router = useRouter();
   const { runs, isLoading, error, refetch } = useRuns();
+  const [deleteTarget, setDeleteTarget] = useState<RunSummary | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<FilterableStatus>('all');
   const [datePreset, setDatePreset] = useState<DateRangePreset>('all');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
@@ -63,11 +68,30 @@ export default function RunList() {
       key: 'completed_at',
       header: 'Completed',
       sortable: true,
-      width: '23%',
+      width: '18%',
       render: (value) => (
         <span className={styles.datetime}>
           {value ? formatDateTime(value as string) : '—'}
         </span>
+      ),
+    },
+    {
+      key: 'id',
+      header: '',
+      sortable: false,
+      width: '5%',
+      render: (_value, row) => (
+        <button
+          type="button"
+          className={styles.deleteRunButton}
+          onClick={(e) => {
+            e.stopPropagation();
+            setDeleteTarget(row);
+          }}
+          aria-label="Delete run"
+        >
+          <Trash2 size={14} />
+        </button>
       ),
     },
   ];
@@ -162,6 +186,20 @@ export default function RunList() {
     setDatePreset(preset);
     setCustomDateRange(range);
     setCurrentPage(1);
+  };
+
+  const handleDeleteRun = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(ENDPOINTS.RUN(deleteTarget.id), { method: 'DELETE' });
+      if (res.ok) {
+        refetch();
+      }
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
   };
 
   const hasFilters = statusFilter !== 'all' || datePreset !== 'all';
@@ -269,6 +307,15 @@ export default function RunList() {
           )}
         </>
       )}
+
+      <DeleteConfirmModal
+        isOpen={deleteTarget !== null}
+        title="Delete Run"
+        message={`Are you sure you want to delete this run${deleteTarget?.constellation_name ? ` of "${deleteTarget.constellation_name}"` : ''}? This action cannot be undone.`}
+        onConfirm={handleDeleteRun}
+        onCancel={() => setDeleteTarget(null)}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

@@ -1,47 +1,40 @@
-/* Textarea Styles */
+/* ── Textarea ── */
 .textarea {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    font-weight: 400;
-    line-height: var(--leading-normal);
-    width: -webkit-fill-available;
-    padding: 10px 12px;
-    border: 2px solid var(--accent-primary);
-    border-radius: var(--radius-md);
-    background-color: var(--accent-primary-subtle);
-    color: var(--text-primary);
-    transition: all 0.3s ease;
-    outline: none;
-    resize: vertical;
-    min-height: 100px;
+  font: var(--t-mono);
+  letter-spacing: var(--trk-mono);
+  width: -webkit-fill-available;
+  padding: 8px 12px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-md);
+  background: var(--paper-0);
+  color: var(--ink-1);
+  transition: all var(--dur) var(--ease);
+  outline: none;
+  resize: vertical;
+  min-height: 100px;
 }
 
-.textarea::placeholder {
-    color: var(--text-muted);
-}
+.textarea::placeholder { color: var(--ink-4); }
 
 .textarea:focus {
-    border-color: var(--accent-primary);
-    background-color: rgba(74, 157, 234, 0.15);
-    box-shadow: 0 0 0 3px rgba(74, 157, 234, 0.2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-wash);
 }
 
 .textarea:hover:not(:disabled):not(.textarea-error) {
-    border-color: var(--accent-primary);
+  border-color: var(--ink-3);
 }
 
 .textarea.textarea-error {
-    border-color: var(--accent-danger);
-    background-color: rgba(255, 92, 92, 0.05);
+  border-color: var(--danger);
 }
 
 .textarea.textarea-error:focus {
-    border-color: var(--accent-danger);
-    background-color: rgba(255, 92, 92, 0.1);
-    box-shadow: 0 0 0 3px rgba(255, 92, 92, 0.2);
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px var(--danger-wash);
 }
 
 .textarea-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }

@@ -200,6 +200,56 @@ class SecondBrain:
         """
         return self.context_window.get_recent(limit=limit)
 
+    async def retrieve_lightweight(
+        self,
+        query: str,
+        conversation: Any = None,
+    ) -> dict[str, Any]:
+        """Lightweight retrieval for pre-interpretation context.
+
+        Faster than full retrieve() — single vector search, fewer results.
+        Used to give the Interpreter conversation context before it makes
+        its routing decision.
+
+        Args:
+            query: The user's current message.
+            conversation: Current conversation object.
+
+        Returns:
+            Dict with recent_messages and memories keys.
+        """
+        # Get recent context from context window
+        recent = self.context_window.get_recent(limit=10)
+
+        # Single vector search (not multiple queries like full retrieve)
+        long_term_memories = await self.long_term.retrieve(query, limit=3)
+
+        return {
+            "long_term": long_term_memories,
+            "recent": recent,
+        }
+
+    def get_conversation_summary(self) -> str:
+        """Get a brief summary of recent conversation context.
+
+        Returns:
+            Summary string of recent messages, or empty string.
+        """
+        recent = self.context_window.get_recent(limit=10)
+        if not recent:
+            return ""
+
+        lines = []
+        for msg in recent:
+            role = getattr(msg, "role", "unknown")
+            content = getattr(msg, "content", str(msg))
+            # Truncate long messages
+            if len(content) > 150:
+                content = content[:150] + "..."
+            lines.append(f"{role}: {content}")
+
+        return "\n".join(lines)
+
     def clear_context(self) -> None:
         """Clear the active context window.
 

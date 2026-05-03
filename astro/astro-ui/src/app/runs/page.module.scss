@@ -29,6 +29,24 @@
   color: var(--text-secondary);
 }
 
+.deleteRunButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+
+  &:hover {
+    color: var(--accent-danger);
+    background: rgba(255, 85, 85, 0.1);
+  }
+}
+
 @media (max-width: 768px) {
   .filters {
     gap: 12px;

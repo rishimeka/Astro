@@ -30,14 +30,20 @@ class DirectiveSummary(BaseModel):
 class InterpretationResult(BaseModel):
     """Result of interpreter evaluation.
 
-    The interpreter can now take three actions:
+    The interpreter can take four actions:
+    - respond_directly: Conversational query, no directives needed
     - ask_user: Query is ambiguous, need clarification
     - select_directives: Ready to select directives (existing behavior)
     - generate_directive: No matching directive found, should create one
     """
 
-    action: Literal["ask_user", "select_directives", "generate_directive"] = Field(
+    action: Literal["respond_directly", "ask_user", "select_directives", "generate_directive"] = Field(
         ..., description="The action to take based on query analysis"
+    )
+
+    # For respond_directly
+    direct_response_context: str = Field(
+        default="", description="Context hints for the direct responder"
     )
 
     # For select_directives (now optional with defaults)
@@ -57,7 +63,7 @@ class InterpretationResult(BaseModel):
     )
 
 
-INTERPRETER_SYSTEM_PROMPT = """You are a directive selection agent. Your job is to analyze user queries and decide how to proceed: ask clarifying questions, select directives, or trigger directive generation.
+INTERPRETER_SYSTEM_PROMPT = """You are a query routing agent. Your job is to analyze user queries and decide how to proceed: respond directly, ask clarifying questions, select directives, or trigger directive generation.
 
 ## Your Task
 
@@ -65,11 +71,25 @@ Given:
 1. A user query
 2. Conversation history (optional)
 3. A list of available directives
+4. Pre-retrieved context (optional — recent conversation and memories)
 
-You must choose ONE of three actions:
-1. **ask_user**: Query is ambiguous or lacks necessary context
-2. **select_directives**: Ready to select 1-3 relevant directives
-3. **generate_directive**: No matching directive exists for this query
+You must choose ONE of four actions:
+1. **respond_directly**: Conversational query — no directives or tools needed
+2. **ask_user**: Query is ambiguous or lacks necessary context
+3. **select_directives**: Ready to select 1-3 relevant directives
+4. **generate_directive**: No matching directive exists for this query
+
+## Direct Response Strategy (PREFERRED for conversational queries)
+
+**When to RESPOND DIRECTLY (action: "respond_directly"):**
+- Greetings, pleasantries, small talk ("Hello!", "How are you?", "Thanks!")
+- Follow-up questions about previous responses ("Can you explain that simpler?", "What did you mean by X?")
+- Meta-questions about capabilities ("What can you do?", "How do you work?")
+- General knowledge that doesn't need tools ("What is a P/E ratio?")
+- Acknowledgements and feedback ("That's helpful", "Great, thanks")
+- Questions about previous conversation context ("What did we discuss?")
+
+Include `direct_response_context` with relevant hints (e.g., "User is asking about capabilities" or "Follow-up to previous financial analysis of Tesla").
 
 ## Clarification Strategy
 
@@ -90,7 +110,7 @@ You must choose ONE of three actions:
 - Query requires tools/capabilities not available in existing directives
 - User explicitly asks for new functionality
 
-**Important**: Check conversation history BEFORE asking for clarification. The user may have already provided the context in earlier messages.
+**Important**: Check conversation history and pre-retrieved context BEFORE asking for clarification. The user may have already provided the context in earlier messages.
 
 ## Directive Selection Strategy
 
@@ -104,11 +124,6 @@ You must choose ONE of three actions:
 - Query maps directly to one directive's purpose
 - Additional directives would add noise
 
-**When to select zero directives:**
-- Query is purely conversational (greetings, small talk)
-- Query is about system capabilities (meta-questions)
-- Query requires no specialized instructions
-
 ## Context Queries
 
 Generate 1-3 specific queries for Second Brain memory retrieval:
@@ -119,6 +134,14 @@ Generate 1-3 specific queries for Second Brain memory retrieval:
 ## Output Format
 
 Respond with valid JSON matching ONE of these patterns:
+
+**For respond_directly:**
+{
+  "action": "respond_directly",
+  "direct_response_context": "User is greeting, new conversation",
+  "reasoning": "This is a conversational greeting that doesn't require any tools or directives",
+  "confidence": 1.0
+}
 
 **For ask_user:**
 {
@@ -192,7 +215,7 @@ Response:
   "confidence": 0.9
 }
 
-### Example 4: Conversational query (no directives needed)
+### Example 4: Conversational query (respond directly)
 Query: "Hello! How are you?"
 Available directives:
 - news_search (id: ns_001): Search for recent news articles
@@ -200,10 +223,42 @@ Available directives:
 
 Response:
 {
-  "action": "select_directives",
-  "directive_ids": [],
-  "context_queries": [],
-  "reasoning": "This is a greeting/conversational query that doesn't require any specialized directives. Can respond directly without tool support.",
+  "action": "respond_directly",
+  "direct_response_context": "User is greeting, start of conversation",
+  "reasoning": "This is a greeting/conversational query that doesn't require any specialized directives or tools. Respond directly with a friendly greeting.",
+  "confidence": 1.0
+}
+
+### Example 9: Follow-up question (respond directly)
+Query: "Can you explain that in simpler terms?"
+Conversation history:
+User: "Analyze Apple's P/E ratio"
+Assistant: "Apple's trailing P/E ratio is 28.5x, which represents..."
+User: "Can you explain that in simpler terms?"
+
+Available directives:
+- financial_analysis (id: fa_001): Analyze financial metrics
+
+Response:
+{
+  "action": "respond_directly",
+  "direct_response_context": "Follow-up to previous financial analysis of Apple's P/E ratio. User wants a simpler explanation.",
+  "reasoning": "User is asking for clarification of a previous response. No new data or tools needed — just rephrase the existing answer.",
+  "confidence": 0.95
+}
+
+### Example 10: Meta-question about capabilities (respond directly)
+Query: "What can you help me with?"
+Available directives:
+- news_search (id: ns_001): Search for recent news articles
+- financial_analysis (id: fa_001): Analyze financial metrics
+- sentiment_analysis (id: sa_001): Analyze sentiment from text
+
+Response:
+{
+  "action": "respond_directly",
+  "direct_response_context": "User is asking about capabilities. Available directives: news_search, financial_analysis, sentiment_analysis.",
+  "reasoning": "Meta-question about system capabilities. Can describe available directives without needing to execute any.",
   "confidence": 1.0
 }
 
@@ -313,6 +368,7 @@ class Interpreter:
         self,
         conversation: Conversation,
         available_directives: list[DirectiveSummary] | None = None,
+        pre_context: dict | None = None,
     ) -> InterpretationResult:
         """Evaluate query and decide action: ask_user, select_directives, or generate_directive.
 
@@ -354,10 +410,31 @@ class Interpreter:
         # Build conversation context (last 5 messages)
         context_text = self._build_context(conversation)
 
+        # Build pre-context section if available
+        pre_context_text = ""
+        if pre_context:
+            recent = pre_context.get("recent", [])
+            memories = pre_context.get("long_term", [])
+            if recent:
+                recent_strs = [
+                    getattr(m, "content", str(m))[:150] for m in recent[-5:]
+                ]
+                pre_context_text += "\nRecent conversation context:\n" + "\n".join(
+                    f"- {s}" for s in recent_strs
+                )
+            if memories:
+                memory_strs = [
+                    getattr(m, "content", str(m))[:150] for m in memories[:3]
+                ]
+                pre_context_text += "\nRelevant memories:\n" + "\n".join(
+                    f"- {s}" for s in memory_strs
+                )
+
         user_prompt = f"""Query: {current_query}
 
 Conversation context:
 {context_text if context_text else "(New conversation)"}
+{pre_context_text}
 
 Available directives:
 {directives_text}
@@ -372,6 +449,7 @@ Analyze the query and decide on the appropriate action."""
 ## CRITICAL: FORCE DECISION MODE
 
 You have reached the maximum number of clarification rounds. You MUST now choose either:
+- "respond_directly" (for conversational queries)
 - "select_directives" (even if context is imperfect, make your best guess)
 - "generate_directive" (if truly no existing directive fits)
 
@@ -603,7 +681,7 @@ You CANNOT choose "ask_user" anymore. Make a decision with the information you h
 
             # Extract action (required field)
             action = data.get("action")
-            if action not in ["ask_user", "select_directives", "generate_directive"]:
+            if action not in ["respond_directly", "ask_user", "select_directives", "generate_directive"]:
                 # Fallback: if no valid action, default to select_directives
                 logger.warning(
                     f"Invalid or missing action '{action}', defaulting to 'select_directives'"
@@ -617,6 +695,7 @@ You CANNOT choose "ask_user" anymore. Make a decision with the information you h
                 reasoning=data.get("reasoning", ""),
                 confidence=data.get("confidence", 1.0),
                 questions=data.get("questions", []),
+                direct_response_context=data.get("direct_response_context", ""),
             )
         except json.JSONDecodeError:
             # Fallback: select_directives with empty list

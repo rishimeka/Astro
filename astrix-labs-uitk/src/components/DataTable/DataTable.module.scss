@@ -1,42 +1,35 @@
 .tableContainer {
   width: 100%;
   overflow-x: auto;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-family: var(--font-body);
-  font-size: 14px;
+  font: var(--t-body);
 }
 
 .header {
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--rule-2);
 }
 
 .headerCell {
-  padding: 12px 16px;
+  padding: 10px 16px;
   text-align: left;
-  font-weight: 600;
-  color: var(--text-secondary);
-  font-size: 12px;
+  font: var(--t-label);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--trk-label);
+  color: var(--ink-3);
   white-space: nowrap;
 }
 
 .headerCell.sortable {
   cursor: pointer;
   user-select: none;
-  transition: color 0.2s ease;
+  transition: color var(--dur) var(--ease);
 }
 
-.headerCell.sortable:hover {
-  color: var(--accent-primary);
-}
+.headerCell.sortable:hover { color: var(--accent); }
 
 .headerContent {
   display: inline-flex;
@@ -47,60 +40,39 @@
 .sortIcon {
   display: inline-flex;
   align-items: center;
-  color: var(--text-muted);
-  transition: color 0.2s ease;
+  color: var(--ink-4);
+  transition: color var(--dur) var(--ease);
 }
 
-.sortIcon.active {
-  color: var(--accent-primary);
-}
+.sortIcon.active { color: var(--accent); }
 
-.body {
-  background: transparent;
-}
+.body { background: transparent; }
 
 .row {
-  border-bottom: 1px solid var(--border-default);
-  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--rule-1);
+  transition: background-color var(--dur) var(--ease);
 }
 
-.row:last-child {
-  border-bottom: none;
-}
-
-.row:hover {
-  background: var(--accent-primary-subtle);
-}
-
-.row.clickable {
-  cursor: pointer;
-}
+.row:last-child { border-bottom: none; }
+.row:hover { background: var(--paper-2); }
+.row.clickable { cursor: pointer; }
 
 .cell {
-  padding: 12px 16px;
-  color: var(--text-primary);
-  line-height: var(--leading-normal);
+  padding: 10px 16px;
+  color: var(--ink-1);
+  line-height: 1.6;
 }
 
-.nullValue {
-  color: var(--text-muted);
-}
+.nullValue { color: var(--ink-4); }
 
 .emptyCell {
   padding: 48px 16px;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--ink-3);
   font-style: italic;
 }
 
 @media (max-width: 768px) {
-  .headerCell,
-  .cell {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-
-  .headerCell {
-    font-size: 11px;
-  }
+  .headerCell, .cell { padding: 8px 12px; font-size: 13px; }
+  .headerCell { font-size: 10px; }
 }

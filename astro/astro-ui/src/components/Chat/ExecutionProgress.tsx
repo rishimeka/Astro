@@ -14,6 +14,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Trash2,
 } from 'lucide-react';
 import type { NodeStatus, ToolCall, ExecutionProgressState } from '@/hooks/useChat';
 import styles from './Chat.module.scss';
@@ -28,6 +29,7 @@ interface ExecutionProgressProps {
   totalNodes?: number;
   durationMs?: number;
   isRunning?: boolean;
+  onDelete?: (runId: string) => void;
 }
 
 function formatDuration(ms: number): string {
@@ -113,6 +115,7 @@ export default function ExecutionProgress({
   totalNodes = 0,
   durationMs,
   isRunning = true,
+  onDelete,
 }: ExecutionProgressProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showThoughts, setShowThoughts] = useState(false);
@@ -167,6 +170,16 @@ export default function ExecutionProgress({
           >
             View run
           </Link>
+          {!isRunning && onDelete && (
+            <button
+              type="button"
+              className={styles.deleteRunButton}
+              onClick={() => onDelete(runId)}
+              aria-label="Delete run"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
           <button
             type="button"
             className={styles.executionProgressExpandButton}

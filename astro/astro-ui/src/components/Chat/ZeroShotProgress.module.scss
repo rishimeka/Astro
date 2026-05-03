@@ -3,8 +3,8 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--paper-1, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--rule-1, rgba(255, 255, 255, 0.1));
   border-radius: 8px;
   margin: 12px 0 16px 0;
 }
@@ -13,13 +13,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ink-2, rgba(255, 255, 255, 0.6));
   font-size: 14px;
 }
 
 .spinner {
   animation: spin 1s linear infinite;
-  color: #4A9DEA;
+  color: var(--accent, #4A9DEA);
 }
 
 @keyframes spin {
@@ -32,7 +32,7 @@
 }
 
 .thinkingText {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ink-2, rgba(255, 255, 255, 0.6));
 }
 
 .directivesRow {
@@ -49,19 +49,19 @@
 }
 
 .directiveIcon {
-  color: #4A9DEA;
+  color: var(--accent, #4A9DEA);
   flex-shrink: 0;
 }
 
 .directiveLabel {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ink-2, rgba(255, 255, 255, 0.6));
   font-weight: 500;
 }
 
 .directiveIds {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--ink-1, rgba(255, 255, 255, 0.9));
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -69,7 +69,7 @@
   margin: 0;
   padding-left: 24px;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--ink-3, rgba(255, 255, 255, 0.5));
   line-height: 1.5;
 }
 
@@ -87,7 +87,7 @@
 
 .toolLabel {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ink-2, rgba(255, 255, 255, 0.6));
   font-weight: 500;
 }
 
@@ -101,10 +101,10 @@
   display: inline-flex;
   align-items: center;
   padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--paper-2, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--rule-1, rgba(255, 255, 255, 0.15));
   border-radius: 4px;
   font-size: 12px;
   font-family: 'JetBrains Mono', monospace;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--ink-1, rgba(255, 255, 255, 0.9));
 }

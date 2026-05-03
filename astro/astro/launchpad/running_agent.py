@@ -11,9 +11,24 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from astro.core.llm.utils import get_default_max_tokens
+from astro.core.prompts.base_system_prompt import ASTRO_BASE_SYSTEM_PROMPT
 from astro.launchpad.conversation import Conversation
 
 logger = logging.getLogger(__name__)
+
+# Tool-specific truncation limits (chars). High-density structured data gets more room.
+_TOOL_TRUNCATION_LIMITS = {
+    "get_wikipedia_company_info": 12000,
+    "get_wikipedia_page": 12000,
+    "search_wikipedia": 5000,
+    "search_web_by_company": 5000,
+    "search_web": 5000,
+    "search_google_news_by_company": 3000,
+    "search_google_news": 3000,
+    "search_news_ddg": 3000,
+}
+_DEFAULT_TRUNCATION_LIMIT = 3000
+_MAX_TOTAL_PAYLOAD_CHARS = 150000
 
 
 def _extract_text_content(content: Any) -> str:
@@ -32,6 +47,46 @@ def _extract_text_content(content: Any) -> str:
             if not isinstance(block, dict) or block.get("type") == "text"
         ).strip()
     return str(content)
+
+
+def _trim_tool_messages(messages: list, target_chars: int) -> None:
+    """Proportionally trim ToolMessage content to fit within target size.
+
+    Trims the longest ToolMessages first, working backwards (most recent).
+    Modifies messages in-place.
+    """
+    from langchain_core.messages import ToolMessage
+
+    total = sum(len(str(m)) for m in messages)
+    if total <= target_chars:
+        return
+
+    # Collect (index, length) of ToolMessages, longest first
+    tool_msgs = [
+        (i, len(str(m)))
+        for i, m in enumerate(messages)
+        if isinstance(m, ToolMessage)
+    ]
+    tool_msgs.sort(key=lambda x: x[1], reverse=True)
+
+    excess = total - target_chars
+    for idx, length in tool_msgs:
+        if excess <= 0:
+            break
+        msg = messages[idx]
+        content = msg.content if isinstance(msg.content, str) else str(msg.content)
+        # Trim this message proportionally, but keep at least 500 chars
+        trim_amount = min(excess, max(0, length - 500))
+        if trim_amount > 0:
+            new_len = len(content) - trim_amount
+            if new_len < 500:
+                new_len = 500
+            messages[idx] = ToolMessage(
+                content=content[:new_len] + "\n\n[... trimmed to fit context limit]",
+                tool_call_id=msg.tool_call_id,
+                name=msg.name,
+            )
+            excess -= trim_amount
 
 
 class AgentOutput(BaseModel):
@@ -141,6 +196,10 @@ class RunningAgent:
             )
         system_prompt = self._build_system_prompt(directives, interpreter_reasoning)
 
+        # Dynamic iteration budget: more tools means more research steps needed
+        max_iterations = 8 if len(tools) >= 3 else 5
+        logger.info(f"RunningAgent: Using max_iterations={max_iterations} for {len(tools)} tools")
+
         # Execute ReAct loop
         return await self._react_loop(
             directives=directives,
@@ -148,6 +207,7 @@ class RunningAgent:
             context=context,
             tools=tools,
             system_prompt=system_prompt,
+            max_iterations=max_iterations,
         )
 
     async def _get_directives(self, directive_ids: list[str]) -> list[Any]:
@@ -284,7 +344,7 @@ class RunningAgent:
             directives_text += f"\n{i}. {directive.name}\n"
             directives_text += f"{directive.content}\n"
 
-        base_prompt = RUNNING_AGENT_SYSTEM_PROMPT.format(directives_text=directives_text)
+        base_prompt = ASTRO_BASE_SYSTEM_PROMPT + "\n\n---\n\n" + RUNNING_AGENT_SYSTEM_PROMPT.format(directives_text=directives_text)
 
         # Add interpreter reasoning if available
         if interpreter_reasoning:
@@ -298,7 +358,20 @@ The query interpretation system analyzed this request and determined:
 
 Use this context to understand which aspects of the query each directive should address and how they should work together.
 """
-            return base_prompt + reasoning_section
+            base_prompt += reasoning_section
+
+        # Check if any directives have tools (probe_ids)
+        has_any_tools = any(
+            directive.probe_ids for directive in directives if directive.probe_ids
+        )
+        if not has_any_tools:
+            base_prompt += (
+                "\n\nNote: No external search tools are available for this request. "
+                "Respond based on training knowledge and be transparent about this limitation. "
+                "If tools were available but returned errors or empty results, fall back to training knowledge. "
+                "Clearly label which information came from tools vs training knowledge. "
+                "Never return an empty or apologetic response when you have relevant training knowledge available."
+            )
 
         return base_prompt
 
@@ -330,6 +403,8 @@ Use this context to understand which aspects of the query each directive should 
         # Track execution
         tool_calls: list[dict[str, Any]] = []
         iteration = 0
+        wikipedia_guidance_injected = False
+        loop_error_recovery = False
 
         try:
             logger.info(f"RunningAgent: Starting ReAct loop with {len(tools)} tools")
@@ -388,15 +463,55 @@ Use this context to understand which aspects of the query each directive should 
                         )
                     )
 
-                # Invoke LLM again
-                if tools:
-                    llm_with_tools = self.llm.bind_tools(tools)
-                    response = await llm_with_tools.ainvoke(messages)
-                else:
-                    response = await self.llm.ainvoke(messages)
+                # After Wikipedia results are first processed, inject guidance once
+                if not wikipedia_guidance_injected and any(
+                    "wikipedia" in str(tc.get("name", "")).lower()
+                    for tc in tool_calls  # check ALL tool calls made so far
+                ):
+                    from langchain_core.messages import HumanMessage
+                    messages.append(HumanMessage(content=(
+                        "You now have Wikipedia data. For the remaining iterations, focus on: "
+                        "1) Using search_web_by_company to find Crunchbase/Tracxn/PitchBook pages "
+                        "that list acquisitions Wikipedia may have missed. "
+                        "2) Searching for specific gaps — smaller acquisitions, acqui-hires, and "
+                        "historical events. "
+                        "3) Do NOT repeat Wikipedia lookups. Do NOT use all remaining iterations "
+                        "on news search. Prioritize web search for comprehensive acquisition databases."
+                    )))
+                    wikipedia_guidance_injected = True
+                    logger.info(f"RunningAgent: Injected post-Wikipedia guidance at iteration {iteration}")
+
+                # Check total payload size and proportionally trim if needed
+                total_chars = sum(len(str(m)) for m in messages)
+                if total_chars > _MAX_TOTAL_PAYLOAD_CHARS:
+                    logger.warning(
+                        f"RunningAgent: Payload {total_chars} chars exceeds {_MAX_TOTAL_PAYLOAD_CHARS} limit, "
+                        "trimming recent ToolMessages"
+                    )
+                    _trim_tool_messages(messages, _MAX_TOTAL_PAYLOAD_CHARS)
+                    total_chars = sum(len(str(m)) for m in messages)
+
+                logger.info(f"RunningAgent: Re-invoking LLM with {len(messages)} messages, ~{total_chars} chars total")
+
+                # Invoke LLM again (with graceful fallback on transient errors)
+                try:
+                    if tools:
+                        llm_with_tools = self.llm.bind_tools(tools)
+                        response = await llm_with_tools.ainvoke(messages)
+                    else:
+                        response = await self.llm.ainvoke(messages)
+                except Exception as loop_err:
+                    logger.warning(
+                        f"RunningAgent: LLM call failed at iteration {iteration}: {loop_err}. "
+                        "Forcing synthesis with data gathered so far."
+                    )
+                    # Break out of while loop to trigger synthesis fallback
+                    response_tool_calls = []
+                    loop_error_recovery = True
+                    break
 
                 # LangChain returns AIMessage object, not dict
-                content = (
+                content = _extract_text_content(
                     response.content if hasattr(response, "content") else str(response)
                 )
                 response_tool_calls = (
@@ -405,6 +520,80 @@ Use this context to understand which aspects of the query each directive should 
 
                 tool_calls.extend(response_tool_calls)
                 iteration += 1
+
+            # Force synthesis if: max iterations reached with pending calls, or error recovery
+            needs_synthesis = (
+                (response_tool_calls and iteration >= max_iterations)
+                or loop_error_recovery
+            )
+
+            # If we hit max iterations and the last response still wanted tool calls,
+            # force a synthesis turn WITHOUT tools so the model must produce a final answer
+            if needs_synthesis and response_tool_calls:
+                logger.info(
+                    f"RunningAgent: Max iterations ({max_iterations}) reached with pending tool calls, "
+                    "forcing synthesis turn"
+                )
+                # Execute the pending tool calls first so results aren't lost
+                tool_results = await self._execute_tools(response_tool_calls, tools)
+                messages.append(response)
+
+                from langchain_core.messages import HumanMessage, ToolMessage
+
+                for tool_call_item, result in zip(response_tool_calls, tool_results):
+                    messages.append(
+                        ToolMessage(
+                            content=result['content'],
+                            tool_call_id=tool_call_item['id'],
+                            name=tool_call_item['name']
+                        )
+                    )
+
+                messages.append(HumanMessage(
+                    content="You have reached the maximum number of search iterations. "
+                    "Based on ALL the research and tool results gathered so far, provide "
+                    "your comprehensive final answer now. Synthesize everything you found "
+                    "into a complete response. Do not request additional searches."
+                ))
+
+                # Call WITHOUT tools so it cannot make more tool calls
+                synthesis_response = await self.llm.ainvoke(messages)
+                content = _extract_text_content(
+                    synthesis_response.content if hasattr(synthesis_response, "content")
+                    else str(synthesis_response)
+                )
+                logger.info(
+                    f"RunningAgent: Synthesis complete, response length: {len(content)} chars"
+                )
+            elif needs_synthesis and not response_tool_calls:
+                # Error recovery: loop broke due to API error, synthesize with gathered data
+                logger.info("RunningAgent: Error recovery — synthesizing with gathered data")
+                from langchain_core.messages import HumanMessage
+                messages.append(HumanMessage(
+                    content="A search error occurred. Based on ALL the research and tool results "
+                    "gathered so far, provide your comprehensive final answer now. Synthesize "
+                    "everything you found into a complete response. Supplement with your training "
+                    "knowledge where tool results are incomplete."
+                ))
+                _trim_tool_messages(messages, _MAX_TOTAL_PAYLOAD_CHARS)
+                total_chars = sum(len(str(m)) for m in messages)
+                logger.info(f"RunningAgent: Error-recovery synthesis payload: ~{total_chars} chars")
+                try:
+                    synthesis_response = await self.llm.ainvoke(messages)
+                    content = _extract_text_content(
+                        synthesis_response.content if hasattr(synthesis_response, "content")
+                        else str(synthesis_response)
+                    )
+                    logger.info(
+                        f"RunningAgent: Error-recovery synthesis complete, response length: {len(content)} chars"
+                    )
+                except Exception as synth_err:
+                    logger.error(f"RunningAgent: Synthesis also failed: {synth_err}")
+                    content = (
+                        "I gathered research data but encountered repeated API errors during synthesis. "
+                        "Please try again shortly. The research data has been collected and will be "
+                        "available on retry."
+                    )
 
             return AgentOutput(
                 content=content,
@@ -459,7 +648,16 @@ Use this context to understand which aspects of the query each directive should 
             # Execute tool
             try:
                 result = await tool.ainvoke(tool_args)
-                results.append({"name": tool_name, "content": str(result)})
+                result_str = str(result)
+                # Tool-specific truncation limits — high-density tools get more room
+                limit = _TOOL_TRUNCATION_LIMITS.get(tool_name, _DEFAULT_TRUNCATION_LIMIT)
+                if len(result_str) > limit:
+                    logger.warning(
+                        f"RunningAgent: Truncating tool result for '{tool_name}' "
+                        f"from {len(result_str)} to {limit} chars"
+                    )
+                    result_str = result_str[:limit] + "\n\n[... truncated due to size]"
+                results.append({"name": tool_name, "content": result_str})
             except Exception as e:
                 results.append({"name": tool_name, "content": f"Error: {str(e)}"})
 
@@ -547,20 +745,13 @@ Use this context to understand which aspects of the query each directive should 
                     continue
                 directives_text += f"- **{directive.name}**: {directive.description}\n"
 
-        # Build messages with Astro-specific system prompt including actual directives
+        # Build messages with base system prompt + directive context
+        system_content = ASTRO_BASE_SYSTEM_PROMPT
+        if directives_text:
+            system_content += directives_text
+
         messages = [
-            {
-                "role": "system",
-                "content": f"""You are Astro, an AI assistant for financial analysis and market research.
-
-I operate in two modes:
-- **Zero-shot mode** (default): Fast, intelligent directive selection with tool use (2-5 seconds)
-- **Research mode**: Deep, multi-agent analysis for complex queries (15-60 seconds)
-
-I automatically select the right directives and tools based on your query. For tasks requiring external data or analysis, I'll use specialized tools to get you accurate, up-to-date information.
-{directives_text}
-When asked about my capabilities, I can reference these specific directives. I'm designed for financial analysis, market research, company intelligence, and data analysis tasks.""",
-            }
+            {"role": "system", "content": system_content}
         ]
 
         # Add context if available

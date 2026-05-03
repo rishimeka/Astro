@@ -1,0 +1,93 @@
+/* ── Atelier utility classes ── */
+
+.label {
+  font: var(--t-label);
+  text-transform: uppercase;
+  letter-spacing: var(--trk-label);
+  color: var(--ink-3);
+}
+
+.mono {
+  font: var(--t-mono);
+  letter-spacing: var(--trk-mono);
+  color: var(--ink-3);
+}
+
+.mono-sm {
+  font: var(--t-mono-sm);
+  letter-spacing: var(--trk-mono);
+  color: var(--ink-3);
+}
+
+.rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-3);
+}
+
+.rule::before,
+.rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rule-1);
+}
+
+a {
+  color: var(--ink-1);
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 1px;
+  transition: color var(--dur) var(--ease);
+}
+
+a:hover { color: var(--accent-ink); }
+
+.tag {
+  font: var(--t-label);
+  text-transform: uppercase;
+  letter-spacing: var(--trk-label);
+  color: var(--ink-3);
+  border: 1px solid var(--rule-1);
+  border-radius: var(--r-sm);
+  padding: 3px 6px;
+  background: var(--paper-2);
+}
+
+.tag-accent {
+  color: var(--accent);
+  border-color: var(--accent-wash);
+  background: var(--accent-wash);
+}
+
+.tag-seal {
+  color: var(--seal-ink);
+  border-color: var(--seal-wash);
+  background: var(--seal-wash);
+}
+
+.kbd {
+  font: 500 10px/1 var(--font-mono);
+  background: var(--paper-3);
+  border: 1px solid var(--rule-1);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 3px 5px;
+  color: var(--ink-2);
+}
+
+/* ── Animations ── */
+@keyframes paper-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.paper-in { animation: paper-in 0.35s var(--ease) both; }
+
+@keyframes breath {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.breath { animation: breath 2.4s ease-in-out infinite; }

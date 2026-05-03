@@ -74,6 +74,9 @@ class ContextWindow:
         self.max_chars = max_chars
         self.compression = compression_strategy or SummarizationCompression()
         self.messages: list[Message] = []
+        self.conversation_summary: str = ""
+        self.directive_history: list[str] = []
+        self._messages_since_summary: int = 0
 
     def add_message(self, content: str, metadata: dict[str, Any]) -> None:
         """Add a message to context window.
@@ -132,9 +135,60 @@ class ContextWindow:
         """
         return self.messages.copy()
 
+    def add_directive_usage(self, directive_ids: list[str]) -> None:
+        """Track which directives were used in the conversation.
+
+        Args:
+            directive_ids: Directive IDs that were used.
+        """
+        for did in directive_ids:
+            if did not in self.directive_history:
+                self.directive_history.append(did)
+
+    async def update_summary(self, llm: Any) -> None:
+        """Summarize conversation every 10 messages using the LLM.
+
+        Args:
+            llm: LLM provider for generating summaries.
+        """
+        self._messages_since_summary += 1
+        if self._messages_since_summary < 10:
+            return
+
+        self._messages_since_summary = 0
+
+        # Build conversation text from recent messages
+        recent = self.get_recent(limit=20)
+        if not recent:
+            return
+
+        convo_text = "\n".join(
+            f"{msg.role}: {msg.content[:200]}" for msg in recent
+        )
+
+        try:
+            response = await llm.ainvoke(
+                [
+                    {
+                        "role": "system",
+                        "content": "Summarize this conversation in 2-3 sentences. Focus on topics discussed, decisions made, and any pending questions.",
+                    },
+                    {"role": "user", "content": convo_text},
+                ],
+                temperature=0.3,
+                max_tokens=200,
+            )
+            content = response.content if hasattr(response, "content") else str(response)
+            self.conversation_summary = content.strip()
+        except Exception:
+            pass  # Keep existing summary on failure
+
     def clear(self) -> None:
         """Clear all messages from context window."""
         self.messages = []
+        self.conversation_summary = ""
+        self.directive_history = []
+        self._messages_since_summary = 0
 
     def _size(self) -> int:
         """Calculate total character count of all messages.

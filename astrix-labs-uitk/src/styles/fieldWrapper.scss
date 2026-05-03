@@ -1,41 +1,32 @@
-/* Field Wrapper Styles */
+/* ── Field wrapper ── */
 .field-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .field-label {
-    font-family: Outfit, sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.4;
-    color: #FFF;
+  font: var(--t-label);
+  text-transform: uppercase;
+  letter-spacing: var(--trk-label);
+  color: var(--ink-2);
 }
 
 .field-required {
-    color: #EF4444;
-    margin-left: 4px;
+  color: var(--danger);
+  margin-left: 4px;
 }
 
-.field-input-wrapper {
-    position: relative;
-}
+.field-input-wrapper { position: relative; }
 
 .field-error {
-    font-family: Outfit, sans-serif;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 1.4;
-    color: #EF4444;
-    margin-top: 4px;
+  font: var(--t-body-sm);
+  color: var(--danger);
+  margin-top: 4px;
 }
 
 .field-helper {
-    font-family: Outfit, sans-serif;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 1.4;
-    color: rgba(255, 255, 255, 0.6);
-    margin-top: 4px;
+  font: var(--t-body-sm);
+  color: var(--ink-3);
+  margin-top: 4px;
 }

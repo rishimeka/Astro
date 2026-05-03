@@ -1,42 +1,30 @@
-/* Checkbox Styles */
+/* ── Checkbox ── */
 .checkbox-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .checkbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: var(--accent-primary);
-    transition: all 0.3s ease;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+  transition: all var(--dur) var(--ease);
 }
 
 .checkbox:focus {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
-.checkbox.checkbox-error {
-    accent-color: var(--accent-danger);
-}
-
-.checkbox.checkbox-error:focus {
-    outline-color: var(--accent-danger);
-}
-
-.checkbox-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
+.checkbox.checkbox-error { accent-color: var(--danger); }
+.checkbox.checkbox-error:focus { outline-color: var(--danger); }
+.checkbox-disabled { opacity: 0.5; cursor: not-allowed; }
 
 .checkbox-label {
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 500;
-    line-height: var(--leading-snug);
-    color: var(--text-primary);
-    cursor: pointer;
-    user-select: none;
+  font: var(--t-body);
+  color: var(--ink-1);
+  cursor: pointer;
+  user-select: none;
 }

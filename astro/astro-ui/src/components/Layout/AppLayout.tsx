@@ -1,6 +1,7 @@
 'use client';
 
 import Sidebar, { SidebarProvider, useSidebar } from '@/components/Sidebar';
+import { Colophon } from '@/components/Colophon';
 import styles from './AppLayout.module.scss';
 
 interface AppLayoutProps {
@@ -16,6 +17,9 @@ function AppLayoutContent({ children }: AppLayoutProps) {
       <main className={`${styles.main} ${isCollapsed ? styles.mainCollapsed : ''}`}>
         {children}
       </main>
+      <div className={styles.colophon}>
+        <Colophon />
+      </div>
     </div>
   );
 }

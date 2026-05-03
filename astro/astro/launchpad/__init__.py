@@ -39,6 +39,7 @@ response = await controller.handle_message(
 """
 
 from astro.launchpad.controller import LaunchpadController, Response
+from astro.launchpad.direct_responder import DirectResponder
 from astro.launchpad.conversation import Conversation, Message, PendingConstellation
 from astro.launchpad.interpreter import (
     DirectiveSummary,
@@ -67,6 +68,8 @@ __all__ = [
     "ZeroShotPipeline",
     "ConstellationPipeline",
     "ConstellationPipelineOutput",
+    # Direct responder
+    "DirectResponder",
     # Zero-shot components
     "Interpreter",
     "DirectiveSummary",

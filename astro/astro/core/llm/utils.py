@@ -129,11 +129,13 @@ class AnthropicClient(LLMClient):
         if use_case_id := os.getenv("ANTHROPIC_USE_CASE_ID"):
             default_headers["X-Use-Case-ID"] = use_case_id
 
-        # Unmask PII in responses
-        default_headers["X-Unmask-PII"] = "true"
 
         # Build client kwargs
-        client_kwargs: dict[str, Any] = {"api_key": api_key}
+        client_kwargs: dict[str, Any] = {
+            "api_key": api_key,
+            "max_retries": int(os.getenv("LLM_MAX_RETRIES", "6")),
+            "timeout": float(os.getenv("LLM_TIMEOUT", "120")),
+        }
         if base_url:
             client_kwargs["base_url"] = base_url
         if default_headers:
@@ -535,10 +537,10 @@ def get_langchain_llm(
         if use_case_id := os.getenv("ANTHROPIC_USE_CASE_ID"):
             default_headers["X-Use-Case-ID"] = use_case_id
 
-        # Unmask PII in responses
-        default_headers["X-Unmask-PII"] = "true"
 
         model_kwargs["anthropic_api_key"] = api_key
+        model_kwargs["max_retries"] = int(os.getenv("LLM_MAX_RETRIES", "6"))
+        model_kwargs["timeout"] = float(os.getenv("LLM_TIMEOUT", "120"))
         if base_url:
             model_kwargs["base_url"] = base_url
         if default_headers:
@@ -549,6 +551,8 @@ def get_langchain_llm(
         base_url = os.getenv("OPENAI_BASE_URL")
 
         model_kwargs["openai_api_key"] = api_key
+        model_kwargs["max_retries"] = int(os.getenv("LLM_MAX_RETRIES", "6"))
+        model_kwargs["request_timeout"] = float(os.getenv("LLM_TIMEOUT", "120"))
         if base_url:
             model_kwargs["openai_api_base"] = base_url
 

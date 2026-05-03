@@ -1,172 +1,201 @@
-/* ========================================
-   DESIGN TOKENS
-   Single source of truth for visual language
-   ======================================== */
+/* ═══════════════════════════════════════════
+   ASTRIX LABS — ATELIER TOKEN SYSTEM
+   Paper & Ink foundation for all products.
+   Day mode is the CSS default; .mode-night inverts.
+   Products customize via --accent, --accent-ink, --accent-wash.
+   ═══════════════════════════════════════════ */
 
 :root {
-    /* ========================================
-       COLOR TOKENS
-       ======================================== */
+  /* ── Paper (surface layers, lightest → darkest) ── */
+  --paper-0: oklch(0.945 0.010 70);
+  --paper-1: oklch(0.960 0.008 70);
+  --paper-2: oklch(0.930 0.012 70);
+  --paper-3: oklch(0.905 0.014 70);
 
-    /* Primary Accent - Blue */
-    --accent-primary: #4A9DEA;
-    --accent-primary-hover: #3A8DDA;
-    --accent-primary-active: #2A7DCA;
-    --accent-primary-subtle: #4A9DEA1a;
+  /* ── Ink (foreground layers, darkest → lightest) ── */
+  --ink-1: oklch(0.18 0.008 65);
+  --ink-2: oklch(0.30 0.008 65);
+  --ink-3: oklch(0.48 0.008 65);
+  --ink-4: oklch(0.65 0.006 65);
+  --ink-5: oklch(0.80 0.005 65);
 
-    /* Danger Accent - Red */
-    --accent-danger: #FF5C5C;
-    --accent-danger-hover: #E84A4A;
-    --accent-danger-active: #D83A3A;
+  /* ── Accent (product-customizable) ── */
+  --accent: #007ACC;
+  --accent-ink: #005C99;
+  --accent-wash: oklch(0.60 0.12 235 / 0.08);
 
-    /* Semantic Colors */
-    --color-success: #10B981;
-    --color-warning: #F59E0B;
-    --color-info: #3B82F6;
+  /* ── Semantic accents ── */
+  --seal-ink: #6b5d45;
+  --seal-wash: oklch(0.55 0.04 65 / 0.07);
+  --ochre: #7a5c10;
+  --live: #2d6b3c;
+  --danger: #b91c1c;
+  --danger-wash: oklch(0.50 0.12 25 / 0.10);
 
-    /* Text Hierarchy */
-    --text-primary: #FFFFFF;
-    --text-secondary: rgba(255, 255, 255, 0.7);
-    --text-muted: rgba(255, 255, 255, 0.5);
-    --text-accent: var(--accent-primary);
+  /* ── Rules & borders ── */
+  --rule-1: oklch(0.20 0.005 65 / 0.08);
+  --rule-2: oklch(0.20 0.005 65 / 0.16);
 
-    /* Backgrounds */
-    --bg-primary: #0D1117;
-    --bg-elevated: rgba(20, 24, 30, 0.6);
-    --bg-alert: rgba(10, 10, 10, 0.4);
-    --bg-code: #ffffff0a;
+  /* ── Shadow ── */
+  --shadow-color: oklch(0.30 0.01 65 / 0.10);
+  --shadow-card: 0 8px 24px var(--shadow-color);
 
-    /* ========================================
-       BORDER TOKENS
-       ======================================== */
+  /* ── Typography ── */
+  --font-display: 'Libre Baskerville', Georgia, serif;
+  --font-body: 'Outfit', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
 
-    --border-default: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.12);
-    --border-alert: var(--accent-primary);
-    --border-danger: var(--accent-danger);
+  /* ── Type scale ── */
+  --t-title:    400 44px/1.1 var(--font-display);
+  --t-h2:       400 26px/1.25 var(--font-display);
+  --t-h3:       400 18px/1.3 var(--font-display);
+  --t-lead:     400 17px/1.55 var(--font-body);
+  --t-body:     400 14px/1.6 var(--font-body);
+  --t-body-sm:  400 13px/1.5 var(--font-body);
+  --t-label:    500 10px/1 var(--font-body);
+  --t-mono:     400 12px/1.4 var(--font-mono);
+  --t-mono-sm:  400 11px/1.3 var(--font-mono);
+  --t-mono-big: 500 32px/1 var(--font-mono);
 
-    /* ========================================
-       SPACING TOKENS
-       ======================================== */
+  /* ── Tracking ── */
+  --trk-label: 0.14em;
+  --trk-mono: 0.02em;
 
-    --space-section-vertical: 1rem;
-    --space-section-horizontal: 2rem;
-    --space-section-gap: 1rem;
-    --space-card-padding: 1.5rem;
-    --space-element-gap: 1rem;
+  /* ── Radius ── */
+  --r-sm: 2px;
+  --r-md: 4px;
 
-    /* ========================================
-       RADIUS TOKENS
-       ======================================== */
+  /* ── Motion ── */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 0.22s;
 
-    --radius-sm: 6px;
-    /* System cards, alert cards */
-    --radius-md: 10px;
-    /* Inputs, CTAs, interactive elements */
+  /* ── Spacing (4pt base) ── */
+  --sp-4: 4px;
+  --sp-8: 8px;
+  --sp-12: 12px;
+  --sp-16: 16px;
+  --sp-24: 24px;
+  --sp-32: 32px;
+  --sp-48: 48px;
+  --sp-64: 64px;
+  --sp-96: 96px;
 
-    /* ========================================
-        TYPOGRAPHY TOKENS
-       ======================================== */
-
-    /* Font Families */
-    --font-display: 'Libre Baskerville', Georgia, serif;
-    --font-body: 'Outfit', sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-
-    /* Line Heights */
-    --leading-tight: 1.2;
-    --leading-snug: 1.4;
-    --leading-normal: 1.6;
-
-    /* ========================================
-       EFFECTS
-       ======================================== */
-
-    --shadow-card: 0 20px 40px rgba(0, 0, 0, 0.6);
-    --shadow-accent: 0 4px 12px rgba(74, 157, 234, 0.3);
-    --backdrop-blur: blur(10px);
+  /* ── Backwards-compatible aliases (deprecated — migrate to paper/ink) ── */
+  --accent-primary: var(--accent);
+  --accent-primary-hover: var(--accent-ink);
+  --accent-primary-active: var(--accent-ink);
+  --accent-primary-subtle: var(--accent-wash);
+  --accent-danger: var(--danger);
+  --color-success: var(--live);
+  --color-warning: var(--ochre);
+  --color-info: var(--accent);
+  --text-primary: var(--ink-1);
+  --text-secondary: var(--ink-2);
+  --text-muted: var(--ink-3);
+  --text-accent: var(--accent);
+  --bg-primary: var(--paper-0);
+  --bg-elevated: var(--paper-2);
+  --bg-alert: var(--paper-3);
+  --bg-code: var(--paper-2);
+  --border-default: var(--rule-1);
+  --border-strong: var(--rule-2);
+  --border-alert: var(--accent);
+  --border-danger: var(--danger);
+  --shadow-accent: 0 4px 12px var(--accent-wash);
+  --backdrop-blur: blur(10px);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --space-section-vertical: var(--sp-16);
+  --space-section-horizontal: var(--sp-32);
+  --space-section-gap: var(--sp-16);
+  --space-card-padding: var(--sp-24);
+  --space-element-gap: var(--sp-16);
+  --leading-tight: 1.2;
+  --leading-snug: 1.4;
+  --leading-normal: 1.6;
 }
 
-/* ========================================
-   TEXT SELECTION
-   Readable highlight for dark mode
-   ======================================== */
+/* ── Night mode ── */
+.mode-night {
+  --paper-0: oklch(0.145 0.006 250);
+  --paper-1: oklch(0.17 0.006 250);
+  --paper-2: oklch(0.21 0.008 250);
+  --paper-3: oklch(0.25 0.010 250);
 
+  --ink-1: oklch(0.94 0.005 240);
+  --ink-2: oklch(0.78 0.006 240);
+  --ink-3: oklch(0.52 0.008 240);
+  --ink-4: oklch(0.36 0.006 250);
+  --ink-5: oklch(0.24 0.005 250);
+
+  --accent-wash: oklch(0.55 0.14 240 / 0.14);
+
+  --seal-ink: oklch(0.68 0.02 240);
+  --seal-wash: oklch(0.50 0.04 240 / 0.08);
+
+  --ochre: #a07820;
+  --live: #3f7d4e;
+  --danger: #ef4444;
+  --danger-wash: oklch(0.45 0.14 25 / 0.14);
+
+  --shadow-color: oklch(0.05 0.005 250 / 0.55);
+  --shadow-card: 0 8px 24px var(--shadow-color);
+
+  --rule-1: oklch(0.80 0.005 240 / 0.08);
+  --rule-2: oklch(0.80 0.005 240 / 0.16);
+}
+
+/* Legacy [data-theme] support — maps to .mode-night */
+[data-theme="dark"] {
+  --paper-0: oklch(0.145 0.006 250);
+  --paper-1: oklch(0.17 0.006 250);
+  --paper-2: oklch(0.21 0.008 250);
+  --paper-3: oklch(0.25 0.010 250);
+
+  --ink-1: oklch(0.94 0.005 240);
+  --ink-2: oklch(0.78 0.006 240);
+  --ink-3: oklch(0.52 0.008 240);
+  --ink-4: oklch(0.36 0.006 250);
+  --ink-5: oklch(0.24 0.005 250);
+
+  --accent-wash: oklch(0.55 0.14 240 / 0.14);
+  --seal-ink: oklch(0.68 0.02 240);
+  --seal-wash: oklch(0.50 0.04 240 / 0.08);
+  --ochre: #a07820;
+  --live: #3f7d4e;
+  --danger: #ef4444;
+  --danger-wash: oklch(0.45 0.14 25 / 0.14);
+  --shadow-color: oklch(0.05 0.005 250 / 0.55);
+  --shadow-card: 0 8px 24px var(--shadow-color);
+  --rule-1: oklch(0.80 0.005 240 / 0.08);
+  --rule-2: oklch(0.80 0.005 240 / 0.16);
+}
+
+/* ── Selection ── */
 ::selection {
-    background: var(--accent-primary);
-    color: var(--text-primary);
+  background: var(--accent);
+  color: var(--paper-1);
 }
 
-::-moz-selection {
-    background: var(--accent-primary);
-    color: var(--text-primary);
+/* ── Focus ring ── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
 }
 
-/* ========================================
-   LIGHT MODE TOKENS
-   Inverted color scheme for light theme
-   ======================================== */
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--rule-2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
 
-[data-theme="light"] {
-    /* Primary Accent - Blue (slightly darker for light bg) */
-    --accent-primary: #3A8DDA;
-    --accent-primary-hover: #2A7DCA;
-    --accent-primary-active: #1A6DBA;
-    --accent-primary-subtle: rgba(58, 141, 218, 0.12);
-
-    /* Danger Accent - Red */
-    --accent-danger: #DC2626;
-    --accent-danger-hover: #B91C1C;
-    --accent-danger-active: #991B1B;
-
-    /* Semantic Colors (slightly adjusted for light bg) */
-    --color-success: #059669;
-    --color-warning: #D97706;
-    --color-info: #2563EB;
-
-    /* Text Hierarchy */
-    --text-primary: #0F172A;
-    --text-secondary: rgba(15, 23, 42, 0.7);
-    --text-muted: rgba(15, 23, 42, 0.5);
-    --text-accent: var(--accent-primary);
-
-    /* Backgrounds */
-    --bg-primary: #F8FAFC;
-    --bg-elevated: rgba(255, 255, 255, 0.8);
-    --bg-alert: rgba(241, 245, 249, 0.8);
-    --bg-code: rgba(15, 23, 42, 0.05);
-
-    /* Borders */
-    --border-default: rgba(15, 23, 42, 0.1);
-    --border-strong: rgba(15, 23, 42, 0.15);
-
-    /* Effects */
-    --shadow-card: 0 20px 40px rgba(0, 0, 0, 0.08);
-    --shadow-accent: 0 4px 12px rgba(58, 141, 218, 0.25);
-}
-
-[data-theme="light"]::selection {
-    background: var(--accent-primary);
-    color: #FFFFFF;
-}
-
-[data-theme="light"]::-moz-selection {
-    background: var(--accent-primary);
-    color: #FFFFFF;
-}
-
-/* ========================================
-   MOBILE-SPECIFIC TOKENS
-   Override spacing for mobile devices
-   ======================================== */
-
+/* ── Mobile spacing reduction ── */
 @media (max-width: 768px) {
-    :root {
-        /* Reduced spacing for mobile */
-        --space-section-vertical: 0.75rem;
-        --space-section-horizontal: 1rem;
-        --space-section-gap: 1rem;
-        --space-card-padding: 1.25rem;
-        --space-element-gap: 0.75rem;
-    }
+  :root {
+    --space-section-vertical: var(--sp-12);
+    --space-section-horizontal: var(--sp-16);
+    --space-card-padding: var(--sp-16);
+    --space-element-gap: var(--sp-12);
+  }
 }

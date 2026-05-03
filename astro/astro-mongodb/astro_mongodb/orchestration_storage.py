@@ -595,3 +595,17 @@ class MongoDBOrchestrationStorage:
         except Exception as e:
             logger.error(f"Failed to list runs: {e}")
             raise RuntimeError(f"Failed to list runs: {e}") from e
+
+    async def delete_run(self, run_id: str) -> bool:
+        """Delete a run by ID."""
+        if self._db is None:
+            raise RuntimeError("Storage not initialized. Call startup() first.")
+
+        try:
+            collection = self._db[self.runs_collection_name]
+            result = await collection.delete_one({"_id": run_id})
+            return result.deleted_count > 0
+
+        except Exception as e:
+            logger.error(f"Failed to delete run {run_id}: {e}")
+            raise RuntimeError(f"Failed to delete run: {e}") from e

@@ -12,7 +12,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const THEME_STORAGE_KEY = 'astrix-theme';
+const DEFAULT_STORAGE_KEY = 'atelier.night';
 
 export interface ThemeProviderProps {
   children: React.ReactNode;
@@ -23,23 +23,29 @@ export interface ThemeProviderProps {
 export function ThemeProvider({
   children,
   defaultTheme = 'dark',
-  storageKey = THEME_STORAGE_KEY,
+  storageKey = DEFAULT_STORAGE_KEY,
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(defaultTheme);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem(storageKey) as Theme | null;
-    if (stored === 'light' || stored === 'dark') {
-      setThemeState(stored);
-      document.documentElement.setAttribute('data-theme', stored);
+    const stored = localStorage.getItem(storageKey);
+    if (storageKey === DEFAULT_STORAGE_KEY) {
+      setThemeState(stored === '0' ? 'light' : 'dark');
+    } else {
+      if (stored === 'light' || stored === 'dark') setThemeState(stored);
     }
   }, [storageKey]);
 
   useEffect(() => {
-    if (mounted) {
-      document.documentElement.setAttribute('data-theme', theme);
+    if (!mounted) return;
+    const isNight = theme === 'dark';
+    document.body.classList.toggle('mode-night', isNight);
+    document.documentElement.setAttribute('data-theme', theme);
+    if (storageKey === DEFAULT_STORAGE_KEY) {
+      localStorage.setItem(storageKey, isNight ? '1' : '0');
+    } else {
       localStorage.setItem(storageKey, theme);
     }
   }, [theme, mounted, storageKey]);

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Libre_Baskerville, Outfit, JetBrains_Mono } from "next/font/google";
-import "./globals.css";
+import "./globals.scss";
 import AppLayout from "@/components/Layout/AppLayout";
 import { ThemeProvider } from "@/context/ThemeContext";
 

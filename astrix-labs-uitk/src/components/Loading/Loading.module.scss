@@ -1,35 +1,16 @@
 .spinner {
-  color: var(--accent-primary);
+  color: var(--accent);
   animation: spin 1s linear infinite;
 }
 
-.spinner svg {
-  width: 100%;
-  height: 100%;
-}
-
-.spinner.sm {
-  width: 16px;
-  height: 16px;
-}
-
-.spinner.md {
-  width: 24px;
-  height: 24px;
-}
-
-.spinner.lg {
-  width: 48px;
-  height: 48px;
-}
+.spinner svg { width: 100%; height: 100%; }
+.spinner.sm { width: 16px; height: 16px; }
+.spinner.md { width: 24px; height: 24px; }
+.spinner.lg { width: 48px; height: 48px; }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .pageLoader {
@@ -37,45 +18,32 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: var(--sp-16);
   min-height: 50vh;
   width: 100%;
 }
 
 .pageLoaderMessage {
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--text-muted);
+  font: var(--t-body-sm);
+  color: var(--ink-3);
 }
 
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--border-default) 25%,
-    var(--border-strong) 50%,
-    var(--border-default) 75%
+    var(--rule-1) 25%,
+    var(--rule-2) 50%,
+    var(--rule-1) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
-.skeleton.text {
-  border-radius: var(--radius-sm);
-}
-
-.skeleton.rectangular {
-  border-radius: var(--radius-md);
-}
-
-.skeleton.circular {
-  border-radius: 50%;
-}
+.skeleton.text { border-radius: var(--r-sm); }
+.skeleton.rectangular { border-radius: var(--r-md); }
+.skeleton.circular { border-radius: 50%; }
 
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

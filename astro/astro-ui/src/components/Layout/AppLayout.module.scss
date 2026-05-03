@@ -1,18 +1,26 @@
 .layout {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
 .main {
   flex: 1;
-  margin-left: 260px;
+  margin-left: 240px;
   padding: var(--space-section-horizontal);
-  min-height: 100vh;
   transition: margin-left 0.2s ease;
 }
 
 .mainCollapsed {
-  margin-left: 72px;
+  margin-left: 64px;
+}
+
+.colophon {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 101;
 }
 
 @media (max-width: 768px) {

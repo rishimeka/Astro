@@ -6,7 +6,7 @@ import logging
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
 from astro_api.dependencies import get_orchestration_storage, get_runner
@@ -50,6 +50,19 @@ async def list_runs(
         )
         for r in runs
     ]
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_run(
+    id: str,
+    storage = Depends(get_orchestration_storage),
+) -> None:
+    """Delete a run by ID."""
+    logger.info(f"Deleting run: {id}")
+    deleted = await storage.delete_run(id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Run '{id}' not found")
+    logger.info(f"Run deleted: {id}")
 
 
 @router.get("/{id}", response_model=RunResponse)

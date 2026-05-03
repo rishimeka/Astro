@@ -1,72 +1,56 @@
 .panel {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-card-padding);
+  background: var(--paper-2);
+  border: 1px solid var(--rule-1);
+  border-radius: var(--r-md);
+  padding: var(--sp-24);
 }
 
 .title {
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 var(--space-element-gap) 0;
+  font: var(--t-label);
+  text-transform: uppercase;
+  letter-spacing: var(--trk-label);
+  color: var(--ink-3);
+  margin: 0 0 var(--sp-16) 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--rule-1);
 }
 
 .list {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .key {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
+  font: var(--t-mono-sm);
+  letter-spacing: var(--trk-mono);
+  color: var(--ink-4);
 }
 
 .value {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--text-primary);
+  font: var(--t-mono);
+  letter-spacing: var(--trk-mono);
+  color: var(--ink-1);
   margin: 0;
   word-break: break-word;
 }
 
-.null {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.boolean {
-  color: #F59E0B;
-}
-
-.number {
-  color: #3B82F6;
-}
-
-.string {
-  color: #10B981;
-}
-
-.empty {
-  color: var(--text-muted);
-}
+.null { color: var(--ink-4); font-style: italic; }
+.boolean { color: var(--ochre); }
+.number { color: var(--accent); }
+.string { color: var(--live); }
+.empty { color: var(--ink-4); }
 
 .emptyMessage {
-  font-size: 13px;
-  color: var(--text-muted);
+  font: var(--t-body-sm);
+  color: var(--ink-4);
   font-style: italic;
   margin: 0;
 }
@@ -77,26 +61,20 @@
   list-style-type: disc;
 }
 
-.array li {
-  margin: 4px 0;
-}
+.array li { margin: 3px 0; }
 
 .nested {
   margin: 0;
   padding-left: 12px;
-  border-left: 2px solid var(--border-default);
+  border-left: 1px solid var(--rule-1);
 }
 
-.nestedItem {
-  margin: 8px 0;
-}
+.nestedItem { margin: 6px 0; }
 
 .nestedKey {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
+  font: var(--t-mono-sm);
+  letter-spacing: var(--trk-mono);
+  color: var(--ink-4);
 }
 
-.nestedValue {
-  margin: 2px 0 0 0;
-}
+.nestedValue { margin: 2px 0 0 0; }

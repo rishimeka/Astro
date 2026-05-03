@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from astro.launchpad.conversation import Conversation
+from astro.launchpad.direct_responder import DirectResponder
 from astro.launchpad.interpreter import Interpreter
 from astro.launchpad.running_agent import AgentOutput, RunningAgent
 
@@ -42,6 +43,7 @@ class ZeroShotPipeline:
         second_brain: Any,
         directive_generator: Any = None,
         context_gatherer: Any = None,
+        direct_responder: DirectResponder | None = None,
     ):
         """Initialize the zero-shot pipeline.
 
@@ -51,12 +53,14 @@ class ZeroShotPipeline:
             second_brain: Second Brain for memory management.
             directive_generator: Optional DirectiveGenerator for creating directives on-the-fly.
             context_gatherer: Optional ContextGatherer for gathering requirements.
+            direct_responder: Optional DirectResponder for conversational queries.
         """
         self.interpreter = interpreter
         self.running_agent = running_agent
         self.second_brain = second_brain
         self.directive_generator = directive_generator
         self.context_gatherer = context_gatherer
+        self.direct_responder = direct_responder
 
     async def execute_with_events(
         self,
@@ -85,6 +89,15 @@ class ZeroShotPipeline:
         if not conversation.is_in_clarification():
             conversation.start_clarification(message, max_rounds=3)
 
+        # Step 0: Lightweight context retrieval for better interpretation
+        pre_context = None
+        try:
+            pre_context = await self.second_brain.retrieve_lightweight(
+                message, conversation
+            )
+        except Exception as e:
+            logger.warning(f"Lightweight retrieval failed, continuing without: {e}")
+
         # Step 1: Interpret (evaluate with clarification loop)
         yield {
             "type": "thinking",
@@ -97,10 +110,17 @@ class ZeroShotPipeline:
 
         while attempts < max_attempts:
             attempts += 1
-            result = await self.interpreter.evaluate(conversation)
+            result = await self.interpreter.evaluate(
+                conversation, pre_context=pre_context
+            )
             conversation.increment_clarification_round(result.model_dump())
 
-            if result.action == "ask_user":
+            if result.action == "respond_directly":
+                # Conversational query — skip directive/tool overhead
+                interpretation = result
+                break
+
+            elif result.action == "ask_user":
                 # Need clarification - save questions to conversation history
                 questions_text = "\n".join(f"{i+1}. {q}" for i, q in enumerate(result.questions))
                 assistant_message = f"I need more information to help you:\n\n{questions_text}"
@@ -149,6 +169,35 @@ class ZeroShotPipeline:
                 reasoning="Max attempts reached in clarification loop",
                 confidence=0.0,
             )
+
+        # Handle respond_directly action
+        if interpretation.action == "respond_directly":
+            yield {"type": "response_mode", "mode": "conversational"}
+            yield {"type": "thinking", "message": "Responding directly..."}
+
+            # Retrieve context for the response
+            context = await self._retrieve_context(
+                [message], conversation
+            )
+
+            if self.direct_responder:
+                output = await self.direct_responder.respond(
+                    conversation=conversation,
+                    context=context,
+                    direct_response_context=interpretation.direct_response_context,
+                )
+            else:
+                # Fallback to RunningAgent direct response
+                output = await self.running_agent._direct_response(
+                    conversation, context
+                )
+
+            yield {"type": "output", "output": output}
+            await self._persist_to_memory(message, output, conversation)
+            return
+
+        # Emit directive mode
+        yield {"type": "response_mode", "mode": "directive"}
 
         # Handle directive selection or generation
         if interpretation.directive_ids:
@@ -228,13 +277,40 @@ class ZeroShotPipeline:
         if not conversation.is_in_clarification():
             conversation.start_clarification(message, max_rounds=0)
 
+        # Step 0: Lightweight context retrieval
+        pre_context = None
+        try:
+            pre_context = await self.second_brain.retrieve_lightweight(
+                message, conversation
+            )
+        except Exception as e:
+            logger.warning(f"Lightweight retrieval failed, continuing without: {e}")
+
         # Step 1: Interpret (force decision in blocking mode)
         interpretation = await self._interpret_with_clarification_blocking(
-            message, conversation
+            message, conversation, pre_context=pre_context
         )
 
         # Clear clarification state
         conversation.clear_clarification()
+
+        # Handle respond_directly
+        if interpretation.action == "respond_directly":
+            context = await self._retrieve_context([message], conversation)
+
+            if self.direct_responder:
+                output = await self.direct_responder.respond(
+                    conversation=conversation,
+                    context=context,
+                    direct_response_context=interpretation.direct_response_context,
+                )
+            else:
+                output = await self.running_agent._direct_response(
+                    conversation, context
+                )
+
+            await self._persist_to_memory(message, output, conversation)
+            return output
 
         # Step 2: Retrieve context from Second Brain
         context = await self._retrieve_context(
@@ -365,7 +441,7 @@ class ZeroShotPipeline:
             )
 
     async def _interpret_with_clarification_blocking(
-        self, message: str, conversation: Conversation
+        self, message: str, conversation: Conversation, pre_context: dict | None = None,
     ) -> Any:
         """Interpret query in blocking mode (force decision, cannot ask user).
 
@@ -381,7 +457,9 @@ class ZeroShotPipeline:
         """
         logger.info("ZeroShotPipeline: Starting interpretation (blocking mode)")
         try:
-            result = await self.interpreter.evaluate(conversation)
+            result = await self.interpreter.evaluate(
+                conversation, pre_context=pre_context
+            )
 
             # If result is ask_user, force it to select_directives
             if result.action == "ask_user":
@@ -572,14 +650,21 @@ class ZeroShotPipeline:
         """
         # Early exit if no generator available
         if not self.directive_generator or not self.context_gatherer:
+            logger.info(
+                "ZeroShotPipeline: Directive generation skipped — "
+                f"generator={'yes' if self.directive_generator else 'no'}, "
+                f"gatherer={'yes' if self.context_gatherer else 'no'}"
+            )
             return
 
-        # Check if we should offer generation
-        should_generate = self.interpreter.should_offer_directive_generation(
-            interpretation
-        )
-        if not should_generate:
-            return
+        # If the interpreter explicitly chose generate_directive, skip the heuristic check.
+        # Otherwise, apply the heuristic to decide if we should offer generation.
+        if interpretation.action != "generate_directive":
+            should_generate = self.interpreter.should_offer_directive_generation(
+                interpretation
+            )
+            if not should_generate:
+                return
 
         try:
             logger.info("ZeroShotPipeline: Attempting directive generation")

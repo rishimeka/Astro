@@ -9,6 +9,9 @@
        ======================================== */
 
     /* Primary Accent - Indigo */
+    --accent: #6C72FF;
+    --accent-ink: #5A60E8;
+    --accent-wash: rgba(108, 114, 255, 0.12);
     --accent-primary: #6C72FF;
     --accent-primary-hover: #5A60E8;
     --accent-primary-active: #4A50D8;
@@ -79,6 +82,27 @@
     --shadow-card: 0 20px 40px rgba(0, 0, 0, 0.6);
     --shadow-accent: 0 4px 12px rgba(108, 114, 255, 0.3);
     --backdrop-blur: blur(10px);
+}
+
+/* ========================================
+   LIGHT MODE OVERRIDES
+   Map legacy tokens to UITK paper/ink system
+   ======================================== */
+
+[data-theme="light"] {
+    --text-primary: var(--ink-1);
+    --text-secondary: var(--ink-2);
+    --text-muted: var(--ink-3);
+    --bg-primary: var(--paper-0);
+    --bg-elevated: var(--paper-1);
+    --bg-alert: var(--paper-2);
+    --bg-code: var(--paper-2);
+    --border-default: var(--rule-1);
+    --border-strong: var(--rule-2);
+    --shadow-card: 0 20px 40px rgba(0, 0, 0, 0.08);
+    --shadow-accent: 0 4px 12px rgba(108, 114, 255, 0.15);
+    --accent-primary-subtle: rgba(108, 114, 255, 0.08);
+    --accent-success: var(--live);
 }
 
 /* ========================================
